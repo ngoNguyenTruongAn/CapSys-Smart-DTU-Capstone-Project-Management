@@ -1,103 +1,156 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { users } from "../../components/data/users";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import "./Login.scss"; // Assuming the SCSS file is named LoginForm.scss
+import apple from "../../assets/logo/pngwing 1.png";
+import google from "../../assets/logo/pngwing 2.png";
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState(""); // Lỗi tổng (sai mật khẩu…)
-  const [emailError, setEmailError] = useState(""); // 🔹 Lỗi riêng cho email
-  const navigate = useNavigate();
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("contact@disdtech.com");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("Wrong password"); // Simulating error state
+  const [name, setName] = useState(""); // For signup form
 
-  // 🔹 Khi nhập input
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // ✅ Realtime validate email nếu field là email
-    if (name === "email") {
-      if (value && !/^[\w.+-]+@dtu\.edu\.vn$/i.test(value)) {
-        setEmailError("Email phải kết thúc bằng @dtu.edu.vn");
+  const handleContinue = (e) => {
+    e.preventDefault();
+    // Add login/signup logic here, e.g., API call
+    if (isLogin) {
+      if (password === "") {
+        setError("Wrong password");
       } else {
-        setEmailError("");
+        setError("");
+        console.log("Login attempt with", { email, password });
+      }
+    } else {
+      if (!name || !email || !password) {
+        setError("All fields are required");
+      } else {
+        setError("");
+        console.log("Signup attempt with", { name, email, password });
       }
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleForgotPassword = () => {
+    console.log("Forgot password clicked");
+  };
 
-    // Kiểm tra lần cuối trước khi submit
-    if (!/^[\w.+-]+@dtu\.edu\.vn$/i.test(formData.email)) {
-      setEmailError("Email phải kết thúc bằng @dtu.edu.vn");
-      return;
-    }
+  const handleSignUp = () => {
+    setIsLogin(false);
+    setError("");
+  };
 
-    const found = users.find(
-      (u) => u.email === formData.email && u.password === formData.password
-    );
+  const handleLogin = () => {
+    setIsLogin(true);
+    setError("");
+  };
 
-    if (!found) {
-      setError("Email hoặc mật khẩu không đúng!");
-      return;
-    }
-
-    localStorage.setItem(
-      "auth",
-      JSON.stringify({ email: found.email, role: found.role })
-    );
-
-    if (found.role === "admin") navigate("/admin");
-    else if (found.role === "lecturer") navigate("/lecturer");
-    else navigate("/student");
+  const handleSocialLogin = (provider) => {
+    console.log(`Login with ${provider} clicked`);
   };
 
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
-      <div
-        className="card shadow-sm p-4"
-        style={{ maxWidth: "400px", width: "100%" }}
-      >
-        <h1 className="h4 text-center mb-4">Capstone Login</h1>
-
-        {error && (
-          <div className="alert alert-danger text-center py-2">{error}</div>
+    <div className="login-container">
+      <div className="tab-options">
+        <button
+          type="button"
+          className={`tab-button ${isLogin ? "active" : ""}`}
+          onClick={handleLogin}
+        >
+          Log in
+        </button>
+        <button
+          type="button"
+          className={`tab-button ${!isLogin ? "active" : ""}`}
+          onClick={handleSignUp}
+        >
+          Sign up
+        </button>
+      </div>
+      <form className="login-form" onSubmit={handleContinue}>
+        {!isLogin && (
+          <div className="form-group">
+            <label htmlFor="name">Your Name hehe</label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="John Doe"
+            />
+          </div>
         )}
-
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="mb-3">
-            <label className="form-label">Email</label>
-            <input
-              name="email"
-              type="email"
-              className={`form-control ${emailError ? "is-invalid" : ""}`}
-              placeholder="name@dtu.edu.vn"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-            />
-            {/* 🔹 Hiện lỗi realtime */}
-            {emailError && <div className="invalid-feedback">{emailError}</div>}
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label">Mật khẩu</label>
-            <input
-              name="password"
-              type="password"
-              className="form-control"
-              placeholder="••••••"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-            />
-          </div>
-
-          <button type="submit" className="btn btn-primary w-100">
-            Đăng nhập
-          </button>
-        </form>
+        <div className="form-group">
+          <label htmlFor="email">Your Email</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="contact@disdtech.com"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={error ? "error" : ""}
+          />
+          {error && <span className="error-message">{error}</span>}
+          {isLogin && (
+            <a
+              href="forgot-password"
+              className="forgot-password"
+              onClick={handleForgotPassword}
+            >
+              Forgot password?
+            </a>
+          )}
+        </div>
+        <button type="submit" className="continue-button">
+          {isLogin ? "Continue" : "Sign up"}
+        </button>
+      </form>
+      <div className="divider">
+        <span>or</span>
+      </div>
+      <div className="social-login">
+        <button
+          type="button"
+          className="social-button apple"
+          onClick={() => handleSocialLogin("Apple")}
+        >
+          <img src={apple} alt="Apple" /> {/* Replace with actual icon path */}
+          Login with Apple
+        </button>
+        <button
+          type="button"
+          className="social-button google"
+          onClick={() => handleSocialLogin("Google")}
+        >
+          <img src={google} alt="Google" />{" "}
+          {/* Replace with actual icon path */}
+          Login with Google
+        </button>
+      </div>
+      <div className="signup-link">
+        {isLogin ? (
+          <>
+            <span>Don't have an account?</span>
+            <a href="#" onClick={handleSignUp}>
+              Sign up
+            </a>
+          </>
+        ) : (
+          <>
+            <span>Already have an account?</span>
+            <a href="#" onClick={handleLogin}>
+              Log in
+            </a>
+          </>
+        )}
       </div>
     </div>
   );
