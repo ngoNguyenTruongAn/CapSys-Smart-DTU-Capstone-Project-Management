@@ -1,0 +1,800 @@
+# ==================================================
+# Path: D:\CapSys-Smart-DTU-Capstone-Project-Management-main
+# Detected tech: javascript, python, react, typescript
+# ==================================================
+
+## DIRECTORY STRUCTURE
+```
+CapSys-Smart-DTU-Capstone-Project-Management-main/
+├── .git/
+├── node_modules/
+├── public/
+│   └── vite.svg
+├── src/
+│   ├── app/
+│   │   └── README.md
+│   ├── assets/
+│   │   ├── icon/
+│   │   │   ├── .gitkeep
+│   │   │   └── Group 4.png
+│   │   ├── image/
+│   │   │   ├── .gitkeep
+│   │   │   └── hue.jpg
+│   │   └── logo/
+│   │       ├── .gitkeep
+│   │       ├── Frame 41.png
+│   │       ├── pngwing 1.png
+│   │       └── pngwing 2.png
+│   ├── components/
+│   │   ├── common/
+│   │   │   ├── Navbar.jsx
+│   │   │   └── Navbar.scss
+│   │   ├── data/
+│   │   │   ├── Table.js
+│   │   │   └── users.js
+│   │   ├── domain/
+│   │   │   └── StartCard.js
+│   │   └── ui/
+│   │       └── Button.js
+│   ├── features/
+│   │   ├── approvals/
+│   │   │   └── .gitkeep
+│   │   ├── grading/
+│   │   │   └── .gitkeep
+│   │   ├── proposals/
+│   │   │   └── .gitkeep
+│   │   ├── reports/
+│   │   │   └── .gitkeep
+│   │   └── schedules/
+│   │       └── .gitkeep
+│   ├── globalStyle/
+│   │   └── global.css
+│   ├── hooks/
+│   │   └── useAuth.js
+│   ├── layouts/
+│   │   ├── Lecturers/
+│   │   │   ├── LecturersLayout.jsx
+│   │   │   └── LecturersLayout.scss
+│   │   └── DashboardLayout.js
+│   ├── pages/
+│   │   ├── ForgotPassword/
+│   │   │   ├── ConfirmForgot.jsx
+│   │   │   ├── ForgotPassword.jsx
+│   │   │   ├── ForgotPassword.scss
+│   │   │   ├── VerificationCode.jsx
+│   │   │   └── VerificationCode.scss
+│   │   ├── Login/
+│   │   │   ├── Login.jsx
+│   │   │   └── Login.scss
+│   │   └── admin/
+│   │       └── Dashboard.js
+│   ├── services/
+│   │   └── auth.api.js
+│   ├── store/
+│   │   └── auth.js
+│   ├── App.jsx
+│   └── main.jsx
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+└── vite.config.js
+```
+
+## FILE CONTENTS
+
+### eslint.config.js
+```js
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs['recommended-latest'],
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])
+
+```
+
+### vite.config.js
+```js
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [react()],
+})
+
+```
+
+### src\App.jsx
+```jsx
+import { Route, Router, Routes } from "react-router-dom";
+import Login from "./pages/Login/Login";
+import LecturersLayout from "./layouts/Lecturers/LecturersLayout";
+import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
+import VerificationCode from "./pages/ForgotPassword/VerificationCode";
+import ConfirmForgot from "./pages/ForgotPassword/ConfirmForgot";
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Login />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/lecturer" element={<LecturersLayout />} />
+      <Route path="verification-code" element={<VerificationCode />} />
+      <Route path="confirm-forgot" element={<ConfirmForgot />} />
+      {/* <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/lecturer" element={<LecturerDashboard />} />
+        <Route path="/student" element={<StudentDashboard />} /> */}
+      {/* sau này thêm ProtectedRoute để check role */}
+    </Routes>
+  );
+}
+
+export default App;
+
+```
+
+### src\main.jsx
+```jsx
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+import { BrowserRouter } from "react-router-dom";
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </StrictMode>
+);
+
+```
+
+### src\components\common\Navbar.jsx
+```jsx
+import React from "react";
+import "./Navbar.scss";
+import logoCap from "../../assets/logo/Frame 41.png";
+import anh from "../../assets/image/hue.jpg";
+const Navbar = () => {
+  return (
+    <nav className="navbar">
+      {/* Logo + Tên hệ thống */}
+      <div className="nav-top">
+        <div className="navbar__logo">
+          <img src={logoCap} alt="logo" />
+          <div className="logo-text">
+            <span className="logo-text-top">Quản Lý Đồ Án Capstone</span>
+            <span className="logo-text-bottom">
+              Hệ thống quản lý đồ án tốt nghiệp
+            </span>
+          </div>
+        </div>
+
+        {/* User info */}
+        <div className="navbar__user">
+          <img src={anh} alt="avatar" />
+          <div className="navbar__user-info">
+            <span className="name">PGS. Trần Đức A</span>
+            <span className="role">Trưởng khoa CNTT</span>
+          </div>
+        </div>
+      </div>
+      {/* Menu */}
+      <ul className="navbar__menu">
+        <li className="active">Tổng quan</li>
+        <li>Quản lý đồ án</li>
+        <li>Chấm điểm</li>
+        <li>Lịch bảo vệ</li>
+        <li>Phê duyệt</li>
+      </ul>
+    </nav>
+  );
+};
+
+export default Navbar;
+
+```
+
+### src\components\data\Table.js
+```js
+
+```
+
+### src\components\data\users.js
+```js
+export const students = [
+  {
+    id: "SV001",
+    name: "Nguyễn Văn A",
+    email: "a@dtu.edu.vn",
+    phone: "0905-111-222",
+    dob: "2002-03-15",
+    gender: "Nam",
+    major: "Công nghệ thông tin",
+    year: 4,
+    gpa: 3.4,
+    capstoneId: null, // id nhóm capstone nếu đã join
+    capstoneRole: null, // Leader / Member
+    advisorId: null, // id giảng viên hướng dẫn
+    status: "active", // active / graduated / dropped
+    joinDate: "2025-01-20", // ngày đăng ký capstone
+    skills: ["React", "Node.js"], // mảng kỹ năng
+    avatar: "/images/students/sv001.jpg",
+    address: "Đà Nẵng, Việt Nam",
+    role: "student",
+    password: "123456", // chỉ dùng cho mock login
+  },
+  {
+    id: "SV002",
+    name: "Trần Thị B",
+    email: "b@dtu.edu.vn",
+    phone: "0912-333-444",
+    dob: "2001-10-05",
+    gender: "Nữ",
+    major: "Trí tuệ nhân tạo",
+    year: 4,
+    gpa: 3.7,
+    capstoneId: "CP02",
+    capstoneRole: "Leader",
+    advisorId: "GV001",
+    status: "active",
+    joinDate: "2025-01-25",
+    skills: ["Python", "Machine Learning", "TensorFlow"],
+    avatar: "/images/students/sv002.jpg",
+    address: "Huế, Việt Nam",
+    role: "student",
+    password: "123456",
+  },
+  // thêm nhiều object khác nếu cần
+];
+
+export const lecturers = [
+  {
+    id: "GV001",
+    name: "TS. Phạm Văn Hùng",
+    email: "hung@dtu.edu.vn",
+    phone: "0906-555-666",
+    dept: "Công nghệ thông tin",
+    position: "Trưởng bộ môn",
+    specialization: ["Web Development", "Cloud Computing"],
+    office: "Phòng 305, Tòa A",
+    availableSlots: ["2025-09-20 09:00", "2025-09-21 14:00"], // slot họp/định hướng
+    adviseeLimit: 5, // tối đa số nhóm được hướng dẫn
+    currentAdvisees: ["CP02"],
+    avatar: "/images/lecturers/gv001.jpg",
+    bio: "20 năm kinh nghiệm phát triển phần mềm, từng làm việc tại Google Cloud.",
+    role: "lecturer",
+    password: "123456", // chỉ dùng cho mock login
+  },
+  {
+    id: "GV002",
+    name: "ThS. Lê Thị Lan",
+    email: "lan@dtu.edu.vn",
+    phone: "0987-777-888",
+    dept: "Khoa Học Máy Tính",
+    position: "Giảng viên",
+    specialization: ["AI", "Deep Learning"],
+    office: "Phòng 210, Tòa B",
+    availableSlots: ["2025-09-22 10:00", "2025-09-23 15:00"],
+    adviseeLimit: 3,
+    currentAdvisees: [],
+    avatar: "/images/lecturers/gv002.jpg",
+    bio: "Chuyên nghiên cứu về AI, tham gia nhiều dự án quốc tế về Deep Learning.",
+    role: "lecturer",
+    password: "123456",
+  },
+];
+
+export const users = [...students, ...lecturers];
+
+```
+
+### src\components\domain\StartCard.js
+```js
+
+```
+
+### src\components\ui\Button.js
+```js
+
+```
+
+### src\hooks\useAuth.js
+```js
+
+```
+
+### src\layouts\DashboardLayout.js
+```js
+
+```
+
+### src\layouts\Lecturers\LecturersLayout.jsx
+```jsx
+import React from "react";
+import Navbar from "../../components/common/Navbar";
+import { Outlet } from "react-router-dom";
+import "./LecturersLayout.scss";
+const LecturersLayout = () => {
+  return (
+    <div className="lecturers-layout">
+      <div className="lecturers-navbar">
+        <Navbar />
+      </div>
+      <div className="lecturers-content">
+        <Outlet />
+      </div>
+    </div>
+  );
+};
+
+export default LecturersLayout;
+
+```
+
+### src\pages\admin\Dashboard.js
+```js
+
+```
+
+### src\pages\ForgotPassword\ConfirmForgot.jsx
+```jsx
+import React from "react";
+import "./ForgotPassword.scss";
+import iconReturn from "../../assets/icon/Group 4.png";
+import { useNavigate } from "react-router-dom";
+
+const ConfirmForgot = () => {
+  const navigate = useNavigate();
+
+  const handleBack = () => {
+    // Navigate back to login (e.g., using React Router or parent component)
+    navigate("/verification-code");
+  };
+
+  return (
+    <div className="forgot-password-container">
+      <div className="forgot-password-content">
+        <button className="back-button" onClick={handleBack}>
+          <div className="back-icon">
+            <img src={iconReturn} alt="" />
+          </div>
+        </button>
+
+        <h2>Password reset</h2>
+        <p>
+          Your password has been successfully reset. click confirm to set a new
+          password
+        </p>
+        <button
+          type="submit"
+          className="reset-button"
+          onClick={() => navigate("/")}
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default ConfirmForgot;
+
+```
+
+### src\pages\ForgotPassword\ForgotPassword.jsx
+```jsx
+import React, { useState } from "react";
+import "./ForgotPassword.scss";
+import iconReturn from "../../assets/icon/Group 4.png";
+import { useNavigate } from "react-router-dom";
+
+const ForgotPassword = () => {
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleResetPassword = (e) => {
+    e.preventDefault();
+    // Validate email and send reset request (e.g., API call)
+    if (!email) {
+      setError("Please enter your email");
+    } else {
+      setError("");
+      console.log("Reset password request sent to", email);
+      // Navigate to verification step (e.g., using React Router)
+    }
+  };
+
+  const handleBack = () => {
+    // Navigate back to login (e.g., using React Router or parent component)
+    navigate("/");
+  };
+
+  return (
+    <div className="forgot-password-container">
+      <div className="forgot-password-content">
+        <button className="back-button" onClick={handleBack}>
+          <div className="back-icon">
+            <img src={iconReturn} alt="" />
+          </div>
+        </button>
+
+        <h2>Forgot password</h2>
+        <p>Please enter your email to reset the password</p>
+        <form onSubmit={handleResetPassword}>
+          <div className="form-group">
+            <label htmlFor="email">Your Email</label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className={error ? "error" : ""}
+            />
+            {error && <span className="error-message">{error}</span>}
+          </div>
+          <button
+            type="submit"
+            className="reset-button"
+            onClick={() => navigate("/verification-code")}
+          >
+            Reset Password
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ForgotPassword;
+
+```
+
+### src\pages\ForgotPassword\VerificationCode.jsx
+```jsx
+import React, { useState } from "react";
+import "./VerificationCode.scss";
+import iconReturn from "../../assets/icon/Group 4.png";
+import { useNavigate } from "react-router-dom";
+
+const VerificationCode = () => {
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const handleResetPassword = (e) => {
+    e.preventDefault();
+    const otpValue = otp.join("");
+    if (otpValue.length !== 6 || !/^\d{6}$/.test(otpValue)) {
+      setError("Please enter a valid 6-digit code");
+    } else {
+      setError("");
+      console.log("Verification code submitted:", otpValue);
+    }
+  };
+  const handleOtpChange = (index, value) => {
+    const newOtp = [...otp];
+    // Chỉ cho phép nhập số và giới hạn 1 ký tự
+    if (/^\d?$/.test(value) && value.length <= 1) {
+      newOtp[index] = value;
+      setOtp(newOtp);
+
+      // Di chuyển đến ô tiếp theo nếu có giá trị
+      if (value && index < 5) {
+        document.getElementById(`otp-input-${index + 1}`).focus();
+      }
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      document.getElementById(`otp-input-${index - 1}`).focus();
+    }
+  };
+  const handleBack = () => {
+    // Navigate back to login (e.g., using React Router or parent component)
+    navigate("/forgot-password");
+  };
+
+  return (
+    <div className="forgot-password-container">
+      <div className="forgot-password-content">
+        <button className="back-button" onClick={handleBack}>
+          <div className="back-icon">
+            <img src={iconReturn} alt="" />
+          </div>
+        </button>
+
+        <h2>Check your email</h2>
+        <p>
+          We sent a reset link to{" "}
+          <span className="forgot-password-contact">contact@dscode...com</span>{" "}
+          enter 5 digit code that mentioned in the email
+        </p>
+        <form onSubmit={handleResetPassword}>
+          <div className="form-group">
+            {/* <label htmlFor="email">Your Email</label> */}
+            <div className="otp-container">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`otp-input-${index}`}
+                  type="text"
+                  value={digit}
+                  onChange={(e) => handleOtpChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  maxLength="1"
+                  className={error ? "error" : ""}
+                  autoFocus={index === 0} // Tự động focus vào ô đầu tiên
+                />
+              ))}
+            </div>
+            {/* {error && <span className="error-message">{error}</span>} */}
+          </div>
+          <button
+            type="submit"
+            className="reset-button"
+            onClick={() => navigate("/confirm-forgot")}
+          >
+            Reset Password
+          </button>
+        </form>
+        <p className="verification-bottom">
+          Haven’t got the email yet?{" "}
+          <span className="resend-email">Resend email</span>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default VerificationCode;
+
+```
+
+### src\pages\Login\Login.jsx
+```jsx
+import React, { useState } from "react";
+import "./Login.scss";
+import apple from "../../assets/logo/pngwing 1.png";
+import google from "../../assets/logo/pngwing 2.png";
+
+const Login = () => {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(""); // error cho password
+  const [name, setName] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [nameError, setNameError] = useState("");
+
+  const validateEmail = (value) => {
+    // Regex đơn giản, đủ check định dạng email
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(value);
+  };
+
+  const handleContinue = (e) => {
+    e.preventDefault();
+
+    // reset error mỗi lần submit
+    setEmailError("");
+    setPasswordError("");
+    setNameError("");
+
+    let hasError = false;
+
+    // Email
+    if (!validateEmail(email)) {
+      setEmailError("Email format is invalid");
+      hasError = true;
+    }
+
+    if (isLogin) {
+      // Password
+      if (!password) {
+        setPasswordError("Password cannot be empty");
+        hasError = true;
+      }
+    } else {
+      // Signup checks
+      if (!name) {
+        setNameError("Name is required");
+        hasError = true;
+      }
+      if (!email) {
+        setEmailError("Email is required");
+        hasError = true;
+      }
+      if (!password) {
+        setPasswordError("Password is required");
+        hasError = true;
+      }
+    }
+
+    if (hasError) return;
+
+    // Nếu tới đây thì hợp lệ
+    if (isLogin) {
+      console.log("Login attempt with", { email, password });
+    } else {
+      console.log("Signup attempt with", { name, email, password });
+    }
+  };
+
+  const handleForgotPassword = () => {
+    console.log("Forgot password clicked");
+  };
+
+  const handleSignUp = () => {
+    setIsLogin(false);
+    setError("");
+    setEmailError("");
+  };
+
+  const handleLogin = () => {
+    setIsLogin(true);
+    setError("");
+    setEmailError("");
+  };
+
+  const handleSocialLogin = (provider) => {
+    console.log(`Login with ${provider} clicked`);
+  };
+
+  return (
+    <div className="login-container">
+      <div className="tab-options">
+        <button
+          type="button"
+          className={`tab-button ${isLogin ? "active" : ""}`}
+          onClick={handleLogin}
+        >
+          Log in
+        </button>
+        <button
+          type="button"
+          className={`tab-button ${!isLogin ? "active" : ""}`}
+          onClick={handleSignUp}
+        >
+          Sign up
+        </button>
+      </div>
+      <form className="login-form" onSubmit={handleContinue}>
+        {!isLogin && (
+          <div className="form-group">
+            <label htmlFor="name">Your Name</label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="John Doe"
+              className={nameError ? "error" : ""}
+            />
+            {nameError && <span className="error-message">{nameError}</span>}
+          </div>
+        )}
+        <div className="form-group">
+          <label htmlFor="email">Your Email</label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="contact@disdtech.com"
+            className={emailError ? "error" : ""}
+          />
+          {emailError && <span className="error-message">{emailError}</span>}
+        </div>
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={passwordError ? "error" : ""}
+          />
+          {passwordError && (
+            <span className="error-message">{passwordError}</span>
+          )}
+          {isLogin && (
+            <a
+              href="forgot-password"
+              className="forgot-password"
+              onClick={handleForgotPassword}
+            >
+              Forgot password?
+            </a>
+          )}
+        </div>
+        <button type="submit" className="continue-button">
+          {isLogin ? "Continue" : "Sign up"}
+        </button>
+      </form>
+      <div className="divider">
+        <span>or</span>
+      </div>
+      <div className="social-login">
+        <button
+          type="button"
+          className="social-button apple"
+          onClick={() => handleSocialLogin("Apple")}
+        >
+          <img src={apple} alt="Apple" />
+          Login with Apple
+        </button>
+        <button
+          type="button"
+          className="social-button google"
+          onClick={() => handleSocialLogin("Google")}
+        >
+          <img src={google} alt="Google" />
+          Login with Google
+        </button>
+      </div>
+      <div className="signup-link">
+        {isLogin ? (
+          <>
+            <span>Don't have an account?</span>
+            <a href="#" onClick={handleSignUp}>
+              Sign up
+            </a>
+          </>
+        ) : (
+          <>
+            <span>Already have an account?</span>
+            <a href="#" onClick={handleLogin}>
+              Log in
+            </a>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Login;
+
+```
+
+### src\services\auth.api.js
+```js
+
+```
+
+### src\store\auth.js
+```js
+
+```
