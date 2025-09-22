@@ -1,10 +1,11 @@
 .navbar {
+  // max-width: 1200px;
   display: flex;
   justify-content: space-between;
   flex-direction: column;
-  align-items: center;
-  padding: 0.75rem 1.5rem;
+  align-items: start;
   background-color: #fff;
+  padding-bottom: 15px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 
@@ -42,8 +43,8 @@
     color: #333;
 
     img {
-      width: 64px;
-      height: 64px;
+      width: 55px;
+      height: 55px;
     }
   }
 
@@ -55,14 +56,30 @@
     padding: 0;
 
     li {
+      display: flex; // icon + text cùng hàng
+      align-items: center; // canh giữa icon
+      gap: 8px; // khoảng cách icon - text
       cursor: pointer;
       color: #444;
       font-weight: 500;
       transition: color 0.2s ease;
 
+      .navbar-icon-title {
+        width: 20px; // kích thước icon
+        height: 20px;
+        object-fit: contain;
+        transition: filter 0.2s ease; // hiệu ứng màu
+      }
+
       &:hover,
       &.active {
-        color: #1d4ed8; // xanh dương đậm
+        color: #1d4ed8;
+
+        .navbar-icon-title {
+          /* đổi màu icon kiểu filter để icon svg/png sáng lên */
+          filter: brightness(0) saturate(100%) invert(32%) sepia(94%)
+            saturate(5484%) hue-rotate(212deg) brightness(93%) contrast(101%);
+        }
       }
     }
   }
@@ -70,7 +87,15 @@
   &__user {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
+
+    .nav-bell {
+      width: 26px;
+      height: 26px;
+      cursor: pointer;
+      object-fit: contain;
+      border: none;
+    }
 
     img {
       width: 36px;

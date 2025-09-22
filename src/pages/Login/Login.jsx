@@ -227,14 +227,22 @@ const Login = () => {
         {isLogin ? (
           <>
             <span>Don't have an account?</span>
-            <button type="button" onClick={handleSwitchToSignup}>
+            <button
+              className="btn-signup-link"
+              type="button"
+              onClick={handleSwitchToSignup}
+            >
               Sign up
             </button>
           </>
         ) : (
           <>
             <span>Already have an account?</span>
-            <button type="button" onClick={handleSwitchToLogin}>
+            <button
+              className="btn-signup-link"
+              type="button"
+              onClick={handleSwitchToLogin}
+            >
               Log in
             </button>
           </>
