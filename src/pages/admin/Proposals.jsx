@@ -6,7 +6,7 @@ export default function Proposals(){
 return (
     <div style={{backgroundColor:"#EAF2FD"}}>
     <Header/>
-    <Tabs />
+    
     <ProposalList />
     </div>
     

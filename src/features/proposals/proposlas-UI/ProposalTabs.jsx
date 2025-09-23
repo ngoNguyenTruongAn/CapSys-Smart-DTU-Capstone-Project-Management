@@ -2,15 +2,20 @@ import { useState } from 'react';
 import styles from './Proposal.module.scss';
 import ProposalSearch from './ProposalSearch';
 
-function Tabs() {
-  const [activeIndex, setActiveIndex] = useState(0); // mặc định chọn tab đầu tiên
+function Tabs({ onTabChange, counts, onSearch }) {
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const tabs = [
-    "Tất cả (6)",
-    "Đã Phê Duyệt (2)",
-    "Chờ Phê Duyệt (2)",
-    "Bị Từ Chối (2)"
+    "Tất cả",
+    "Đã Duyệt",
+    "Chờ Được Duyệt",
+    "Bị Từ Chối"
   ];
+
+  const handleTabClick = (index, tabName) => {
+    setActiveIndex(index);
+    onTabChange(tabName);
+  };
 
   return (
     <div className={styles['tabs-wrapper']}>
@@ -19,14 +24,14 @@ function Tabs() {
           <li
             key={index}
             className={`${styles['tabs-list-item']} ${activeIndex === index ? styles.active : ''}`}
-            onClick={() => setActiveIndex(index)}
+            onClick={() => handleTabClick(index, tab)}
           >
-            {tab}
+            {tab} ({counts[tab] || 0})
           </li>
         ))}
       </ul>
-
-      <ProposalSearch />
+      {/* Pass the onSearch prop to the search component */}
+      <ProposalSearch onSearch={onSearch} />
     </div>
   );
 }

@@ -142,21 +142,18 @@ font-family: Arial, Helvetica, sans-serif;
     padding-left: 28px; 
     font-size: 16px;
 }
-.List-wrapper{
+.List-wrapper {
   margin-top: 40px;
   height: fit-content;
-      margin-top: 40px;
-    height: fit-content;
-    margin-left: 3%;
-    margin-right: 3%;
-    display: flex;
-    gap: 2%;
   margin-left: 3%;
   margin-right: 3%;
+  display: flex;
+  flex-wrap: wrap; // Thêm thuộc tính này để tự động xuống dòng
+  gap: 16px; // Giữ nguyên khoảng cách 2% giữa các thẻ
 }
 // Card
 .Card-wrapper{
- width: 31.3333%;
+ width: 28.3333%;
  height:470px;
  background-color: #fff;
  padding: 10px 30px;
