@@ -1,16 +1,15 @@
 import React from "react";
 import "./Navbar.scss";
-import logoCap from "../../assets/logo/Frame 41.png";
+import logoCap from "../../assets/logo/Frame41.png";
 import anh from "../../assets/image/hue.jpg";
-import iconTongQuan from "../../assets/icon/Menu_Alt_01.png";
-import iconQuanLyDoAn from "../../assets/icon/Notebook.png";
-import iconChamDiem from "../../assets/icon/Star.png";
-import iconLichBaoVe from "../../assets/icon/Calendar.png";
-import iconPheDuyet from "../../assets/icon/Check_All.png";
-import bell from "../../assets/icon/Bell.png";
-import { useNavigate } from "react-router-dom";
+import { ReactComponent as Bell } from "../../assets/icon/Bell.svg";
+import { ReactComponent as MenuIcon } from "../../assets/icon/Menu_Alt_01.svg";
+import { ReactComponent as NotebookIcon } from "../../assets/icon/Notebook.svg";
+import { ReactComponent as StarIcon } from "../../assets/icon/Star.svg";
+import { ReactComponent as CalendarIcon } from "../../assets/icon/Calendar.svg";
+import { ReactComponent as CheckIcon } from "../../assets/icon/Check_All.svg";
+
 const Navbar = () => {
-  const navigate = useNavigate();
   return (
     <nav className="navbar">
       {/* Logo + Tên hệ thống */}
@@ -27,8 +26,8 @@ const Navbar = () => {
 
         {/* User info */}
         <div className="navbar__user">
-          <img className="nav-bell" src={bell} alt="" />
-          <img src={anh} alt="avatar" />
+          <Bell className="notification" />
+          <img className="avatar" src={anh} alt="avatar" />
           <div className="navbar__user-info">
             <span className="name">PGS. Trần Đức A</span>
             <span className="role">Trưởng khoa CNTT</span>
@@ -36,53 +35,30 @@ const Navbar = () => {
         </div>
       </div>
       {/* Menu */}
-      <ul className="navbar__menu">
-        <li
-          className="active"
-          onClick={() => {
-            navigate("/lecturer");
-          }}
-        >
-          <img
-            src={iconTongQuan}
-            alt="iconTongQuan"
-            className="navbar-icon-title"
-          />
-          Tổng quan
-        </li>
-        <li>
-          <img
-            src={iconQuanLyDoAn}
-            alt="iconTongQuan"
-            className="navbar-icon-title"
-          />
-          Quản lý đồ án
-        </li>
-        <li>
-          <img
-            src={iconChamDiem}
-            alt="iconTongQuan"
-            className="navbar-icon-title"
-          />
-          Chấm điểm
-        </li>
-        <li>
-          <img
-            src={iconLichBaoVe}
-            alt="iconTongQuan"
-            className="navbar-icon-title"
-          />
-          Lịch bảo vệ
-        </li>
-        <li>
-          <img
-            src={iconPheDuyet}
-            alt="iconTongQuan"
-            className="navbar-icon-title"
-          />
-          Phê duyệt
-        </li>
-      </ul>
+      <div className="nav-bottom">
+        <ul className="navbar__menu">
+          <li>
+            <MenuIcon className="menu-icon" />
+            Tổng quan
+          </li>
+          <li>
+            <NotebookIcon className="menu-icon" />
+            Quản lý đồ án
+          </li>
+          <li>
+            <StarIcon className="menu-icon" />
+            Chấm điểm
+          </li>
+          <li>
+            <CalendarIcon className="menu-icon" />
+            Lịch bảo vệ
+          </li>
+          <li>
+            <CheckIcon className="menu-icon" />
+            Phê duyệt
+          </li>
+        </ul>
+      </div>
     </nav>
   );
 };
