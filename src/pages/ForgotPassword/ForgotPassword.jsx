@@ -2,21 +2,48 @@ import React, { useState } from "react";
 import "./ForgotPassword.scss";
 import iconReturn from "../../assets/icon/Group 4.png";
 import { useNavigate } from "react-router-dom";
-
+import { forgetPasswordAPI } from "../../services/AuthAPI";
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const handleResetPassword = (e) => {
+  const validateEmail = (val) => {
+    // Regex cải thiện: cho phép ký tự đặc biệt, kiểm tra độ dài
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    // Kiểm tra độ dài tổng thể
+    if (val.length > 254) return false;
+
+    // Kiểm tra local part không bắt đầu/kết thúc bằng dấu chấm
+    const localPart = val.split("@")[0];
+    if (localPart.startsWith(".") || localPart.endsWith(".")) return false;
+
+    return emailRegex.test(val);
+  };
+
+  const handleResetPassword = async (e) => {
     e.preventDefault();
-    // Validate email and send reset request (e.g., API call)
-    if (!email) {
-      setError("Please enter your email");
-    } else {
-      setError("");
-      console.log("Reset password request sent to", email);
-      // Navigate to verification step (e.g., using React Router)
+
+    if (!email) return setError("Please enter your email");
+
+    if (!validateEmail(email))
+      return setError("Please enter a valid email address");
+
+    setLoading(true);
+    try {
+      const response = await forgetPasswordAPI(email);
+      if (response?.success) {
+        setError("");
+        navigate(`/verification-code?email=${encodeURIComponent(email)}`); // Truyền email qua URL params
+      } else {
+        setError(response?.message || "Something went wrong");
+      }
+    } catch (err) {
+      setError(err.message || "Server error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,12 +76,12 @@ const ForgotPassword = () => {
             />
             {error && <span className="error-message">{error}</span>}
           </div>
-          <button
-            type="submit"
-            className="reset-button"
-            onClick={() => navigate("/verification-code")}
-          >
-            Reset Password
+          <button type="submit" className="reset-button" disabled={loading}>
+            {loading ? (
+              <div className="spinner-reset-button"></div>
+            ) : (
+              "Reset Password"
+            )}
           </button>
         </form>
       </div>

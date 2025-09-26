@@ -1,28 +1,30 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.scss";
-import apple from "../../assets/logo/pngwing 1.png";
-import google from "../../assets/logo/pngwing 2.png";
-import { users } from "../../components/data/users"; // mock user + role
+import { LoginAPI } from "../../services/AuthAPI";
 
 const Login = () => {
-  const [isLogin, setIsLogin] = useState(true);
-
-  // Form state
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  // Error state
-  const [nameError, setNameError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
   const navigate = useNavigate();
-  const validateEmail = (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  const validateEmail = (val) => {
+    // Regex cải thiện: cho phép ký tự đặc biệt, kiểm tra độ dài
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-  // ====== HANDLE LOGIN ======
-  const handleLoginSubmit = (e) => {
+    // Kiểm tra độ dài tổng thể
+    if (val.length > 254) return false;
+
+    // Kiểm tra local part không bắt đầu/kết thúc bằng dấu chấm
+    const localPart = val.split("@")[0];
+    if (localPart.startsWith(".") || localPart.endsWith(".")) return false;
+
+    return emailRegex.test(val);
+  };
+
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setEmailError("");
     setPasswordError("");
@@ -36,152 +38,69 @@ const Login = () => {
       return;
     }
 
-    // 🔑 Mock check user
-    const foundUser = users.find(
-      (u) => u.email === email && u.password === password
-    );
-    if (!foundUser) {
-      setPasswordError("Invalid email or password");
-      return;
-    }
+    try {
+      const data = await LoginAPI(email, password);
+      console.log("Login successful:", data);
 
-    // ✅ Success → điều hướng theo role
-    switch (foundUser.role) {
-      case "lecturer":
-        navigate("/lecturer");
-        break;
-      case "student":
-        navigate("/student");
-        break;
-      case "admin":
-        navigate("/admin");
-        break;
-      default:
-        navigate("/");
-    }
-  };
+      // Lưu token
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("refreshToken", data.refreshToken);
 
-  // ====== HANDLE SIGN UP ======
-  const handleSignupSubmit = (e) => {
-    e.preventDefault();
-    setNameError("");
-    setEmailError("");
-    setPasswordError("");
-
-    let hasErr = false;
-    if (!name) {
-      setNameError("Name is required");
-      hasErr = true;
+      // Điều hướng theo accountType
+      const type = data.account.accountType;
+      switch (type) {
+        case "Admin":
+          navigate("/admin");
+          break;
+        case "Lecturer":
+          navigate("/lecturer");
+          break;
+        case "Student":
+          navigate("/student");
+          break;
+        default:
+          navigate("/");
+      }
+    } catch (error) {
+      console.error("Login failed:", error.message);
+      setPasswordError(error.message);
     }
-    if (!validateEmail(email)) {
-      setEmailError("Email format is invalid");
-      hasErr = true;
-    }
-    if (!password) {
-      setPasswordError("Password is required");
-      hasErr = true;
-    }
-    if (hasErr) return;
-
-    console.log("Sign up success:", { name, email, password });
-
-    // Sau khi đăng ký thành công -> chuyển tới student dashboard
-    navigate("/student");
   };
 
   const handleForgotPassword = () => navigate("/forgot-password");
 
-  // ====== SWITCH TABS ======
-  const handleSwitchToSignup = () => {
-    setIsLogin(false);
-    setName("");
-    setEmail("");
-    setPassword("");
-    setNameError("");
-    setEmailError("");
-    setPasswordError("");
-  };
-  const handleSwitchToLogin = () => {
-    setIsLogin(true);
-    setName("");
-    setEmail("");
-    setPassword("");
-    setNameError("");
-    setEmailError("");
-    setPasswordError("");
-  };
-
-  // Đăng nhập bằng apple/google
-  const handleSocialLogin = (provider) =>
-    console.log(`Login with ${provider} clicked`);
-
   return (
-    <div className="login-container">
-      {/* ===== Tabs ===== */}
-      <div className="tab-options">
-        <button
-          type="button"
-          className={`tab-button ${isLogin ? "active" : ""}`}
-          onClick={handleSwitchToLogin}
-        >
-          Log in
-        </button>
-        <button
-          type="button"
-          className={`tab-button ${!isLogin ? "active" : ""}`}
-          onClick={handleSwitchToSignup}
-        >
-          Sign up
-        </button>
-      </div>
+    <div className="login-page">
+      <div className="login-container">
+        <h2 className="login-title">CAPSY SMART DTU</h2>
 
-      {/* ===== Form ===== */}
-      <form
-        className="login-form"
-        onSubmit={isLogin ? handleLoginSubmit : handleSignupSubmit}
-      >
-        {!isLogin && (
+        <form className="login-form" onSubmit={handleLoginSubmit}>
           <div className="form-group">
-            <label htmlFor="name">Your Name</label>
+            <label htmlFor="email">Your Email</label>
             <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="John Doe"
-              className={nameError ? "error" : ""}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="contact@disdtech.com"
+              className={emailError ? "error" : ""}
             />
-            {nameError && <span className="error-message">{nameError}</span>}
+            {emailError && <span className="error-message">{emailError}</span>}
           </div>
-        )}
 
-        <div className="form-group">
-          <label htmlFor="email">Your Email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="contact@disdtech.com"
-            className={emailError ? "error" : ""}
-          />
-          {emailError && <span className="error-message">{emailError}</span>}
-        </div>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={passwordError ? "error" : ""}
+            />
+            {passwordError && (
+              <span className="error-message">{passwordError}</span>
+            )}
 
-        <div className="form-group">
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={passwordError ? "error" : ""}
-          />
-          {passwordError && (
-            <span className="error-message">{passwordError}</span>
-          )}
-
-          {isLogin && (
             <button
               type="button"
               className="forgot-password"
@@ -189,64 +108,12 @@ const Login = () => {
             >
               Forgot password?
             </button>
-          )}
-        </div>
+          </div>
 
-        <button type="submit" className="continue-button">
-          {isLogin ? "Continue" : "Sign up"}
-        </button>
-      </form>
-
-      {/* ===== Divider ===== */}
-      <div className="divider">
-        <span>or</span>
-      </div>
-
-      {/* ===== Social login ===== */}
-      <div className="social-login">
-        <button
-          type="button"
-          className="social-button apple"
-          onClick={() => handleSocialLogin("Apple")}
-        >
-          <img src={apple} alt="Apple" />
-          Login with Apple
-        </button>
-        <button
-          type="button"
-          className="social-button google"
-          onClick={() => handleSocialLogin("Google")}
-        >
-          <img src={google} alt="Google" />
-          Login with Google
-        </button>
-      </div>
-
-      {/* ===== Switch link ===== */}
-      <div className="signup-link">
-        {isLogin ? (
-          <>
-            <span>Don't have an account?</span>
-            <button
-              className="btn-signup-link"
-              type="button"
-              onClick={handleSwitchToSignup}
-            >
-              Sign up
-            </button>
-          </>
-        ) : (
-          <>
-            <span>Already have an account?</span>
-            <button
-              className="btn-signup-link"
-              type="button"
-              onClick={handleSwitchToLogin}
-            >
-              Log in
-            </button>
-          </>
-        )}
+          <button type="submit" className="continue-button">
+            Continue
+          </button>
+        </form>
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import axios from "axios";
 
 const instance = axios.create({
   //mock API
-  baseURL: "https://6856636a1789e182b37dd4d7.mockapi.io/", // hard-code luôn
+  baseURL: "http://localhost:5295/api/", // hard-code luôn
 });
 
 instance.interceptors.request.use(

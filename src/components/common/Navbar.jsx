@@ -8,8 +8,26 @@ import { ReactComponent as NotebookIcon } from "../../assets/icon/Notebook.svg";
 import { ReactComponent as StarIcon } from "../../assets/icon/Star.svg";
 import { ReactComponent as CalendarIcon } from "../../assets/icon/Calendar.svg";
 import { ReactComponent as CheckIcon } from "../../assets/icon/Check_All.svg";
+import { useNavigate } from "react-router-dom";
+import { LogoutAPI } from "../../services/AuthAPI";
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+
+    try {
+      // Gọi API logout nếu cần
+      const response = await LogoutAPI();
+      console.log("Logout successful:", response);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      // Chuyển hướng về trang login bất kể API có lỗi hay không
+      navigate("/");
+    }
+  };
   return (
     <nav className="navbar">
       {/* Logo + Tên hệ thống */}
@@ -57,6 +75,7 @@ const Navbar = () => {
             <CheckIcon className="menu-icon" />
             Phê duyệt
           </li>
+          <li onClick={() => handleLogout()}>Logout</li>
         </ul>
       </div>
     </nav>

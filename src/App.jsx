@@ -1,10 +1,10 @@
 import { Route, Router, Routes } from "react-router-dom";
 import Login from "./pages/Login/Login";
-import LecturersLayout from "./layouts/Lecturers/LecturersLayout";
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import VerificationCode from "./pages/ForgotPassword/VerificationCode";
 import ConfirmForgot from "./pages/ForgotPassword/ConfirmForgot";
-import TongQuan from "./layouts/Lecturers/TongQuan/TongQuan";
+import LecturersLayout from "./pages/Lecturers/LecturersLayout";
+import TongQuan from "./pages/Lecturers/TongQuan/TongQuan";
 
 function App() {
   return (

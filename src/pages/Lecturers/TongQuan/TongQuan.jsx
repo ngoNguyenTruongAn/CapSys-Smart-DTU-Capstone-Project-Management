@@ -4,6 +4,10 @@ import tongDoAn from "../../../assets/icon/Frame 41 (1).png";
 import choPheDuyet from "../../../assets/icon/Frame 41 (2).png";
 import daHoanThanh from "../../../assets/icon/Frame 41 (3).png";
 import sapBaoVe from "../../../assets/icon/Frame 41 (4).png";
+import { ReactComponent as Star } from "../../../assets/icon/StarBottom.svg";
+import { ReactComponent as Calendar } from "../../../assets/icon/Calendar_Event.svg";
+import { ReactComponent as CheckAll } from "../../../assets/icon/Check_All-bottom.svg";
+import { ReactComponent as Download } from "../../../assets/icon/Download.svg";
 const TongQuan = () => {
   const stats = [
     { icon: tongDoAn, value: 156, label: "Tổng đồ án" },
@@ -65,6 +69,32 @@ const TongQuan = () => {
     },
   ];
 
+  const quickActions = [
+    {
+      label: "Chấm điểm",
+      desc: "Đánh giá đồ án",
+      icon: <Star />,
+      bg: "#EAF2FF",
+    },
+    {
+      label: "Phê duyệt",
+      desc: "Duyệt đề tài",
+      icon: <CheckAll />,
+      bg: "#E9FAF0",
+    },
+    {
+      label: "Sắp lịch",
+      desc: "Lịch bảo vệ",
+      icon: <Calendar />,
+      bg: "#F4ECFF",
+    },
+    {
+      label: "Xuất báo cáo",
+      desc: "Tạo báo cáo",
+      icon: <Download />,
+      bg: "#FFF6E0",
+    },
+  ];
   return (
     <div className="tongquan">
       {/* Thống kê */}
@@ -130,13 +160,20 @@ const TongQuan = () => {
 
       {/* Thao tác nhanh */}
       <div className="quick-actions">
-        {["Chấm điểm", "Phê duyệt", "Sắp lịch", "Xuất báo cáo"].map(
-          (action, idx) => (
+        <div className="quick-actions-top">Thao tác nhanh</div>
+        <div className="quick-actions-bottom">
+          {quickActions.map((item, idx) => (
             <button key={idx} className="quick-btn">
-              {action}
+              <div className="icon-wrap" style={{ background: item.bg }}>
+                {item.icon}
+              </div>
+              <div className="text">
+                <strong>{item.label}</strong>
+                <p>{item.desc}</p>
+              </div>
             </button>
-          )
-        )}
+          ))}
+        </div>
       </div>
     </div>
   );

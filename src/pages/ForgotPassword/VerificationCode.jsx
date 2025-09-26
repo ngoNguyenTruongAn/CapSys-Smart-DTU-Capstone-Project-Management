@@ -1,94 +1,180 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./VerificationCode.scss";
 import iconReturn from "../../assets/icon/Group 4.png";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { resetPasswordAPI } from "../../services/AuthAPI";
 
 const VerificationCode = () => {
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  // Các state phải khai báo TRƯỚC các hàm sử dụng chúng
+  const [email, setEmail] = useState("");
+  const [resetCode, setResetCode] = useState(""); // Đảm bảo dòng này có mặt!
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const handleResetPassword = (e) => {
+  // Lấy email từ URL params khi component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const emailFromUrl = urlParams.get("email");
+    if (emailFromUrl) {
+      setEmail(decodeURIComponent(emailFromUrl));
+    }
+  }, [location.search]);
+
+  // === Handle submit ===
+  const handleResetPassword = async (e) => {
     e.preventDefault();
-    const otpValue = otp.join("");
-    if (otpValue.length !== 6 || !/^\d{6}$/.test(otpValue)) {
-      setError("Please enter a valid 6-digit code");
-    } else {
-      setError("");
-      console.log("Verification code submitted:", otpValue);
-    }
-  };
-  const handleOtpChange = (index, value) => {
-    const newOtp = [...otp];
-    // Chỉ cho phép nhập số và giới hạn 1 ký tự
-    if (/^\d?$/.test(value) && value.length <= 1) {
-      newOtp[index] = value;
-      setOtp(newOtp);
 
-      // Di chuyển đến ô tiếp theo nếu có giá trị
-      if (value && index < 5) {
-        document.getElementById(`otp-input-${index + 1}`).focus();
+    // Trim để tránh space thừa
+    const trimmedEmail = email.trim();
+    const trimmedResetCode = resetCode.trim();
+    const trimmedNewPassword = newPassword.trim();
+    const trimmedConfirmPassword = confirmPassword.trim();
+
+    // Validate
+    if (
+      !trimmedEmail ||
+      !trimmedResetCode ||
+      !trimmedNewPassword ||
+      !trimmedConfirmPassword
+    ) {
+      setError("Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+    if (!/^\d{6}$/.test(trimmedResetCode)) {
+      setError("Mã xác minh phải gồm đúng 6 số");
+      return;
+    }
+    if (trimmedNewPassword.length < 6) {
+      // Thêm validate độ dài password (tùy chọn)
+      setError("Mật khẩu mới phải ít nhất 6 ký tự");
+      return;
+    }
+    if (trimmedNewPassword !== trimmedConfirmPassword) {
+      setError("Mật khẩu xác nhận không khớp");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      // Gọi API với các biến đã trim
+      const res = await resetPasswordAPI(
+        trimmedEmail,
+        trimmedResetCode,
+        trimmedNewPassword,
+        trimmedConfirmPassword
+      );
+      if (res?.success) {
+        navigate("/confirm-forgot"); // Hoặc route phù hợp
+      } else {
+        setError(res?.message || "Có lỗi xảy ra, vui lòng thử lại");
       }
+    } catch (err) {
+      console.error("Lỗi API:", err); // Log để debug
+      setError(err.message || "Không thể kết nối tới server");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleKeyDown = (index, e) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      document.getElementById(`otp-input-${index - 1}`).focus();
-    }
-  };
-  const handleBack = () => {
-    // Navigate back to login (e.g., using React Router or parent component)
-    navigate("/forgot-password");
+  // Hàm xử lý change cho resetCode (tùy chọn: chỉ cho phép số)
+  const handleResetCodeChange = (e) => {
+    const value = e.target.value.replace(/\D/g, ""); // Chỉ giữ số
+    setResetCode(value);
   };
 
   return (
-    <div className="forgot-password-container">
-      <div className="forgot-password-content">
-        <button className="back-button" onClick={handleBack}>
-          <div className="back-icon">
-            <img src={iconReturn} alt="" />
-          </div>
+    <div className="reset-password-container">
+      <div className="reset-password-content">
+        <button
+          className="back-button"
+          onClick={() => navigate("/forgot-password")}
+        >
+          <img src={iconReturn} alt="back" />
         </button>
 
-        <h2>Check your email</h2>
-        <p>
-          We sent a reset link to{" "}
-          <span className="forgot-password-contact">contact@dscode...com</span>{" "}
-          enter 5 digit code that mentioned in the email
-        </p>
+        <h2>Reset Password</h2>
+        <p>Nhập email, mã xác minh 6 số và mật khẩu mới</p>
+
         <form onSubmit={handleResetPassword}>
           <div className="form-group">
-            {/* <label htmlFor="email">Your Email</label> */}
-            <div className="otp-container">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-input-${index}`}
-                  type="text"
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  maxLength="1"
-                  className={error ? "error" : ""}
-                  autoFocus={index === 0} // Tự động focus vào ô đầu tiên
-                />
-              ))}
-            </div>
-            {/* {error && <span className="error-message">{error}</span>} */}
+            {/* <label>Email</label> */}
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={error && !email.trim() ? "error" : ""}
+              disabled={true}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+            />
           </div>
-          <button
-            type="submit"
-            className="reset-button"
-            onClick={() => navigate("/confirm-forgot")}
-          >
-            Reset Password
+
+          <div className="form-group">
+            <input
+              type="text"
+              placeholder="Nhập mã"
+              value={resetCode}
+              maxLength={6}
+              onChange={handleResetCodeChange} // Sử dụng hàm mới để chỉ cho phép số
+              className={
+                error && (!resetCode || !/^\d{6}$/.test(resetCode))
+                  ? "error"
+                  : ""
+              }
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+            />
+          </div>
+
+          <div className="form-group">
+            <input
+              type="password"
+              placeholder="Nhập mật khẩu mới"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className={
+                error && newPassword !== confirmPassword ? "error" : ""
+              }
+              autoComplete="new-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+            />
+          </div>
+
+          <div className="form-group">
+            <input
+              type="password"
+              placeholder="Xác nhận mật khẩu"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={
+                error && newPassword !== confirmPassword ? "error" : ""
+              }
+              autoComplete="new-password"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
+            />
+          </div>
+
+          {error && <p className="error-message">{error}</p>}
+
+          <button type="submit" className="reset-button" disabled={loading}>
+            {loading ? "Đang xử lý..." : "Đổi mật khẩu"}
           </button>
         </form>
-        <p className="verification-bottom">
-          Haven’t got the email yet?{" "}
-          <span className="resend-email">Resend email</span>
-        </p>
       </div>
     </div>
   );
