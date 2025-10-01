@@ -55,11 +55,11 @@ const Navbar = () => {
       {/* Menu */}
       <div className="nav-bottom">
         <ul className="navbar__menu">
-          <li>
+          <li onClick={() => navigate("")}>
             <MenuIcon className="menu-icon" />
             Tổng quan
           </li>
-          <li>
+          <li onClick={() => navigate("quan-ly-do-an")}>
             <NotebookIcon className="menu-icon" />
             Quản lý đồ án
           </li>

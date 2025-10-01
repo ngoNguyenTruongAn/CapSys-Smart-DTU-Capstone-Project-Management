@@ -3,17 +3,20 @@ import Login from "./pages/Login/Login";
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import VerificationCode from "./pages/ForgotPassword/VerificationCode";
 import ConfirmForgot from "./pages/ForgotPassword/ConfirmForgot";
-import LecturersLayout from "./pages/Lecturers/LecturersLayout";
-import TongQuan from "./pages/Lecturers/TongQuan/TongQuan";
+import AdminLayout from "./pages/admin/AdminLayout";
+import TongQuan from "./pages/admin/TongQuan/TongQuan";
+import QuanLyDoAn from "./pages/admin/QuanLyDoAn/QuanLyDoAn";
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/lecturer" element={<LecturersLayout />}>
+      <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<TongQuan />} />
+        <Route path="quan-ly-do-an" element={<QuanLyDoAn />} />
       </Route>
+      {/* <Route path="/lecturer" element={<LecturersLayout />}></Route> */}
       <Route path="verification-code" element={<VerificationCode />} />
       <Route path="confirm-forgot" element={<ConfirmForgot />} />
       {/* <Route path="/admin" element={<AdminDashboard />} />

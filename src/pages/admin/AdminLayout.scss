@@ -1,10 +1,10 @@
-.lecturers-page {
+.admin-page {
   min-height: 100vh;
   background-color: #eaf2fd;
 }
 
 /* Navbar full width nhưng có inner container căn giữa */
-.lecturers-navbar {
+.admin-navbar {
   width: 100%;
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
@@ -17,12 +17,12 @@
 }
 
 /* Content container */
-.lecturers-container {
+.admin-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 1.5rem;
+  // padding: 1.5rem;
 
-  .lecturers-content {
+  .admin-content {
     // background: #fff;
     // border-radius: 8px;
     // box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
@@ -31,7 +31,7 @@
 }
 
 @media (max-width: 768px) {
-  .lecturers-container {
+  .admin-container {
     max-width: 95%;
     padding: 1rem;
   }

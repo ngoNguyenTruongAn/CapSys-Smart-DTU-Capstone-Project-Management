@@ -45,6 +45,7 @@ const Login = () => {
       // Lưu token
       localStorage.setItem("token", data.token);
       localStorage.setItem("refreshToken", data.refreshToken);
+      localStorage.setItem("accountType", data.account.accountType);
 
       // Điều hướng theo accountType
       const type = data.account.accountType;
