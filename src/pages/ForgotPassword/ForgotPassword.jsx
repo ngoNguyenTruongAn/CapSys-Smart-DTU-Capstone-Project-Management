@@ -2,12 +2,19 @@ import React, { useState } from "react";
 import "./ForgotPassword.scss";
 import iconReturn from "../../assets/icon/Group 4.png";
 import { useNavigate } from "react-router-dom";
-import { forgetPasswordAPI } from "../../services/AuthAPI";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  forgetPassword,
+  selectAuthLoading,
+  selectAuthError,
+} from "../../store/authSlice";
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const loading = useSelector(selectAuthLoading);
+  const authError = useSelector(selectAuthError);
 
   const validateEmail = (val) => {
     // Regex cải thiện: cho phép ký tự đặc biệt, kiểm tra độ dài
@@ -30,21 +37,12 @@ const ForgotPassword = () => {
 
     if (!validateEmail(email))
       return setError("Please enter a valid email address");
-
-    setLoading(true);
-    try {
-      const response = await forgetPasswordAPI(email);
-      if (response?.success) {
-        setError("");
-        navigate(`/verification-code?email=${encodeURIComponent(email)}`); // Truyền email qua URL params
-      } else {
-        setError(response?.message || "Something went wrong");
-      }
-    } catch (err) {
-      setError(err.message || "Server error");
-    } finally {
-      setLoading(false);
-    }
+    setError("");
+    dispatch(forgetPassword({ email }))
+      .unwrap()
+      .then(() => {
+        navigate(`/verification-code?email=${encodeURIComponent(email)}`);
+      });
   };
 
   const handleBack = () => {
@@ -75,6 +73,9 @@ const ForgotPassword = () => {
               className={error ? "error" : ""}
             />
             {error && <span className="error-message">{error}</span>}
+            {!error && authError && (
+              <span className="error-message">{authError}</span>
+            )}
           </div>
           <button type="submit" className="reset-button" disabled={loading}>
             {loading ? (

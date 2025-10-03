@@ -1,7 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.scss";
-import { LoginAPI } from "../../services/AuthAPI";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  login,
+  selectAuthLoading,
+  selectAuthError,
+} from "../../store/authSlice";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -10,6 +15,9 @@ const Login = () => {
   const [passwordError, setPasswordError] = useState("");
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const loading = useSelector(selectAuthLoading);
+  const authError = useSelector(selectAuthError);
   const validateEmail = (val) => {
     // Regex cải thiện: cho phép ký tự đặc biệt, kiểm tra độ dài
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -38,34 +46,27 @@ const Login = () => {
       return;
     }
 
-    try {
-      const data = await LoginAPI(email, password);
-      console.log("Login successful:", data);
-
-      // Lưu token
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("refreshToken", data.refreshToken);
-      localStorage.setItem("accountType", data.account.accountType);
-
-      // Điều hướng theo accountType
-      const type = data.account.accountType;
-      switch (type) {
-        case "Admin":
-          navigate("/admin");
-          break;
-        case "Lecturer":
-          navigate("/lecturer");
-          break;
-        case "Student":
-          navigate("/student");
-          break;
-        default:
-          navigate("/");
-      }
-    } catch (error) {
-      console.error("Login failed:", error.message);
-      setPasswordError(error.message);
-    }
+    dispatch(login({ email, password }))
+      .unwrap()
+      .then((data) => {
+        const type = data.account?.accountType;
+        switch (type) {
+          case "Admin":
+            navigate("/admin");
+            break;
+          case "Lecturer":
+            navigate("/lecturer");
+            break;
+          case "Student":
+            navigate("/student");
+            break;
+          default:
+            navigate("/");
+        }
+      })
+      .catch((err) => {
+        setPasswordError(err || "Login failed");
+      });
   };
 
   const handleForgotPassword = () => navigate("/forgot-password");
@@ -101,6 +102,9 @@ const Login = () => {
             {passwordError && (
               <span className="error-message">{passwordError}</span>
             )}
+            {!passwordError && authError && (
+              <span className="error-message">{authError}</span>
+            )}
 
             <button
               type="button"
@@ -111,8 +115,8 @@ const Login = () => {
             </button>
           </div>
 
-          <button type="submit" className="continue-button">
-            Continue
+          <button type="submit" className="continue-button" disabled={loading}>
+            {loading ? "Đang đăng nhập..." : "Continue"}
           </button>
         </form>
       </div>

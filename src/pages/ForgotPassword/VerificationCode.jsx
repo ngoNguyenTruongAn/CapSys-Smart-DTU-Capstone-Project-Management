@@ -2,7 +2,13 @@ import React, { useState, useEffect } from "react";
 import "./VerificationCode.scss";
 import iconReturn from "../../assets/icon/Group 4.png";
 import { useNavigate, useLocation } from "react-router-dom";
-import { resetPasswordAPI } from "../../services/AuthAPI";
+// import { resetPasswordAPI } from "../../services/AuthAPI";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  resetPassword,
+  // selectAuthError,
+  selectAuthLoading,
+} from "../../store/authSlice";
 
 const VerificationCode = () => {
   // Các state phải khai báo TRƯỚC các hàm sử dụng chúng
@@ -11,9 +17,12 @@ const VerificationCode = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useDispatch();
+  const loading = useSelector(selectAuthLoading);
+  // const authError = useSelector(selectAuthError);
 
   // Lấy email từ URL params khi component mount
   useEffect(() => {
@@ -59,26 +68,27 @@ const VerificationCode = () => {
     }
 
     setError("");
-    setLoading(true);
+    // setLoading(true);
 
     try {
       // Gọi API với các biến đã trim
-      const res = await resetPasswordAPI(
-        trimmedEmail,
-        trimmedResetCode,
-        trimmedNewPassword,
-        trimmedConfirmPassword
-      );
-      if (res?.success) {
-        navigate("/confirm-forgot"); // Hoặc route phù hợp
-      } else {
-        setError(res?.message || "Có lỗi xảy ra, vui lòng thử lại");
-      }
+      dispatch(
+        resetPassword({
+          email: trimmedEmail,
+          resetCode: trimmedResetCode,
+          newPassword: trimmedNewPassword,
+          confirmPassword: trimmedConfirmPassword,
+        })
+      )
+        .unwrap()
+        .then(() => {
+          navigate("/confirm-forgot");
+        });
     } catch (err) {
       console.error("Lỗi API:", err); // Log để debug
       setError(err.message || "Không thể kết nối tới server");
     } finally {
-      setLoading(false);
+      // setError("Mật khẩu mới phải khác mật khẩu trước đó");
     }
   };
 
