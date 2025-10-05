@@ -1,0 +1,372 @@
+@use "sass:color";
+
+:root {
+--primary-color: #1D62ED;
+--second-color:#F4F3F8;
+--text-color:#808291;
+font-size: 62.5%;
+font-family: Arial, Helvetica, sans-serif;
+}
+
+
+
+
+.header-wrapper{
+  display: flex;
+  background-color: #fff;
+   height: 84px;
+  justify-content: space-between;
+   
+   border-bottom: 0.2px solid #dadee3;
+   
+}
+.header-left-content{
+    
+   
+    display: flex;
+    align-items: center;
+    padding-left: 22px;
+   
+    
+}
+.header-icon{
+    width: 54px;
+    height: 54px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    background-color: var(--primary-color);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 2.4rem ;
+    cursor: pointer;
+    
+}
+.header-content{
+    height: 54px;
+}
+.header-head-text{
+    font-size: 2.6rem;
+    font-weight: 700;
+    margin: 0;
+}
+.header-text{
+  font-size: 1.8rem;
+  margin-top: 5px;
+  color: var(--text-color);
+}
+.header-right-content{
+  padding-right: 22px;
+  width: 200px;
+}
+.header-no-mb {
+    // Đảm bảo ghi đè các giá trị margin
+    margin-bottom: 0 !important;
+    
+    // Nếu vẫn có khoảng cách, kiểm tra và loại bỏ padding-bottom
+    padding-bottom: 0 !important; 
+    
+    // Nếu khoảng cách đến từ div bên dưới, loại bỏ margin-top của div bên dưới.
+    // (Đây là một cách dùng SCSS lồng nhau nếu bạn muốn kiểm soát phần tử con/kế tiếp)
+    & + .container {
+        margin-top: 0 !important;
+    }
+}
+.addButton-wrapper{
+  display: flex;
+  height: 50%;
+  align-items: center;
+  margin-top: 22px;
+  background-color: var(--primary-color);
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  width: fit-content;
+  padding: 10px;
+}
+.addButton-text{
+  margin-left: 10px;
+  font-size: 1.6rem;
+  color: #fff;
+}
+.addButton-icon{
+  
+  font-size: 1.4rem;
+  color: #fff;
+}
+
+.tabs-wrapper{
+   margin-left: 3%;
+   margin-right: 3%;
+   margin-top: 30px;
+   height: 75px;
+   background-color: #fff;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+}
+.tabs-list{
+    list-style: none;
+    width: 60%;
+    display: flex;
+    gap: 16px;
+}
+.tabs-list-item{
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--text-color);
+    background-color: var(--second-color);
+    width: fit-content;
+    height: fit-content;
+    line-height: 20px;
+    padding: 12px 16px;
+    border-radius: 22px;
+    cursor: pointer;
+     &:hover
+      {
+    color: #fff;
+    background-color: rgba(128, 130, 145,60%);
+      }
+    &.active{
+        color: #fff;
+        background-color: var(--primary-color);
+    }
+     
+
+
+}
+
+.search-wrapper {
+  position: relative;
+  width: 360px;
+  display: flex;
+    align-items: center;
+    border: 1px solid #d7dce7;
+    border-radius: 8px;
+    padding: 8px 12px;
+  margin-right: 30px;
+  margin-left: 30px;
+  
+}
+.search-proposal-icon {
+    position: absolute; 
+    left: 12px;
+    color: #999;
+    font-size: 16px;
+}
+.input-search {
+    width: 100%;
+    border: none;
+    outline: none;
+    padding-left: 28px; 
+    font-size: 16px;
+}
+.List-wrapper {
+  margin-top: 40px;
+  height: fit-content;
+  margin-left: 3%;
+  margin-right: 3%;
+  display: flex;
+  flex-wrap: wrap; // Thêm thuộc tính này để tự động xuống dòng
+  gap: 16px; // Giữ nguyên khoảng cách 2% giữa các thẻ
+}
+// Card
+.Card-wrapper{
+ width: 28.3333%;
+ height:420px;
+ background-color: #fff;
+ padding: 10px 30px;
+ border-radius: 16px;
+ margin-bottom: 20px;
+ transition: all 0.3s ease; 
+ box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+
+  &:hover {
+    transform: translateY(-6px); 
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); 
+    cursor: pointer;
+  }
+}
+.Card-header{
+  margin-bottom: 15px;
+  width: 100%;
+  height: fit-content;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.Card-id{
+width: fit-content;
+height: fit-content;
+padding: 10px;
+color: var(--text-color);
+background-color: var(--second-color);
+font-size: 1.2rem;
+font-weight: 600;
+border-radius: 12px;
+}
+.Card-status-approved,
+.Card-status-waiting,
+.Card-status-reject{
+  width: fit-content;
+height: fit-content;
+padding: 10px;
+font-size: 1.2rem;
+font-weight: 600;
+border-radius: 12px;
+
+}
+.Card-status-approved{
+color: #26C55E;
+background-color: rgba(#26C55E,20%);
+}
+.Card-status-waiting{
+  color: #B6973D;
+  background-color: #FEFABD;
+}
+.Card-status-reject{
+ color: #E14B4B;
+ background-color: #FBD8D8;
+}
+.Card-proposal-summary{
+  height: fit-content;
+  
+}
+.Card-proposal-summary-content{
+  margin: 10px 0;
+  height: fit-content;
+  color: var(--text-color);
+  font-size: 1.4rem;
+  line-height: 1.5;
+}
+.Card-proposal-summary-line{
+  display: block;
+  background-color: var(--text-color);
+  height: 0.1px;
+
+  width: 100%;
+}
+.Card-mentor-info{
+  
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+.Card-mentor-avatar{
+  background-image: url(https://i.pinimg.com/736x/bc/43/98/bc439871417621836a0eeea768d60944.jpg);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+}
+.Card-mentor-info-content-header{
+  font-size: 1.8rem;
+  color: var(--text-color);
+  margin: 10px 0 5px 0;
+}
+.Card-mentor-info-content-text{
+  
+  font-size: 1.6rem;
+  color: var(--text-color);
+  
+}
+.Card-member-info,
+.Card-member-info-header{
+  height: fit-content;
+  margin-bottom: 15px;
+}
+.Card-member-info-header-icon{
+ font-size: 1.6rem;
+  color: var(--primary-color);
+  margin-right: 5px;
+}
+.Card-member-info-header-text,
+.Card-member-info-header-numer{
+ font-size: 1.6rem;
+ color: var(--text-color);
+ 
+}
+.Card-member-info-content{
+  width: fit-content;
+  height: fit-content;
+  padding: 10px;
+  background-color: var(--second-color);
+  
+}
+.Card-member-info-content-text{
+  font-size: 1.4rem;
+   color: var(--text-color);
+   font-weight: 600;
+}
+.Card-date{
+  height: fit-content;
+  margin-bottom: 20px;
+}
+.Card-date-register,
+.Card-date-approve{
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+.Card-date-register-icon,
+.Card-date-approve-icon{
+  color: #ED7117;
+  font-size: 2rem;
+  margin-right: 5px;
+}
+.Card-date-approve-icon{
+  color: #49B091;
+}
+.Card-date-register-text,
+.Card-date-approve-text{
+  color: var(--text-color);
+  font-size: 1.4rem;
+  margin-right: 5px;
+}
+.Card-date-register-content,
+.Card-date-approve-content{
+  color: var(--text-color);
+  font-size: 1.4rem;
+  font-weight: 600;
+  
+}
+
+.Card-button{
+
+  width: 94%;
+  height: 28px;
+  padding: 10px;
+  border: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  gap: 10px;
+  background-color: var(--primary-color);
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 15px;
+   transition: background-color .2s ease, 
+              transform .2s ease, 
+              box-shadow .2s ease;
+
+ 
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+.Card-button:hover {
+  transform: scaleX(1.03);            
+ background-color: color.scale(#1D62ED, $lightness: -6%);
+  box-shadow: 0 6px 16px rgba(0,0,0,.15);
+}
+.Card-button:active {
+  transform: scaleX(1.01);
+}
+
+.Card-button-icon,
+.Card-button-text{
+font-size: 1.6rem;
+color: #fff;
+}
