@@ -7,14 +7,18 @@ function Tabs({ onTabChange, counts, onSearch }) {
 
   const tabs = [
     "Tất cả",
-    "Đã Duyệt",
-    "Chờ Được Duyệt",
-    "Bị Từ Chối"
+    "Đã duyệt",
+    "Chờ duyệt",
+    "Bị từ chối"
   ];
 
   const handleTabClick = (index, tabName) => {
     setActiveIndex(index);
-    onTabChange(tabName);
+    if (typeof onTabChange === 'function') {
+      onTabChange(tabName);
+    } else {
+      console.warn('onTabChange không phải là hàm, vui lòng kiểm tra prop từ component cha.');
+    }
   };
 
   return (
@@ -30,7 +34,6 @@ function Tabs({ onTabChange, counts, onSearch }) {
           </li>
         ))}
       </ul>
-      {/* Pass the onSearch prop to the search component */}
       <ProposalSearch onSearch={onSearch} />
     </div>
   );

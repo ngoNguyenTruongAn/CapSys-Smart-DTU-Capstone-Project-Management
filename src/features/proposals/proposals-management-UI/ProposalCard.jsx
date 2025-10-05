@@ -1,7 +1,9 @@
+// ProposalCard.jsx
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserGroup } from "@fortawesome/free-solid-svg-icons";
-import { faCalendar, faEye } from "@fortawesome/free-regular-svg-icons";
+import { faCalendar } from "@fortawesome/free-regular-svg-icons";
 import styles from "./Proposal.module.scss";
+import ViewDetailButton from "../layout-proposal-common/Button/ViewDetailButton"; // Nhập component button mới
 
 // Hàm xử lý tên tùy chỉnh
 const formatName = (fullName) => {
@@ -9,31 +11,27 @@ const formatName = (fullName) => {
   const parts = fullName.split(' ');
   
   if (parts.length > 2) {
-    const lastName = parts[parts.length - 1]; // Lấy tên cuối cùng
-    const middleName = parts[parts.length - 2]; // Lấy tên đệm
-    const firstNames = parts.slice(0, parts.length - 2); // Lấy các tên đầu
+    const lastName = parts[parts.length - 1]; 
+    const middleName = parts[parts.length - 2]; 
+    const firstNames = parts.slice(0, parts.length - 2); 
     
-    // Xử lý các tên đầu tiên thành chữ cái đầu và thêm dấu chấm
     const initials = firstNames.map(part => part.charAt(0)).join('.');
     
     return `${initials}. ${middleName} ${lastName}`;
   } else if (parts.length === 2) {
-    // Trường hợp tên chỉ có hai phần (ví dụ: Trần B)
     return `${parts[0].charAt(0)}. ${parts[1]}`;
   } else {
-    // Trường hợp tên chỉ có một phần
     return fullName;
   }
 };
-
 
 function ProposalCard({ proposal }) {
   const { id, title, summary, mentor, members, registerDate, approveDate, status } = proposal;
 
   let statusClass = "";
-  if (status === "Đã Duyệt") statusClass = styles['Card-status-approved'];
-  if (status === "Chờ Được Duyệt") statusClass = styles["Card-status-waiting"];
-  if (status === "Bị Từ Chối") statusClass = styles["Card-status-reject"];
+  if (status === "Đã duyệt") statusClass = styles['Card-status-approved'];
+if (status === "Chờ duyệt") statusClass = styles["Card-status-waiting"];
+if (status === "Bị từ chối") statusClass = styles["Card-status-reject"];
   
   const formattedMentorName = formatName(mentor);
   const formattedMembers = members.map(m => formatName(m));
@@ -98,13 +96,8 @@ function ProposalCard({ proposal }) {
         </span>
       </div>
 
-      {/* Button */}
-      <button className={styles["Card-button"]}>
-        <span className={styles["Card-button-icon"]}>
-          <FontAwesomeIcon icon={faEye} />
-        </span>
-        <p className={styles["Card-button-text"]}>Xem Chi Tiết</p>
-      </button>
+      {/* Thay thế button cũ bằng component mới */}
+      <ViewDetailButton id={id} />
     </div>
   );
 }

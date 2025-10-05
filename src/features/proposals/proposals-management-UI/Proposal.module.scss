@@ -16,7 +16,9 @@ font-family: Arial, Helvetica, sans-serif;
   background-color: #fff;
    height: 84px;
   justify-content: space-between;
-   margin-bottom: 30px;
+   
+   border-bottom: 0.2px solid #dadee3;
+   
 }
 .header-left-content{
     
@@ -38,6 +40,7 @@ font-family: Arial, Helvetica, sans-serif;
     border-radius: 6px;
     color: #fff;
     font-size: 2.4rem ;
+    cursor: pointer;
     
 }
 .header-content{
@@ -57,6 +60,19 @@ font-family: Arial, Helvetica, sans-serif;
   padding-right: 22px;
   width: 200px;
 }
+.header-no-mb {
+    // Đảm bảo ghi đè các giá trị margin
+    margin-bottom: 0 !important;
+    
+    // Nếu vẫn có khoảng cách, kiểm tra và loại bỏ padding-bottom
+    padding-bottom: 0 !important; 
+    
+    // Nếu khoảng cách đến từ div bên dưới, loại bỏ margin-top của div bên dưới.
+    // (Đây là một cách dùng SCSS lồng nhau nếu bạn muốn kiểm soát phần tử con/kế tiếp)
+    & + .container {
+        margin-top: 0 !important;
+    }
+}
 .addButton-wrapper{
   display: flex;
   height: 50%;
@@ -65,15 +81,17 @@ font-family: Arial, Helvetica, sans-serif;
   background-color: var(--primary-color);
   border-radius: 10px;
   cursor: pointer;
-  
+  border: none;
+  width: fit-content;
+  padding: 10px;
 }
 .addButton-text{
-  margin-left: 15px;
+  margin-left: 10px;
   font-size: 1.6rem;
   color: #fff;
 }
 .addButton-icon{
-  margin-left: 15px;
+  
   font-size: 1.4rem;
   color: #fff;
 }
@@ -81,6 +99,7 @@ font-family: Arial, Helvetica, sans-serif;
 .tabs-wrapper{
    margin-left: 3%;
    margin-right: 3%;
+   margin-top: 30px;
    height: 75px;
    background-color: #fff;
    display: flex;
@@ -120,13 +139,14 @@ font-family: Arial, Helvetica, sans-serif;
 
 .search-wrapper {
   position: relative;
-  width: 30%;
+  width: 360px;
   display: flex;
     align-items: center;
     border: 1px solid #d7dce7;
     border-radius: 8px;
     padding: 8px 12px;
   margin-right: 30px;
+  margin-left: 30px;
   
 }
 .search-proposal-icon {
@@ -154,7 +174,7 @@ font-family: Arial, Helvetica, sans-serif;
 // Card
 .Card-wrapper{
  width: 28.3333%;
- height:470px;
+ height:420px;
  background-color: #fff;
  padding: 10px 30px;
  border-radius: 16px;
@@ -169,6 +189,7 @@ font-family: Arial, Helvetica, sans-serif;
   }
 }
 .Card-header{
+  margin-bottom: 15px;
   width: 100%;
   height: fit-content;
   display: flex;
@@ -210,9 +231,10 @@ background-color: rgba(#26C55E,20%);
 }
 .Card-proposal-summary{
   height: fit-content;
-
+  
 }
 .Card-proposal-summary-content{
+  margin: 10px 0;
   height: fit-content;
   color: var(--text-color);
   font-size: 1.4rem;
@@ -245,7 +267,7 @@ background-color: rgba(#26C55E,20%);
   margin: 10px 0 5px 0;
 }
 .Card-mentor-info-content-text{
-  margin-top: 20px;
+  
   font-size: 1.6rem;
   color: var(--text-color);
   
@@ -312,14 +334,16 @@ background-color: rgba(#26C55E,20%);
 }
 
 .Card-button{
-  width: 100%;
-  height: 38px;
+
+  width: 94%;
+  height: 28px;
   padding: 10px;
   border: none;
   outline: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
   gap: 10px;
   background-color: var(--primary-color);
   border-radius: 10px;
