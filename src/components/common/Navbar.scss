@@ -1,11 +1,13 @@
 .navbar {
+  // max-width: 1200px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1.5rem 0rem 1.5rem;
+  flex-direction: column;
+  align-items: start;
   background-color: #fff;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 62.5%;
+  padding-bottom: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  font-family: "Inter", Tahoma, Geneva, Verdana, sans-serif;
 
   .nav-top {
     display: flex;
@@ -20,16 +22,18 @@
       margin-left: 8px;
 
       .logo-text-top {
-        font-size: 26px;
-        color: #000000;
-        font-weight: 600;
+        font-size: 1.3rem;
+        font-weight: bold;
+        color: #333;
       }
 
       .logo-text-bottom {
-        font-size: 18px;
+        font-size: 1rem;
+        margin-top: 6px;
+        font-weight: 400;
+        line-height: 100%;
+        letter-spacing: 0;
         color: #808291;
-        margin-top: 2px;
-        font-weight: normal;
       }
     }
   }
@@ -42,8 +46,44 @@
     color: #333;
 
     img {
-      width: 64px;
-      height: 64px;
+      width: 55px;
+      height: 55px;
+    }
+  }
+
+  &__menu {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      display: flex; // icon + text cùng hàng
+      align-items: center; // canh giữa icon
+      gap: 8px; // khoảng cách icon - text
+      cursor: pointer;
+      color: #444;
+      font-weight: 500;
+      transition: color 0.2s ease;
+
+      .navbar-icon-title {
+        width: 20px; // kích thước icon
+        height: 20px;
+        object-fit: contain;
+        transition: filter 0.2s ease; // hiệu ứng màu
+      }
+
+      &:hover,
+      &.active {
+        color: #1d4ed8;
+
+        .navbar-icon-title {
+          /* đổi màu icon kiểu filter để icon svg/png sáng lên */
+          filter: brightness(0) saturate(100%) invert(32%) sepia(94%)
+            saturate(5484%) hue-rotate(212deg) brightness(93%) contrast(101%);
+        }
+      }
     }
   }
 
@@ -51,6 +91,14 @@
     display: flex;
     align-items: center;
     gap: 20px;
+
+    .nav-bell {
+      width: 26px;
+      height: 26px;
+      cursor: pointer;
+      object-fit: contain;
+      border: none;
+    }
 
     .avatar {
       width: 54px;
@@ -73,32 +121,30 @@
       line-height: 1.2;
 
       .name {
-        font-size: 22px;
+        font-size: 1.1rem;
         font-weight: 600;
         color: #000000;
       }
 
       .role {
-        font-size: 16px;
-        color: #808291;
-        margin-top: 2px;
+        font-size: 0.9rem;
+        color: #666;
       }
     }
   }
-
   .nav-bottom {
     /* Tràn full ngang ra ngoài padding của .navbar */
-    width: calc(100% + 3rem);      // 1.5rem + 1.5rem (padding trái/phải của .navbar)
-    margin-left: -1.5rem;
-    margin-right: -1.5rem;
+    width: calc(100%); // 1.5rem + 1.5rem (padding trái/phải của .navbar)
+    // margin-left: -1.5rem;
+    // margin-right: -1.5rem;
 
     /* Padding bên trong nav-bottom (giữ cả trên và dưới) */
-    padding: 10px 1.5rem;          // trên/dưới 10px, trái/phải 1.5rem
+    padding: 10px 0; // trên/dưới 10px, trái/phải 1.5rem
 
     /* Đường kẻ */
-    border-top: 1px solid #E5E7EB;
-    border-bottom: 1px solid #E5E7EB;
-    
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+
     .navbar__menu {
       display: flex;
       gap: 48px;
@@ -108,7 +154,7 @@
       li {
         cursor: pointer;
         color: #808291;
-        font-size: 20px;
+        // font-size: 20px;
         transition: color 0.2s ease;
         display: flex;
         gap: 8px;
@@ -118,34 +164,34 @@
           width: 26px;
           height: 26px;
           transition: color 0.2s ease;
-          margin-top: 3px; 
-          stroke: #808291;           
-          fill: none;  
+          margin-top: 3px;
+          stroke: #808291;
+          fill: none;
         }
 
         &::after {
           content: "";
           position: absolute;
           left: 0;
-          bottom: -10px;                      
+          bottom: -10px;
           width: 0%;
           height: 3px;
-          background-color: #2563EB;         
+          background-color: #2563eb;
           transition: width 0.25s ease;
           border-radius: 2px;
         }
-        
+
         &:hover,
         &.active {
-          color: #2563EB;
+          color: #2563eb;
 
           .menu-icon {
-            stroke: #2563EB;
-            fill: none;  
+            stroke: #2563eb;
+            fill: none;
           }
 
           &::after {
-            width: 100%;                     
+            width: 100%;
           }
         }
       }

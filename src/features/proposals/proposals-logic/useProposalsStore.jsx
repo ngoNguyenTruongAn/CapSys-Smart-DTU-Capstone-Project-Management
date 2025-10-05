@@ -9,20 +9,24 @@ const PROPOSALS_URL = `${API_BASE}/Proposal`;
 
 // ===== JWT helpers (KHÔNG đổi UI) =====
 const getAccessToken = () => {
-  // Tùy app của bạn lưu token ở đâu: localStorage / sessionStorage
-  const direct =
-    localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-  if (direct) return direct;
+  // 🔹 App của bạn lưu token dạng "token" hoặc "refreshToken"
+  const token =
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("token") ||
+    localStorage.getItem("accessToken") ||
+    sessionStorage.getItem("accessToken");
 
-  // Fallback: nếu lưu object 'auth' { accessToken: "..." }
+  if (token) return token;
+
+  // Fallback cho trường hợp lưu object { token: "...", refreshToken: "..." }
   try {
     const auth =
       JSON.parse(localStorage.getItem("auth") || sessionStorage.getItem("auth") || "{}");
-    if (auth?.accessToken) return auth.accessToken;
-  } catch {}
-  return null;
+    return auth?.token || auth?.accessToken || null;
+  } catch {
+    return null;
+  }
 };
-
 const authHeaders = () => {
   const token = getAccessToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
