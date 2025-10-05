@@ -3,13 +3,16 @@ import Navbar from "../../components/common/Navbar";
 import { Outlet, useNavigate } from "react-router-dom";
 import "./AdminLayout.scss";
 import { jwtDecode } from "jwt-decode";
+import { refreshTokenAPI } from "../../services/AuthAPI"; // bạn đã có hàm này
 
 const AdminLayout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
+    const refreshToken = localStorage.getItem("refreshToken");
+
+    if (!token || !refreshToken) {
       navigate("/", { replace: true });
       return;
     }
@@ -18,12 +21,20 @@ const AdminLayout = () => {
       const decoded = jwtDecode(token);
       const now = Date.now() / 1000;
 
+      // Nếu token hết hạn → thử refresh
       if (!decoded.exp || decoded.exp < now) {
-        localStorage.clear();
-        navigate("/", { replace: true });
+        refreshTokenAPI({ token, refreshToken })
+          .then((data) => {
+            localStorage.setItem("token", data.token);
+          })
+          .catch(() => {
+            localStorage.clear();
+            navigate("/", { replace: true });
+          });
         return;
       }
 
+      // Check role
       const role =
         decoded.AccountType ||
         decoded.accountType ||
@@ -41,14 +52,12 @@ const AdminLayout = () => {
 
   return (
     <div className="admin-page">
-      {/* Navbar full width */}
       <header className="admin-navbar">
         <div className="navbar-inner">
           <Navbar />
         </div>
       </header>
 
-      {/* Content giới hạn */}
       <main className="admin-container">
         <div className="admin-content">
           <Outlet />

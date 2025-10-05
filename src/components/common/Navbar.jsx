@@ -63,6 +63,10 @@ const Navbar = () => {
             <NotebookIcon className="menu-icon" />
             Quản lý đồ án
           </li>
+          <li onClick={() => navigate("quan-ly-tai-khoan")}>
+            <StarIcon className="menu-icon" />
+            Quản lý tài khoản
+          </li>
           <li>
             <StarIcon className="menu-icon" />
             Chấm điểm

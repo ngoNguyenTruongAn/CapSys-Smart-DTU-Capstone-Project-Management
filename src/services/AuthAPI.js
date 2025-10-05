@@ -74,4 +74,53 @@ const resetPasswordAPI = async (
   }
 };
 
-export { LoginAPI, LogoutAPI, forgetPasswordAPI, resetPasswordAPI };
+//refresh token
+const refreshTokenAPI = async ({ token, refreshToken }) => {
+  try {
+    const response = await instance.post("Auth/refresh", {
+      token,
+      refreshToken,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || error.request
+        ? "Không nhận được phản hồi từ server"
+        : error.message
+    );
+  }
+};
+
+const registerStudentAPI = async (studentData) => {
+  if (!studentData) {
+    throw new Error("studentData is required");
+  }
+
+  const data = {
+    email: studentData.email,
+    password: studentData.password,
+    studentCode: studentData.studentCode,
+    fullName: studentData.fullName,
+    faculty: studentData.faculty,
+    major: studentData.major,
+    phone: studentData.phone,
+    capstoneType: studentData.capstoneType,
+    gpa: studentData.gpa,
+  };
+
+  try {
+    const response = await instance.post("Auth/register/student", data);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message);
+  }
+};
+
+export {
+  LoginAPI,
+  LogoutAPI,
+  forgetPasswordAPI,
+  resetPasswordAPI,
+  refreshTokenAPI,
+  registerStudentAPI,
+};

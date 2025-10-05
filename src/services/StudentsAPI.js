@@ -10,10 +10,22 @@ const getAllStudentsAPI = async () => {
 };
 const deleteStudentAPI = async (id) => {
   try {
-    const response = await instance.delete(`/Students/delete-student/${id}`);
+    const response = await instance.delete(`/Students/insert/${id}`);
     return response.data;
   } catch (error) {
     throw new Error(error.response.data.message || "Server Error");
   }
 };
-export { getAllStudentsAPI, deleteStudentAPI };
+
+const updateStudentAPI = async (id, studentData) => {
+  try {
+    const response = await instance.put(
+      `/Students/update-student/${id}`,
+      studentData
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response.data.message || "Server Error");
+  }
+};
+export { getAllStudentsAPI, deleteStudentAPI, updateStudentAPI };

@@ -6,6 +6,7 @@ import ConfirmForgot from "./pages/ForgotPassword/ConfirmForgot";
 import AdminLayout from "./pages/admin/AdminLayout";
 import TongQuan from "./pages/admin/TongQuan/TongQuan";
 import QuanLyDoAn from "./pages/admin/QuanLyDoAn/QuanLyDoAn";
+import QuanLyTaiKhoan from "./pages/admin/QuanLyTaiKhoan/QuanLyTaiKhoan";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<TongQuan />} />
         <Route path="quan-ly-do-an" element={<QuanLyDoAn />} />
+        <Route path="quan-ly-tai-khoan" element={<QuanLyTaiKhoan />} />
       </Route>
       {/* <Route path="/lecturer" element={<LecturersLayout />}></Route> */}
       <Route path="verification-code" element={<VerificationCode />} />

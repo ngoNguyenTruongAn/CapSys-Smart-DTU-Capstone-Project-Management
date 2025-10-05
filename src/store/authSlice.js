@@ -3,6 +3,7 @@ import {
   forgetPasswordAPI,
   LoginAPI,
   LogoutAPI,
+  registerStudentAPI,
   resetPasswordAPI,
 } from "../services/AuthAPI";
 import { extraReducers } from "./authReducers";
@@ -54,6 +55,18 @@ export const resetPassword = createAsyncThunk(
       return true;
     } catch (error) {
       return rejectWithValue(error.message || "ResetPassword failed");
+    }
+  }
+);
+
+export const registerStudent = createAsyncThunk(
+  "auth/registerStudent",
+  async (studentData, { rejectWithValue }) => {
+    try {
+      const res = await registerStudentAPI(studentData);
+      return { success: true, message: res.message || "Đăng ký thành công" };
+    } catch (error) {
+      return rejectWithValue(error.message || "RegisterStudent failed");
     }
   }
 );
