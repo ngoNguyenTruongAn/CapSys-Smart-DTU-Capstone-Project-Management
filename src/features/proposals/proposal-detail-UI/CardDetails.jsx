@@ -11,23 +11,23 @@ function CardDetails({ proposal, selectedProposalId, setSelectedProposalId }) {
 
   // Logic: Kiểm tra nếu ID hiện tại khớp với ID đang được chọn thì set active
   const isActive = id === selectedProposalId;
-
+  
   const handleClick = () => {
     // 1. Cập nhật ID được chọn khi click
-    setSelectedProposalId(id);
+    setSelectedProposalId(id); 
 
     // 2. THÊM LOGIC CUỘN VỀ ĐẦU TRANG
-    if (typeof window !== "undefined") {
-      window.scrollTo({
-        top: 0, // Cuộn về vị trí 0 (đầu trang)
-        behavior: "smooth", // Tạo hiệu ứng cuộn mượt
-      });
-
-      // Hoặc, nếu bạn chỉ muốn cuộn về đầu phần nội dung chính bên phải:
-      // Bạn cần đặt một ref (tham chiếu) vào phần nội dung bên phải trong Proposal-detail.jsx
-      // và truyền nó xuống, hoặc sử dụng ID của phần tử đó (ít được khuyến khích hơn).
-
-      // Giữ lại cách cuộn toàn bộ window là đơn giản và hiệu quả nhất trong trường hợp này.
+    if (typeof window !== 'undefined') {
+        window.scrollTo({ 
+            top: 0, // Cuộn về vị trí 0 (đầu trang)
+            behavior: 'smooth' // Tạo hiệu ứng cuộn mượt
+        });
+        
+        // Hoặc, nếu bạn chỉ muốn cuộn về đầu phần nội dung chính bên phải:
+        // Bạn cần đặt một ref (tham chiếu) vào phần nội dung bên phải trong Proposal-detail.jsx 
+        // và truyền nó xuống, hoặc sử dụng ID của phần tử đó (ít được khuyến khích hơn).
+        
+        // Giữ lại cách cuộn toàn bộ window là đơn giản và hiệu quả nhất trong trường hợp này.
     }
   };
 

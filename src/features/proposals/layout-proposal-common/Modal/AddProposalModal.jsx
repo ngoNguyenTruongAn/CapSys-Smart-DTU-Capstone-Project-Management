@@ -1,40 +1,24 @@
-// src/components/AddProposalModal.jsx (hoặc đường dẫn tương ứng)
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import styles from "./AddProposalModal.module.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useProposalsStore } from "../../proposals-logic/useProposalsStore";
 
-export default function AddProposalModal({ isOpen, onClose }) {
-  const { addProposal, loading, updateProposal, mode, selectedProposal } = useProposalsStore();
+export default function AddProposalModal() {
+  const { isModalOpen, closeModal, addProposal, isLoading } = useProposalsStore();
 
-  // Giữ lại các state cũ để không vỡ UI
-  const [id, setId] = useState("");                 // Mã hiển thị DAxxx (không gửi lên API)
-  const [teamId, setTeamId] = useState("");         // BẮT BUỘC: map vào TeamId của API
+  // dữ liệu form
+  const [id, setId] = useState("");
   const [title, setTitle] = useState("");
-  const [mentor, setMentor] = useState("");         // Chưa dùng khi gọi API upload
-  const [summary, setSummary] = useState("");       // Map -> Description
+  const [mentor, setMentor] = useState("");
+  const [summary, setSummary] = useState("");
   const [members, setMembers] = useState([{ name: "", mssv: "" }]);
   const [goals, setGoals] = useState([""]);
   const [technologies, setTechnologies] = useState([""]);
+  const [teamId, setTeamId] = useState("");
   const [files, setFiles] = useState([]);
 
-  // Điền sẵn dữ liệu khi mode là 'edit'
-  useEffect(() => {
-    if (mode === 'edit' && selectedProposal) {
-      setId(selectedProposal.id || "");
-      setTeamId(selectedProposal.teamId || "");
-      setTitle(selectedProposal.title || "");
-      setMentor(selectedProposal.mentor || "");
-      setSummary(selectedProposal.summary || "");
-      setMembers(selectedProposal.members.length > 0 ? selectedProposal.members.map(m => ({ name: m, mssv: "" })) : [{ name: "", mssv: "" }]);
-      setGoals(selectedProposal.goals || [""]);
-      setTechnologies(selectedProposal.technologies || [""]);
-      setFiles([]); // Không điền file cũ, người dùng có thể chọn file mới nếu cần
-    }
-  }, [mode, selectedProposal]);
-
-  if (!isOpen) return null;
+  if (!isModalOpen) return null;
 
   const addRow = (setter, empty) => setter((p) => [...p, empty]);
   const removeRow = (setter, i) =>
@@ -54,145 +38,150 @@ export default function AddProposalModal({ isOpen, onClose }) {
 
   const reset = () => {
     setId("");
-    setTeamId("");
     setTitle("");
     setMentor("");
     setSummary("");
     setMembers([{ name: "", mssv: "" }]);
     setGoals([""]);
     setTechnologies([""]);
+    setTeamId("");
     setFiles([]);
   };
 
   const submit = async (e) => {
     e.preventDefault();
 
-    // Lấy file PDF đầu tiên (nếu người dùng chọn nhiều file)
-    const pdf =
-      files.find((f) => f?.type === "application/pdf") || files[0] || null;
+    const trimmedMembers = members
+      .map((m) => ({ name: m.name.trim(), mssv: m.mssv.trim() }))
+      .filter((m) => m.name);
 
-    if (!title.trim()) return alert("Vui lòng nhập tiêu đề");
-    if (!summary.trim()) return alert("Vui lòng nhập mô tả/tóm tắt");
-    if (!teamId) return alert("Vui lòng nhập Team ID (số)");
-    if (mode === 'add' && !pdf) return alert("Vui lòng chọn tệp PDF");
+    const fd = new FormData();
+    fd.append("Title", title.trim());
+    fd.append("MentorName", mentor.trim());
+    fd.append("TeamId", teamId.trim());      // ⬅ Team ID
+    fd.append("Description", summary.trim()); // ⬅ Mô tả
+    fd.append("Summary", summary.trim());     // ⬅ giữ thêm key Summary
 
-    // Tạo FormData để gửi lên BE (multipart/form-data)
-    const formData = new FormData();
-    formData.append("TeamId", Number(teamId));  // BE yêu cầu int
-    formData.append("Title", title.trim());    // BE yêu cầu string
-    formData.append("Description", summary.trim());  // Map từ summary
-    if (pdf) formData.append("PdfFile", pdf);           // BE yêu cầu IFormFile
+    trimmedMembers.forEach((m, idx) => {
+      fd.append(`TeamMembers[${idx}].FullName`, m.name);
+      if (m.mssv) fd.append(`TeamMembers[${idx}].StudentCode`, m.mssv);
+    });
 
-    // Ghép AdditionalNotes từ các trường khác (tuỳ chọn)
-    const additional = `Mentor: ${mentor}\nMembers: ${members.map(m => `${m.name} (${m.mssv})`).join(', ')}\nGoals: ${goals.join(', ')}\nTechnologies: ${technologies.join(', ')}`;
-    formData.append("AdditionalNotes", additional.trim());
+    goals
+      .map((g) => g.trim())
+      .filter(Boolean)
+      .forEach((g, i) => fd.append(`Goals[${i}]`, g));
 
-    try {
-      if (mode === 'add') {
-        await addProposal(formData);
-      } else if (mode === 'edit') {
-        await updateProposal(selectedProposal.id, formData); // Gọi update nếu là mode edit
-      }
+    technologies
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .forEach((t, i) => fd.append(`Technologies[${i}]`, t));
+
+    (files || []).forEach((f) => fd.append("PdfFile", f));
+
+    const ok = await addProposal(fd);
+    if (ok) {
       reset();
-      onClose?.();
-    } catch (err) {
-      alert(`Lưu thất bại: ${err?.message || "Lỗi không xác định"}`);
+      closeModal();
     }
   };
 
   return (
-    <div className={styles.overlay} onClick={() => !loading && onClose?.()}>
+    <div className={styles.overlay} onClick={closeModal}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h3>{mode === 'add' ? 'Tạo đồ án mới' : 'Chỉnh sửa đồ án'}</h3>
+          <h3>Tạo đồ án mới</h3>
         </div>
 
         <form className={styles.body} onSubmit={submit}>
+          {/* ✅ Team ID được đưa lên đầu */}
           <div className={styles.row}>
-            <p className={styles.label}>Mã đồ án (hiển thị)</p>
+            <p className={styles.label}>Team ID</p>
+            <input
+              placeholder="VD: 12"
+              value={teamId}
+              onChange={(e) => setTeamId(e.target.value)}
+            />
+          </div>
+
+          <div className={styles.row}>
+            <p className={styles.label}>Mã đồ án</p>
             <input
               placeholder="VD: DA001"
               value={id}
               onChange={(e) => setId(e.target.value)}
-              disabled={loading}
             />
           </div>
 
-          <div className={styles.row}>
-            <p className={styles.label}>Team ID</p>
-            <input
-              type="number"
-              placeholder="VD: 201"
-              value={teamId}
-              onChange={(e) => setTeamId(e.target.value)}
-              disabled={loading}
-            />
-          </div>
           <div className={styles.row}>
             <p className={styles.label}>Tiêu đề đồ án</p>
             <input
-              placeholder="VD: Hệ thống quản lý đồ án tốt nghiệp"
+              placeholder="VD: Hệ thống quản lý thư viện"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              disabled={loading}
             />
           </div>
 
           <div className={styles.row}>
-            <p className={styles.label}>Giảng viên hướng dẫn</p>
+            <p className={styles.label}>GVHD</p>
             <input
-              placeholder="VD: Nguyễn Văn A"
+              placeholder="VD: Võ Đình Hiếu"
               value={mentor}
               onChange={(e) => setMentor(e.target.value)}
-              disabled={loading}
             />
           </div>
 
-          <div className={styles.rowCol}>
-            <p className={styles.label}>Mô tả đồ án</p>
+          {/* Mô tả đề tài */}
+          <div className={styles.row}>
+            <p className={styles.label}>Mô tả đề tài</p>
             <textarea
-              placeholder="Mô tả ngắn gọn về đồ án"
+              placeholder="Mô tả / tóm tắt ngắn gọn"
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              disabled={loading}
+              rows={4}
             />
           </div>
 
           <div className={styles.group}>
-            <p className={styles.label}>Thành viên nhóm</p>
+            <div className={styles.groupHeader}>
+              <p className={styles.label}>Thành viên nhóm</p>
+              <button
+                type="button"
+                className={styles.addBtn}
+                onClick={() => addRow(setMembers, { name: "", mssv: "" })}
+              >
+                <FontAwesomeIcon icon={faPlus} className={styles.addIcon} />
+                Thêm thành viên
+              </button>
+            </div>
             {members.map((m, i) => (
               <div key={i} className={styles.memberRow}>
                 <input
-                  placeholder="Họ tên"
+                  placeholder="Tên thành viên"
                   value={m.name}
-                  onChange={(e) => handleMemberChange(i, "name", e.target.value)}
-                  disabled={loading}
+                  onChange={(e) =>
+                    handleMemberChange(i, "name", e.target.value)
+                  }
                 />
                 <input
                   placeholder="MSSV"
                   value={m.mssv}
-                  onChange={(e) => handleMemberChange(i, "mssv", e.target.value)}
-                  disabled={loading}
+                  onChange={(e) =>
+                    handleMemberChange(i, "mssv", e.target.value)
+                  }
                 />
                 <button
                   type="button"
                   className={styles.removeBtn}
                   onClick={() => removeRow(setMembers, i)}
-                  disabled={loading}
                 >
-                  <FontAwesomeIcon icon={faTrash} className={styles.removeIcon} />
+                  <FontAwesomeIcon
+                    icon={faTrash}
+                    className={styles.removeIcon}
+                  />
                 </button>
               </div>
             ))}
-            <button
-              type="button"
-              className={styles.addBtn}
-              onClick={() => addRow(setMembers, { name: "", mssv: "" })}
-              disabled={loading}
-            >
-              <FontAwesomeIcon icon={faPlus} className={styles.addIcon} />
-              Thêm thành viên
-            </button>
           </div>
 
           <div className={styles.group}>
@@ -202,7 +191,6 @@ export default function AddProposalModal({ isOpen, onClose }) {
                 type="button"
                 className={styles.addBtn}
                 onClick={() => addRow(setGoals, "")}
-                disabled={loading}
               >
                 <FontAwesomeIcon icon={faPlus} className={styles.addIcon} />
                 Thêm mục tiêu
@@ -214,15 +202,16 @@ export default function AddProposalModal({ isOpen, onClose }) {
                   placeholder={`Mục tiêu ${i + 1}`}
                   value={g}
                   onChange={(e) => handleArrChange(setGoals, i, e.target.value)}
-                  disabled={loading}
                 />
                 <button
                   type="button"
                   className={styles.removeBtn}
                   onClick={() => removeRow(setGoals, i)}
-                  disabled={loading}
                 >
-                  <FontAwesomeIcon icon={faTrash} className={styles.removeIcon} />
+                  <FontAwesomeIcon
+                    icon={faTrash}
+                    className={styles.removeIcon}
+                  />
                 </button>
               </div>
             ))}
@@ -235,7 +224,6 @@ export default function AddProposalModal({ isOpen, onClose }) {
                 type="button"
                 className={styles.addBtn}
                 onClick={() => addRow(setTechnologies, "")}
-                disabled={loading}
               >
                 <FontAwesomeIcon icon={faPlus} className={styles.addIcon} />
                 Thêm công nghệ
@@ -249,36 +237,36 @@ export default function AddProposalModal({ isOpen, onClose }) {
                   onChange={(e) =>
                     handleArrChange(setTechnologies, i, e.target.value)
                   }
-                  disabled={loading}
                 />
                 <button
                   type="button"
                   className={styles.removeBtn}
                   onClick={() => removeRow(setTechnologies, i)}
-                  disabled={loading}
                 >
-                  <FontAwesomeIcon icon={faTrash} className={styles.removeIcon} />
+                  <FontAwesomeIcon
+                    icon={faTrash}
+                    className={styles.removeIcon}
+                  />
                 </button>
               </div>
             ))}
           </div>
 
           <div className={styles.rowCol}>
-            <p className={styles.label}>Tài liệu đính kèm (PDF)</p>
+            <p className={styles.label}>Tài liệu đính kèm</p>
 
             <label className={styles.uploadBox}>
               <input
                 type="file"
                 multiple
-                accept="application/pdf"
                 onChange={(e) => setFiles(Array.from(e.target.files || []))}
                 className={styles.hiddenInput}
-                disabled={loading}
+                accept="application/pdf"
               />
               <div className={styles.uploadContent}>
                 <FontAwesomeIcon icon={faPlus} className={styles.uploadIcon} />
-                <p>Chọn tệp để tải lên hoặc kéo thả vào đây</p>
-                <span>Chỉ lấy file PDF đầu tiên để upload (tối đa 10MB)</span>
+                <p>Chọn tệp để tải lên </p>
+                <span>Chỉ hỗ trợ PDF (tối đa 10MB)</span>
               </div>
             </label>
 
@@ -295,13 +283,13 @@ export default function AddProposalModal({ isOpen, onClose }) {
             <button
               type="button"
               className={styles.cancel}
-              onClick={onClose}
-              disabled={loading}
+              onClick={closeModal}
+              disabled={isLoading}
             >
               Hủy
             </button>
-            <button type="submit" className={styles.create} disabled={loading}>
-              {loading ? "Đang tạo..." : mode === 'add' ? "Tạo đồ án" : "Lưu thay đổi"}
+            <button type="submit" className={styles.create} disabled={isLoading}>
+              {isLoading ? "Đang tạo..." : "Tạo đồ án"}
             </button>
           </div>
         </form>

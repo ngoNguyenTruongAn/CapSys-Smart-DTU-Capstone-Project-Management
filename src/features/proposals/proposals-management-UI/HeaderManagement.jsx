@@ -5,8 +5,7 @@ import { useProposalsStore } from "../proposals-logic/useProposalsStore";
 
 function HeaderManagement() {
   // Dùng đúng state & action trong store hiện tại
-  const { isModalOpen, openModal, closeModal, addProposal } =
-    useProposalsStore();
+  const { isModalOpen, openModal, closeModal, addProposal } = useProposalsStore();
 
   return (
     <div>
