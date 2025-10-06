@@ -12,7 +12,7 @@ import ApprovedButton from "../layout-proposal-common/Button/ApprovedButton";
 import React, { useEffect } from "react";
 import { useParams } from "react-router-dom"; // 🆕 Thêm dòng này
 import { getStatusKey, getStatusLabel } from "../proposals-logic/status.utils";
-import RejectButton from "../layout-proposal-common/Button/RejectButton";  // Import nút mới
+import RejectButton from "../layout-proposal-common/Button/RejectButton"; // Import nút mới
 import AddProposalModal from "../layout-proposal-common/Modal/AddProposalModal";
 
 function Proposaldetail() {
@@ -138,10 +138,16 @@ function Proposaldetail() {
               <div
                 className={styles["right-content-overview-card-header-right"]}
               >
-                {isWaiting && <ApprovedButton onClick={handleApprove} />}  
-                {(isWaiting || isApproved) && <EditButton onClick={() => openModal('edit', selectedProposal)} />} 
-                {isWaiting && <RejectButton onClick={handleReject} />}  
-                {(isApproved || isRejected) && <DeleteButton onClick={handleDelete} />}  
+                {isWaiting && <ApprovedButton onClick={handleApprove} />}
+                {(isWaiting || isApproved) && (
+                  <EditButton
+                    onClick={() => openModal("edit", selectedProposal)}
+                  />
+                )}
+                {isWaiting && <RejectButton onClick={handleReject} />}
+                {(isApproved || isRejected) && (
+                  <DeleteButton onClick={handleDelete} />
+                )}
               </div>
             </div>
 
@@ -171,9 +177,7 @@ function Proposaldetail() {
                 </div>
               </span>
 
-              <h1
-                className={styles["overview-card-member-info-title"]}
-              >
+              <h1 className={styles["overview-card-member-info-title"]}>
                 Danh sách thành viên:
               </h1>
               <ul className={styles["overview-card-member-info-list"]}>
@@ -192,17 +196,11 @@ function Proposaldetail() {
                     <div
                       className={styles["overview-card-member-info-item-text"]}
                     >
-                      <p
-                        className={styles["overview-card-member-info-name"]}
-                      >
+                      <p className={styles["overview-card-member-info-name"]}>
                         {member}
                       </p>
-                      <p
-                        className={styles["overview-card-member-student-id"]}
-                      >
-                        {`28211134${(100 + index)
-                          .toString()
-                          .padStart(3, "0")}`}
+                      <p className={styles["overview-card-member-student-id"]}>
+                        {`28211134${(100 + index).toString().padStart(3, "0")}`}
                       </p>
                     </div>
                   </li>
@@ -212,14 +210,10 @@ function Proposaldetail() {
           </div>
 
           <div className={styles["right-content-discribe-card"]}>
-            <h3
-              className={styles["right-content-discribe-card-title"]}
-            >
+            <h3 className={styles["right-content-discribe-card-title"]}>
               Mô tả đồ án
             </h3>
-            <p
-              className={styles["right-content-discribe-card-description"]}
-            >
+            <p className={styles["right-content-discribe-card-description"]}>
               {summary}
             </p>
           </div>
@@ -264,41 +258,66 @@ function Proposaldetail() {
               {pdfUrl ? (
                 <li className={styles["right-content-document-card-item"]}>
                   <div
-                    className={styles["right-content-document-card-item-content"]}
+                    className={
+                      styles["right-content-document-card-item-content"]
+                    }
                   >
                     <span
-                      className={styles["right-content-document-card-item-content-icon"]}
+                      className={
+                        styles["right-content-document-card-item-content-icon"]
+                      }
                     >
                       <FontAwesomeIcon icon={faFile} />
                     </span>
                     <span
-                      className={styles["right-content-document-card-item-content-wrapper"]}
+                      className={
+                        styles[
+                          "right-content-document-card-item-content-wrapper"
+                        ]
+                      }
                     >
                       <p
-                        className={styles["right-content-document-card-item-content-text"]}
+                        className={
+                          styles[
+                            "right-content-document-card-item-content-text"
+                          ]
+                        }
                       >
                         Tài liệu đề xuất
                       </p>
                       <p
-                        className={styles["right-content-document-card-item-content-number"]}
+                        className={
+                          styles[
+                            "right-content-document-card-item-content-number"
+                          ]
+                        }
                       >
-                        {pdfUrl.endsWith('.pdf') ? 'PDF' : 'File'} {/* Có thể tính kích thước nếu có API hỗ trợ */}
+                        {pdfUrl.endsWith(".pdf") ? "PDF" : "File"}{" "}
+                        {/* Có thể tính kích thước nếu có API hỗ trợ */}
                       </p>
                     </span>
                   </div>
                   <a
                     href={pdfUrl}
                     download
-                    className={styles["right-content-document-card-item-button"]}
+                    className={
+                      styles["right-content-document-card-item-button"]
+                    }
                   >
                     <FontAwesomeIcon icon={faDownload} />
-                    <p className={styles["right-content-document-card-item-button-text"]}>
+                    <p
+                      className={
+                        styles["right-content-document-card-item-button-text"]
+                      }
+                    >
                       Tải về
                     </p>
                   </a>
                 </li>
               ) : (
-                <p className={styles["no-document"]}>Chưa có tài liệu đính kèm.</p>
+                <p className={styles["no-document"]}>
+                  Chưa có tài liệu đính kèm.
+                </p>
               )}
             </ul>
           </div>

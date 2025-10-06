@@ -7,16 +7,16 @@ import ViewDetailButton from "../layout-proposal-common/Button/ViewDetailButton"
 
 // Hàm xử lý tên tùy chỉnh
 const formatName = (fullName) => {
-  if (!fullName) return '';
-  const parts = fullName.split(' ');
-  
+  if (!fullName) return "";
+  const parts = fullName.split(" ");
+
   if (parts.length > 2) {
-    const lastName = parts[parts.length - 1]; 
-    const middleName = parts[parts.length - 2]; 
-    const firstNames = parts.slice(0, parts.length - 2); 
-    
-    const initials = firstNames.map(part => part.charAt(0)).join('.');
-    
+    const lastName = parts[parts.length - 1];
+    const middleName = parts[parts.length - 2];
+    const firstNames = parts.slice(0, parts.length - 2);
+
+    const initials = firstNames.map((part) => part.charAt(0)).join(".");
+
     return `${initials}. ${middleName} ${lastName}`;
   } else if (parts.length === 2) {
     return `${parts[0].charAt(0)}. ${parts[1]}`;
@@ -26,15 +26,24 @@ const formatName = (fullName) => {
 };
 
 function ProposalCard({ proposal }) {
-  const { id, title, summary, mentor, members, registerDate, approveDate, status } = proposal;
+  const {
+    id,
+    title,
+    summary,
+    mentor,
+    members,
+    registerDate,
+    approveDate,
+    status,
+  } = proposal;
 
   let statusClass = "";
-  if (status === "Đã duyệt") statusClass = styles['Card-status-approved'];
-if (status === "Chờ duyệt") statusClass = styles["Card-status-waiting"];
-if (status === "Bị từ chối") statusClass = styles["Card-status-reject"];
-  
+  if (status === "Đã duyệt") statusClass = styles["Card-status-approved"];
+  if (status === "Chờ duyệt") statusClass = styles["Card-status-waiting"];
+  if (status === "Bị từ chối") statusClass = styles["Card-status-reject"];
+
   const formattedMentorName = formatName(mentor);
-  const formattedMembers = members.map(m => formatName(m));
+  const formattedMembers = members.map((m) => formatName(m));
 
   return (
     <div className={styles["Card-wrapper"]}>
@@ -53,8 +62,12 @@ if (status === "Bị từ chối") statusClass = styles["Card-status-reject"];
 
       {/* Mentor */}
       <div className={styles["Card-mentor-info"]}>
-        <h1 className={styles["Card-mentor-info-content-header"]}>Giảng Viên Hướng Dẫn:</h1>
-        <p className={styles["Card-mentor-info-content-text"]}>{formattedMentorName}</p>
+        <h1 className={styles["Card-mentor-info-content-header"]}>
+          Giảng Viên Hướng Dẫn:
+        </h1>
+        <p className={styles["Card-mentor-info-content-text"]}>
+          {formattedMentorName}
+        </p>
       </div>
 
       {/* Members */}
@@ -63,9 +76,11 @@ if (status === "Bị từ chối") statusClass = styles["Card-status-reject"];
           <span className={styles["Card-member-info-header-icon"]}>
             <FontAwesomeIcon icon={faUserGroup} />
           </span>
-          <span className={styles["Card-member-info-header-text"]}>Thành viên nhóm</span>
+          <span className={styles["Card-member-info-header-text"]}>
+            Thành viên nhóm
+          </span>
           <span className={styles["Card-member-info-header-numer"]}>
-            ({members.length}): 
+            ({members.length}):
           </span>
         </div>
         <div className={styles["Card-member-info-content"]}>
@@ -83,8 +98,12 @@ if (status === "Bị từ chối") statusClass = styles["Card-status-reject"];
           <span className={styles["Card-date-register-icon"]}>
             <FontAwesomeIcon icon={faCalendar} />
           </span>
-          <span className={styles["Card-date-register-text"]}>Ngày đăng ký:</span>
-          <div className={styles["Card-date-register-content"]}>{registerDate}</div>
+          <span className={styles["Card-date-register-text"]}>
+            Ngày đăng ký:
+          </span>
+          <div className={styles["Card-date-register-content"]}>
+            {registerDate}
+          </div>
         </span>
 
         <span className={styles["Card-date-approve"]}>
@@ -92,7 +111,9 @@ if (status === "Bị từ chối") statusClass = styles["Card-status-reject"];
             <FontAwesomeIcon icon={faCalendar} />
           </span>
           <span className={styles["Card-date-approve-text"]}>Ngày duyệt:</span>
-          <div className={styles["Card-date-approve-content"]}>{approveDate}</div>
+          <div className={styles["Card-date-approve-content"]}>
+            {approveDate}
+          </div>
         </span>
       </div>
 

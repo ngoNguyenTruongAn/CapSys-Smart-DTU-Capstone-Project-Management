@@ -1,4 +1,3 @@
-
 import { Route, Routes } from "react-router-dom";
 import Login from "./pages/Login/Login";
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
@@ -9,13 +8,11 @@ import TongQuan from "./pages/admin/TongQuan/TongQuan";
 import QuanLyDoAn from "./pages/admin/QuanLyDoAn/QuanLyDoAn";
 import QuanLyTaiKhoan from "./pages/admin/QuanLyTaiKhoan/QuanLyTaiKhoan";
 
-import Proposals from './pages/admin/Proposals'
-import Proposaldetail from './features/proposals/proposal-detail-UI/Proposal-detail';
-
+import Proposals from "./pages/admin/Proposals";
+import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-detail";
 
 function App() {
   return (
-
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -27,7 +24,7 @@ function App() {
       <Route path="verification-code" element={<VerificationCode />} />
       <Route path="confirm-forgot" element={<ConfirmForgot />} />
       <Route path="/proposals" element={<Proposals />} />
-         <Route path="/proposal-detail/:id" element={<Proposaldetail />} />
+      <Route path="/proposal-detail/:id" element={<Proposaldetail />} />
     </Routes>
   );
 }

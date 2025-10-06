@@ -1,26 +1,25 @@
-*{
-    margin: 0;
-    padding: 0;
+* {
+  margin: 0;
+  padding: 0;
 }
 :root {
---primary-color: #1D62ED;
---second-color:#F4F3F8;
---text-color:#808291;
-font-size: 62.5%;
-font-family: Arial, Helvetica, sans-serif;
+  --primary-color: #1d62ed;
+  --second-color: #f4f3f8;
+  --text-color: #808291;
+  font-size: 62.5%;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-.container{
-    width: 100%;
-    height: fit-content;
-    display: flex;
-   
+.container {
+  width: 100%;
+  height: fit-content;
+  display: flex;
 }
-.left-content{
-    height: fit-content;
-    width: 30%;
-    background-color: #fff;
-    padding-top: 32px;
+.left-content {
+  height: fit-content;
+  width: 30%;
+  background-color: #fff;
+  padding-top: 32px;
 }
 /* List nhỏ gọn hiển thị dọc */
 .DetailsList-wrapper {
@@ -52,13 +51,13 @@ font-family: Arial, Helvetica, sans-serif;
 .DetailsCard-id {
   font-size: 1.2rem;
   font-weight: 600;
-  background: #F4F3F8;
-  
+  background: #f4f3f8;
+
   border-radius: 8px;
   color: #555;
   height: fit-content;
-    width: fit-content;
-    padding: 10px;
+  width: fit-content;
+  padding: 10px;
 }
 
 .DetailsCard-status {
@@ -73,8 +72,8 @@ font-family: Arial, Helvetica, sans-serif;
   background: #e6f9ed;
   border-left-color: #26c55e;
   height: fit-content;
-    width: fit-content;
-    padding: 10px;
+  width: fit-content;
+  padding: 10px;
 }
 
 .status-waiting {
@@ -82,8 +81,8 @@ font-family: Arial, Helvetica, sans-serif;
   background: #fefabd;
   border-left-color: #b6973d;
   height: fit-content;
-    width: fit-content;
-    padding: 10px;
+  width: fit-content;
+  padding: 10px;
 }
 
 .status-reject {
@@ -91,8 +90,8 @@ font-family: Arial, Helvetica, sans-serif;
   background: #fbd8d8;
   border-left-color: #e14b4b;
   height: fit-content;
-    width: fit-content;
-    padding: 10px;
+  width: fit-content;
+  padding: 10px;
 }
 
 .DetailsCard-title {
@@ -100,100 +99,97 @@ font-family: Arial, Helvetica, sans-serif;
   font-weight: 600;
   margin-bottom: 10px;
 }
-.DetailsCard-mentor{
+.DetailsCard-mentor {
   margin-bottom: 8px;
 }
 .DetailsCard-mentor,
 .DetailsCard-date {
   font-size: 1.4rem;
   color: #717576;
-  
+
   font-weight: bold;
 }
-.DetailsCard-date{
+.DetailsCard-date {
   margin-bottom: 8px;
 }
-.Proposal-details-card{
-    margin-top: 20px;
+.Proposal-details-card {
+  margin-top: 20px;
 }
-.right-content{
-    width: 70%;
-    height: fit-content;
-    padding: 42px;
+.right-content {
+  width: 70%;
+  height: fit-content;
+  padding: 42px;
 }
 .right-content-overview-card,
 .right-content-discribe-card,
 .right-content-goal-card,
 .right-content-technology-card,
-.right-content-document-card{
-background-color: #fff;
-    padding: 32px;
-    border-radius: 8px;
-    box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.06);
-    margin-bottom: 32px;
-    height: fit-content;
+.right-content-document-card {
+  background-color: #fff;
+  padding: 32px;
+  border-radius: 8px;
+  box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.06);
+  margin-bottom: 32px;
+  height: fit-content;
 }
-    
-    
 
-.right-content-overview-card-header{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    height: fit-content;
-    font-size: 1.4rem;
+.right-content-overview-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  height: fit-content;
+  font-size: 1.4rem;
 }
-.right-content-overview-card-header-right{
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    height: fit-content;
-    width: fit-content;
+.right-content-overview-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: fit-content;
+  width: fit-content;
 }
-.DetailsCard-title{
-    font-size: 2rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: #333;
+.DetailsCard-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
 }
-.overview-card-wrapper-info{
-    display: flex;
-    align-items: center;
-    margin-bottom: 16px;
+.overview-card-wrapper-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
 }
 .DetailsCard-avatar,
-.overview-card-member-info-avatar{
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    object-fit: cover;
-    margin-right: 12px;
+.overview-card-member-info-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;
 }
-.overview-card-member-info-list{
+.overview-card-member-info-list {
   list-style: none;
   display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
+  gap: 20px;
+  flex-wrap: wrap;
 }
-.overview-card-member-info-title{
-    font-size: 1.8rem;
-    font-weight: 600;
-    margin-bottom: 4px;
-    
+.overview-card-member-info-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 4px;
 }
-.overview-card-member-info-item{
+.overview-card-member-info-item {
   display: flex;
   align-items: center;
   width: fit-content;
   height: fit-content;
 }
-.overview-card-member-info-name{
+.overview-card-member-info-name {
   font-size: 1.4rem;
   color: #000;
   margin-bottom: 8px;
 }
-.overview-card-member-student-id{
+.overview-card-member-student-id {
   font-size: 1.2rem;
   color: #717576;
   font-weight: 600;
@@ -201,147 +197,142 @@ background-color: #fff;
 .right-content-discribe-card-title,
 .right-content-goal-card-title,
 .right-content-technology-card-title,
-.right-content-document-card-title{
-    font-size: 2rem;
-    font-weight: 600;
-    margin-bottom: 16px;
-    color: #333;
+.right-content-document-card-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #333;
 }
-.right-content-discribe-card-description{
-    font-size: 1.4rem;
-    color: #555;
-    line-height: 1.6;
-    text-align: justify;
+.right-content-discribe-card-description {
+  font-size: 1.4rem;
+  color: #555;
+  line-height: 1.6;
+  text-align: justify;
 }
-.right-content-goal-card-list{
-    list-style: none; 
-  padding: 0; 
+.right-content-goal-card-list {
+  list-style: none;
+  padding: 0;
   margin: 0;
-  counter-reset: item; 
-    
+  counter-reset: item;
 }
 .right-content-goal-card-item::before {
-  content: counter(item); 
+  content: counter(item);
   counter-increment: item;
-  width: 30px; 
-  height: 30px; 
-  border-radius: 50%; 
-  background-color: #e5f1ff; 
-  color: #3b82f6; 
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #e5f1ff;
+  color: #3b82f6;
   font-weight: bold;
   font-size: 0.9em;
   display: flex;
   justify-content: center;
   align-items: center;
   margin-right: 15px;
-  flex-shrink: 0; 
+  flex-shrink: 0;
 }
-.right-content-goal-card-item{
-    font-size: 1.4rem;
-    color: #555;
-    margin-bottom: 10px;
-    display: flex; 
-  align-items: center; 
+.right-content-goal-card-item {
+  font-size: 1.4rem;
+  color: #555;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
 }
-.right-content-technology-card-list{
-    list-style: none; 
-  padding: 0; 
+.right-content-technology-card-list {
+  list-style: none;
+  padding: 0;
   margin: 0;
   display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 30px;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 30px;
 }
-.right-content-technology-card-item{
-   
-    font-size: 1.4rem;
-    color: #2D53A8;
-    background-color: #e5f1ff;
-    padding: 8px 16px;
-    border-radius: 20px;
-    height: fit-content;
-    width: fit-content;
-    font-weight: 600;
-}
-.right-content-document-card-list{
-    list-style: none; 
-  padding: 0; 
-  margin: 0;
-
-}
-.right-content-document-card-item{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    padding: 16px;
-    border: 1px solid #E5E7EB;
-    height: fit-content;
-    border-radius: 8px;
-}
-.right-content-document-card-item-content{
-    display: flex;
-    align-items: center;
-}
-.right-content-document-card-item-content-icon{
-    font-size: 2.4rem;
-    color: #F9899F;
-    margin-right: 16px;
-    height: fit-content;
-    width: fit-content;
-    padding: 10px; 
-    background-color: #F4F3F8;
-    border-radius: 8px;
-  }
-.right-content-document-card-item-content-wrapper{
+.right-content-technology-card-item {
+  font-size: 1.4rem;
+  color: #2d53a8;
+  background-color: #e5f1ff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  height: fit-content;
   width: fit-content;
-    height: fit-content;
+  font-weight: 600;
 }
-.right-content-document-card-item-content-text{
-    font-size: 1.4rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 8px;
-    
+.right-content-document-card-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
-.right-content-document-card-item-content-number{
- color: var(--text-color);
- font-size: 1.2rem;
+.right-content-document-card-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  height: fit-content;
+  border-radius: 8px;
 }
-.right-content-document-card-item-button{
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 1.6rem;
-    color: var(--primary-color);
-    cursor: pointer;
+.right-content-document-card-item-content {
+  display: flex;
+  align-items: center;
+}
+.right-content-document-card-item-content-icon {
+  font-size: 2.4rem;
+  color: #f9899f;
+  margin-right: 16px;
+  height: fit-content;
+  width: fit-content;
+  padding: 10px;
+  background-color: #f4f3f8;
+  border-radius: 8px;
+}
+.right-content-document-card-item-content-wrapper {
+  width: fit-content;
+  height: fit-content;
+}
+.right-content-document-card-item-content-text {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+.right-content-document-card-item-content-number {
+  color: var(--text-color);
+  font-size: 1.2rem;
+}
+.right-content-document-card-item-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.6rem;
+  color: var(--primary-color);
+  cursor: pointer;
 }
 // Button
 .editButton-wrapper,
 .deleteButton-wrapper,
-.approvedButton-wrapper{
+.approvedButton-wrapper {
   background-color: var(--primary-color);
   color: #fff;
   display: flex;
   gap: 8px;
   border: none;
-  padding: 10px ;
+  padding: 10px;
   border-radius: 5px;
   font-size: 1.4rem;
   cursor: pointer;
   transition: background-color 0.3s ease;
   height: fit-content;
-    width: fit-content;
+  width: fit-content;
 }
 .editButton-text,
 .approvedButton-text,
-.deleteButton-text{
+.deleteButton-text {
   font-weight: 600;
-  
 }
-.deleteButton-wrapper{
+.deleteButton-wrapper {
   background-color: #e14b4b;
 }
-.approvedButton-wrapper{
+.approvedButton-wrapper {
   background-color: #26c55e;
 }

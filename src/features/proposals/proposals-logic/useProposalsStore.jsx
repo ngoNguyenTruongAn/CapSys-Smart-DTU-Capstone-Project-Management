@@ -4,22 +4,26 @@ import { create } from "zustand";
 // ================== CONFIG ==================
 const ENV_BASE = import.meta?.env?.VITE_API_URL?.replace(/\/$/, "");
 const API_BASE = ENV_BASE || "http://localhost:5295/api";
-const PROPOSALS_URL = `${API_BASE}/Proposal`; 
-// Nếu 404, đổi thành: const PROPOSALS_URL = `${API_BASE}/proposals`;
+let PROPOSALS_URL = `${API_BASE}/Proposal`; // Primary URL
+const FALLBACK_URL = `${API_BASE}/proposals`; // Fallback nếu 404 (lowercase)
 
 // ===== JWT helpers (KHÔNG đổi UI) =====
 const getAccessToken = () => {
   // Tùy app của bạn lưu token ở đâu: localStorage / sessionStorage
   const direct =
-    localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    localStorage.getItem("accessToken") ||
+    sessionStorage.getItem("accessToken");
   if (direct) return direct;
 
   // Fallback: nếu lưu object 'auth' { accessToken: "..." }
   try {
-    const auth =
-      JSON.parse(localStorage.getItem("auth") || sessionStorage.getItem("auth") || "{}");
+    const auth = JSON.parse(
+      localStorage.getItem("auth") || sessionStorage.getItem("auth") || "{}"
+    );
     if (auth?.accessToken) return auth.accessToken;
-  } catch {}
+  } catch {
+    return null;
+  }
   return null;
 };
 
@@ -82,7 +86,8 @@ export const useProposalsStore = create((set, get) => ({
       id: String(p.projectId || p.id),
       title: p.title || "Không có tiêu đề",
       summary: p.description || p.summary || "Chưa có mô tả",
-      mentor: p.mentor?.fullName || p.lecturer?.fullName || "Chưa có giảng viên",
+      mentor:
+        p.mentor?.fullName || p.lecturer?.fullName || "Chưa có giảng viên",
       members: Array.isArray(p.teamMembers)
         ? p.teamMembers.map(
             (m) => m.fullName || m.studentName || m.name || "Thành viên"
@@ -120,7 +125,9 @@ export const useProposalsStore = create((set, get) => ({
 
       const payload = await parseApiResponse(res);
       if (!res.ok)
-        throw new Error(payload?.message || res.statusText || "Tạo đề tài thất bại");
+        throw new Error(
+          payload?.message || res.statusText || "Tạo đề tài thất bại"
+        );
 
       // console.log("Debug - Response khi tạo đề tài:", payload);
       await get().fetchProposals();
@@ -133,10 +140,14 @@ export const useProposalsStore = create((set, get) => ({
   },
 
   // ================== FETCH ALL ==================
-  fetchProposals: async () => {
+  fetchProposals: async (useFallback = false) => {
+    // Thêm param để thử fallback URL
     set({ isLoading: true, error: null });
+    const urlToUse = useFallback ? FALLBACK_URL : PROPOSALS_URL;
+    console.log(`🔄 Fetching proposals from: ${urlToUse}`); // Debug log
+
     try {
-      const res = await fetch(PROPOSALS_URL, {
+      const res = await fetch(urlToUse, {
         method: "GET",
         headers: {
           Accept: "application/json",
@@ -145,17 +156,96 @@ export const useProposalsStore = create((set, get) => ({
       });
 
       const payload = await parseApiResponse(res);
-      if (!res.ok)
-        throw new Error(payload?.message || res.statusText || "Lỗi tải dữ liệu");
+      console.log("📡 API Response status:", res.status, "Payload:", payload); // Debug
+
+      if (!res.ok) {
+        // Không throw nữa, set error và thử fallback nếu primary fail
+        const errorMsg =
+          payload?.message || res.statusText || "Lỗi tải dữ liệu";
+        set({ error: errorMsg, isLoading: false });
+
+        if (res.status === 404 && !useFallback) {
+          console.warn("⚠️ Primary URL 404, thử fallback URL...");
+          return get().fetchProposals(true); // Retry với fallback
+        }
+
+        // Mock data nếu vẫn fail (cho dev/test)
+        if (res.status === 404) {
+          console.warn("⚠️ API chưa sẵn sàng, dùng mock data...");
+          const mockData = [
+            {
+              id: "1",
+              title: "Đề tài mẫu 1: Phát triển Web App",
+              summary: "Ứng dụng quản lý dự án với React và ASP.NET",
+              mentor: "TS. Nguyễn Văn A",
+              members: ["Sinh viên B", "Sinh viên C"],
+              registerDate: "01/10/2025",
+              status: "Chờ duyệt",
+              goals: ["Hoàn thành MVP", "Tích hợp API"],
+              technologies: ["React", "ASP.NET Core"],
+              pdfUrl: "/mock/proposal1.pdf",
+            },
+            {
+              id: "2",
+              title: "Đề tài mẫu 2: AI Chatbot",
+              summary: "Xây dựng chatbot hỗ trợ học tập",
+              mentor: "PGS.TS. Trần Thị B",
+              members: ["Sinh viên D"],
+              registerDate: "15/09/2025",
+              status: "Đã duyệt",
+              goals: ["Train model", "Deploy trên cloud"],
+              technologies: ["Python", "TensorFlow"],
+              pdfUrl: "/mock/proposal2.pdf",
+            },
+            {
+              id: "3",
+              title: "Đề tài mẫu 3: Mobile App Fitness",
+              summary: "Ứng dụng theo dõi sức khỏe",
+              mentor: "TS. Lê Văn C",
+              members: ["Sinh viên E", "Sinh viên F"],
+              registerDate: "20/08/2025",
+              status: "Bị từ chối",
+              goals: ["UI/UX design"],
+              technologies: ["Flutter", "Firebase"],
+              pdfUrl: "",
+            },
+          ];
+          const normalizedData = mockData.map(get().normalizeProposal);
+          const newCounts = {
+            "Tất cả": normalizedData.length,
+            "Đã duyệt": normalizedData.filter((p) => p.status === "Đã duyệt")
+              .length,
+            "Chờ duyệt": normalizedData.filter((p) => p.status === "Chờ duyệt")
+              .length,
+            "Bị từ chối": normalizedData.filter(
+              (p) => p.status === "Bị từ chối"
+            ).length,
+          };
+          set({
+            proposals: normalizedData,
+            finalProposals: normalizedData,
+            counts: newCounts,
+            selectedProposalId: normalizedData[0]?.id || null,
+            selectedProposal: normalizedData[0] || null,
+            isLoading: false,
+          });
+          return; // Dừng fetch, dùng mock
+        }
+
+        return; // Nếu error khác 404, dừng và để UI handle
+      }
 
       const rawData = payload?.data ?? payload;
       const normalizedData = (rawData || []).map(get().normalizeProposal);
 
       const newCounts = {
         "Tất cả": normalizedData.length,
-        "Đã duyệt": normalizedData.filter((p) => p.status === "Đã duyệt").length,
-        "Chờ duyệt": normalizedData.filter((p) => p.status === "Chờ duyệt").length,
-        "Bị từ chối": normalizedData.filter((p) => p.status === "Bị từ chối").length,
+        "Đã duyệt": normalizedData.filter((p) => p.status === "Đã duyệt")
+          .length,
+        "Chờ duyệt": normalizedData.filter((p) => p.status === "Chờ duyệt")
+          .length,
+        "Bị từ chối": normalizedData.filter((p) => p.status === "Bị từ chối")
+          .length,
       };
 
       set({
@@ -165,10 +255,17 @@ export const useProposalsStore = create((set, get) => ({
         selectedProposalId: normalizedData[0]?.id || null,
         selectedProposal: normalizedData[0] || null,
         isLoading: false,
+        error: null, // Clear error nếu success
       });
+      console.log("✅ Loaded proposals:", normalizedData); // Debug
     } catch (e) {
-      console.error("Lỗi khi tải danh sách đề tài:", e);
-      set({ error: e.message, isLoading: false, proposals: [], finalProposals: [] });
+      console.error("❌ Lỗi khi tải danh sách đề tài:", e);
+      set({
+        error: e.message || "Lỗi kết nối",
+        isLoading: false,
+        proposals: [],
+        finalProposals: [],
+      });
     }
   },
 
@@ -194,7 +291,11 @@ export const useProposalsStore = create((set, get) => ({
       if (!res.ok) throw new Error(payload?.message || "Duyệt đề tài thất bại");
 
       await get().fetchProposals();
-      set({ selectedProposalId: null, selectedProposal: null, isLoading: false });
+      set({
+        selectedProposalId: null,
+        selectedProposal: null,
+        isLoading: false,
+      });
     } catch (err) {
       console.error("Lỗi khi duyệt đề tài:", err);
       set({ error: err.message, isLoading: false });
@@ -224,10 +325,15 @@ export const useProposalsStore = create((set, get) => ({
       });
 
       const payload = await parseApiResponse(res);
-      if (!res.ok) throw new Error(payload?.message || "Từ chối đề tài thất bại");
+      if (!res.ok)
+        throw new Error(payload?.message || "Từ chối đề tài thất bại");
 
       await get().fetchProposals();
-      set({ selectedProposalId: null, selectedProposal: null, isLoading: false });
+      set({
+        selectedProposalId: null,
+        selectedProposal: null,
+        isLoading: false,
+      });
     } catch (err) {
       console.error("Lỗi khi từ chối đề tài:", err);
       set({ error: err.message, isLoading: false });
@@ -250,7 +356,11 @@ export const useProposalsStore = create((set, get) => ({
       if (!res.ok) throw new Error(payload?.message || "Xóa đề tài thất bại");
 
       await get().fetchProposals();
-      set({ selectedProposalId: null, selectedProposal: null, isLoading: false });
+      set({
+        selectedProposalId: null,
+        selectedProposal: null,
+        isLoading: false,
+      });
     } catch (err) {
       console.error("Lỗi khi xóa đề tài:", err);
       set({ error: err.message, isLoading: false });
@@ -269,7 +379,8 @@ export const useProposalsStore = create((set, get) => ({
         body: formData,
       });
       const payload = await parseApiResponse(res);
-      if (!res.ok) throw new Error(payload?.message || "Cập nhật đề tài thất bại");
+      if (!res.ok)
+        throw new Error(payload?.message || "Cập nhật đề tài thất bại");
 
       await get().fetchProposals();
       set({ isModalOpen: false, mode: "add" });
