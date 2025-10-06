@@ -1,3 +1,4 @@
+// src/features/proposals/proposals-detail-UI/Proposal-detail.jsx
 import HeaderDetail from "./Header-Detail";
 import styles from "./ProposalDetails.module.scss";
 import ProposalSearch from "../proposals-management-UI/ProposalSearch";
@@ -6,17 +7,17 @@ import { useProposalsStore } from "../proposals-logic/useProposalsStore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { faDownload } from "@fortawesome/free-solid-svg-icons";
-import EditButton from "../layout-proposal-common/Button/EditButton";
+
 import DeleteButton from "../layout-proposal-common/Button/DeleteButton";
 import ApprovedButton from "../layout-proposal-common/Button/ApprovedButton";
 import React, { useEffect } from "react";
-import { useParams } from "react-router-dom"; // 🆕 Thêm dòng này
+import { useParams } from "react-router-dom";
 import { getStatusKey, getStatusLabel } from "../proposals-logic/status.utils";
-import RejectButton from "../layout-proposal-common/Button/RejectButton";  // Import nút mới
+import RejectButton from "../layout-proposal-common/Button/RejectButton";
 import AddProposalModal from "../layout-proposal-common/Modal/AddProposalModal";
 
 function Proposaldetail() {
-  const { id } = useParams(); // 🆕 lấy ID từ URL
+  const { id } = useParams();
   const {
     proposals,
     fetchProposals,
@@ -32,24 +33,23 @@ function Proposaldetail() {
     closeModal,
   } = useProposalsStore();
 
-  // 🆕 Khi load trang, nếu chưa có proposal → fetch
+  // Fetch khi chưa có data
   useEffect(() => {
     if (!proposals || proposals.length === 0) fetchProposals();
   }, [proposals, fetchProposals]);
 
-  // 🆕 Khi có param id trên URL → set Selected ID
+  // Đồng bộ id URL -> selected
   useEffect(() => {
     if (id) setSelectedProposalId(Number(id));
   }, [id, setSelectedProposalId]);
 
-  // Cuộn lên đầu trang
+  // Scroll top
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, []);
 
-  // Nếu chưa chọn đề tài
   if (!selectedProposal) {
     return (
       <div style={{ padding: "20px", textAlign: "center" }}>
@@ -71,8 +71,6 @@ function Proposaldetail() {
     pdfUrl,
   } = selectedProposal;
 
-  console.log("Debug - selectedProposal:", selectedProposal); // Debug để kiểm tra dữ liệu
-
   const statusKey = getStatusKey(status);
   const statusLabel = getStatusLabel(statusKey);
   const badgeClass = styles["status-" + statusKey];
@@ -81,25 +79,22 @@ function Proposaldetail() {
   const isApproved = statusKey === "approved";
   const isRejected = statusKey === "reject";
 
-  // Hàm xử lý duyệt đề tài
   const handleApprove = () => {
     approveProposal(pid).then(() => {
-      window.location.href = "/proposals"; // Quay về trang chính sau khi duyệt
+      window.location.href = "/proposals";
     });
   };
 
-  // Hàm xử lý từ chối đề tài
   const handleReject = () => {
     rejectProposal(pid).then(() => {
-      window.location.href = "/proposals"; // Quay về trang chính sau khi từ chối
+      window.location.href = "/proposals";
     });
   };
 
-  // Hàm xử lý xóa đề tài
   const handleDelete = () => {
-    if (!confirm("Bạn có chắc chắn muốn xóa?")) return; // Xác nhận trước khi xóa
+    if (!confirm("Bạn có chắc chắn muốn xóa?")) return;
     deleteProposal(pid).then(() => {
-      window.location.href = "/proposals"; // Quay về trang chính sau khi xóa
+      window.location.href = "/proposals";
     });
   };
 
@@ -117,35 +112,26 @@ function Proposaldetail() {
             />
           </div>
         </div>
+
         <div className={styles["right-content"]}>
           <div className={styles["right-content-overview-card"]}>
             <div className={styles["right-content-overview-card-header"]}>
-              <div
-                className={styles["right-content-overview-card-header-left"]}
-              >
-                <span
-                  className={styles["DetailsCard-id"]}
-                  style={{ marginRight: "10px" }}
-                >
+              <div className={styles["right-content-overview-card-header-left"]}>
+                <span className={styles["DetailsCard-id"]} style={{ marginRight: "10px" }}>
                   {pid}
                 </span>
-                <span
-                  className={`${styles["DetailsCard-status"]} ${badgeClass}`}
-                >
+                <span className={`${styles["DetailsCard-status"]} ${badgeClass}`}>
                   {statusLabel}
                 </span>
               </div>
-              <div
-                className={styles["right-content-overview-card-header-right"]}
-              >
-                {isWaiting && <ApprovedButton onClick={handleApprove} />}  
-                {(isWaiting || isApproved) && <EditButton onClick={() => openModal('edit', selectedProposal)} />} 
-                {isWaiting && <RejectButton onClick={handleReject} />}  
-                {(isApproved || isRejected) && <DeleteButton onClick={handleDelete} />}  
+
+              <div className={styles["right-content-overview-card-header-right"]}>
+                {isWaiting && <ApprovedButton onClick={handleApprove} />}
+                {isWaiting && <RejectButton onClick={handleReject} />}
+                {(isApproved || isRejected) && <DeleteButton onClick={handleDelete} />}
               </div>
             </div>
 
-            {/* Phần body */}
             <div className={styles["right-content-overview-card-body"]}>
               <h3 className={styles["DetailsCard-title"]}>{title}</h3>
               <span className={styles["overview-card-wrapper-info"]}>
@@ -154,55 +140,29 @@ function Proposaldetail() {
                   alt="Avatar"
                   className={styles["DetailsCard-avatar"]}
                 />
-
                 <div className={styles["overview-card-wrapper-info-text"]}>
-                  <p
-                    className={styles["DetailsCard-mentor"]}
-                    style={{ color: "#000" }}
-                  >
+                  <p className={styles["DetailsCard-mentor"]} style={{ color: "#000" }}>
                     GVHD: {mentor}
                   </p>
-                  <p
-                    className={styles["DetailsCard-date"]}
-                    style={{ marginBottom: "0" }}
-                  >
+                  <p className={styles["DetailsCard-date"]} style={{ marginBottom: 0 }}>
                     Ngày đăng ký: {registerDate}
                   </p>
                 </div>
               </span>
 
-              <h1
-                className={styles["overview-card-member-info-title"]}
-              >
-                Danh sách thành viên:
-              </h1>
+              <h1 className={styles["overview-card-member-info-title"]}>Danh sách thành viên:</h1>
               <ul className={styles["overview-card-member-info-list"]}>
                 {members.map((member, index) => (
-                  <li
-                    key={index}
-                    className={styles["overview-card-member-info-item"]}
-                  >
+                  <li key={index} className={styles["overview-card-member-info-item"]}>
                     <img
-                      src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${
-                        (index % 5) + 1
-                      }.png`}
+                      src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${(index % 5) + 1}.png`}
                       alt="avatar-member"
                       className={styles["overview-card-member-info-avatar"]}
                     />
-                    <div
-                      className={styles["overview-card-member-info-item-text"]}
-                    >
-                      <p
-                        className={styles["overview-card-member-info-name"]}
-                      >
-                        {member}
-                      </p>
-                      <p
-                        className={styles["overview-card-member-student-id"]}
-                      >
-                        {`28211134${(100 + index)
-                          .toString()
-                          .padStart(3, "0")}`}
+                    <div className={styles["overview-card-member-info-item-text"]}>
+                      <p className={styles["overview-card-member-info-name"]}>{member}</p>
+                      <p className={styles["overview-card-member-student-id"]}>
+                        {`28211134${(100 + index).toString().padStart(3, "0")}`}
                       </p>
                     </div>
                   </li>
@@ -212,28 +172,15 @@ function Proposaldetail() {
           </div>
 
           <div className={styles["right-content-discribe-card"]}>
-            <h3
-              className={styles["right-content-discribe-card-title"]}
-            >
-              Mô tả đồ án
-            </h3>
-            <p
-              className={styles["right-content-discribe-card-description"]}
-            >
-              {summary}
-            </p>
+            <h3 className={styles["right-content-discribe-card-title"]}>Mô tả đồ án</h3>
+            <p className={styles["right-content-discribe-card-description"]}>{summary}</p>
           </div>
 
           <div className={styles["right-content-goal-card"]}>
-            <h3 className={styles["right-content-goal-card-title"]}>
-              Mục tiêu đồ án
-            </h3>
+            <h3 className={styles["right-content-goal-card-title"]}>Mục tiêu đồ án</h3>
             <ol className={styles["right-content-goal-card-list"]}>
               {goals.map((goal, index) => (
-                <li
-                  key={index}
-                  className={styles["right-content-goal-card-item"]}
-                >
+                <li key={index} className={styles["right-content-goal-card-item"]}>
                   {goal}
                 </li>
               ))}
@@ -241,15 +188,10 @@ function Proposaldetail() {
           </div>
 
           <div className={styles["right-content-technology-card"]}>
-            <h3 className={styles["right-content-technology-card-title"]}>
-              Công nghệ sử dụng
-            </h3>
+            <h3 className={styles["right-content-technology-card-title"]}>Công nghệ sử dụng</h3>
             <ul className={styles["right-content-technology-card-list"]}>
               {technologies.map((tech, index) => (
-                <li
-                  key={index}
-                  className={styles["right-content-technology-card-item"]}
-                >
+                <li key={index} className={styles["right-content-technology-card-item"]}>
                   {tech}
                 </li>
               ))}
@@ -257,44 +199,31 @@ function Proposaldetail() {
           </div>
 
           <div className={styles["right-content-document-card"]}>
-            <h3 className={styles["right-content-document-card-title"]}>
-              Tài liệu đính kèm
-            </h3>
+            <h3 className={styles["right-content-document-card-title"]}>Tài liệu đính kèm</h3>
             <ul className={styles["right-content-document-card-list"]}>
               {pdfUrl ? (
                 <li className={styles["right-content-document-card-item"]}>
-                  <div
-                    className={styles["right-content-document-card-item-content"]}
-                  >
-                    <span
-                      className={styles["right-content-document-card-item-content-icon"]}
-                    >
+                  <div className={styles["right-content-document-card-item-content"]}>
+                    <span className={styles["right-content-document-card-item-content-icon"]}>
                       <FontAwesomeIcon icon={faFile} />
                     </span>
-                    <span
-                      className={styles["right-content-document-card-item-content-wrapper"]}
-                    >
-                      <p
-                        className={styles["right-content-document-card-item-content-text"]}
-                      >
+                    <span className={styles["right-content-document-card-item-content-wrapper"]}>
+                      <p className={styles["right-content-document-card-item-content-text"]}>
                         Tài liệu đề xuất
                       </p>
-                      <p
-                        className={styles["right-content-document-card-item-content-number"]}
-                      >
-                        {pdfUrl.endsWith('.pdf') ? 'PDF' : 'File'} {/* Có thể tính kích thước nếu có API hỗ trợ */}
+                      <p className={styles["right-content-document-card-item-content-number"]}>
+                        {pdfUrl.toLowerCase().endsWith(".pdf") ? "PDF" : "File"}
                       </p>
                     </span>
                   </div>
                   <a
                     href={pdfUrl}
-                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={styles["right-content-document-card-item-button"]}
                   >
                     <FontAwesomeIcon icon={faDownload} />
-                    <p className={styles["right-content-document-card-item-button-text"]}>
-                      Tải về
-                    </p>
+                    <p className={styles["right-content-document-card-item-button-text"]}>Mở/Tải</p>
                   </a>
                 </li>
               ) : (

@@ -1,59 +1,90 @@
 // src/features/proposals/proposals-logic/useProposalsStore.jsx
 import { create } from "zustand";
 
-// ================== CONFIG ==================
 const ENV_BASE = import.meta?.env?.VITE_API_URL?.replace(/\/$/, "");
 const API_BASE = ENV_BASE || "http://localhost:5295/api";
-const PROPOSALS_URL = `${API_BASE}/Proposal`; 
-// Nếu 404, đổi thành: const PROPOSALS_URL = `${API_BASE}/proposals`;
+const API_HOST = API_BASE.replace(/\/api$/, "");          // để ghép URL tương đối
+const PROPOSALS_URL = `${API_BASE}/Proposal`;
 
-// ===== JWT helpers (KHÔNG đổi UI) =====
-const getAccessToken = () => {
-  // 🔹 App của bạn lưu token dạng "token" hoặc "refreshToken"
-  const token =
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("token") ||
-    localStorage.getItem("accessToken") ||
-    sessionStorage.getItem("accessToken");
-
-  if (token) return token;
-
-  // Fallback cho trường hợp lưu object { token: "...", refreshToken: "..." }
-  try {
-    const auth =
-      JSON.parse(localStorage.getItem("auth") || sessionStorage.getItem("auth") || "{}");
-    return auth?.token || auth?.accessToken || null;
-  } catch {
-    return null;
-  }
-};
-const authHeaders = () => {
-  const token = getAccessToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
-// Helper parse response
 const parseApiResponse = async (res) => {
   const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { success: res.ok, message: text || res.statusText, data: null };
-  }
+  try { return JSON.parse(text); }
+  catch { return { success: res.ok, message: text || res.statusText, data: null }; }
 };
 
-// ================== STORE ==================
+// ====== Auth helpers (giữ nguyên) ======
+const getToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+
+const authHeaders = (base = {}, { hasBody = false, isFormData = false } = {}) => {
+  const h = { ...base };
+  const token = getToken();
+  if (token) h["Authorization"] = `Bearer ${token}`;
+  if (hasBody && !isFormData) h["Content-Type"] = "application/json";
+  return h;
+};
+
+const USE_COOKIES = false;
+
+// ====== NEW: tìm URL PDF ở mọi ngóc ngách ======
+const extractPdfUrl = (input) => {
+  const seen = new WeakSet();
+  const isUrlLike = (s) => typeof s === "string" && /\.[Pp][Dd][Ff](\?|$)/.test(s);
+  const goodKey = (k = "") => /(pdf|file|doc|attachment|document|path|url)/i.test(k);
+
+  const dfs = (v, key = "") => {
+    if (v == null) return null;
+
+    // String candidate
+    if (typeof v === "string") {
+      if (isUrlLike(v)) return v;
+      if (goodKey(key)) return v; // một số BE không có .pdf nhưng là URL file
+      return null;
+    }
+
+    // Array
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        const found = dfs(item, key);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    // Object
+    if (typeof v === "object") {
+      if (seen.has(v)) return null;
+      seen.add(v);
+      for (const k of Object.keys(v)) {
+        const val = v[k];
+        // ưu tiên key “nghe” như file/pdf
+        if (goodKey(k)) {
+          const found = dfs(val, k);
+          if (found) return found;
+        }
+      }
+      // nếu chưa thấy, duyệt tiếp tất cả key
+      for (const k of Object.keys(v)) {
+        const found = dfs(v[k], k);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  return dfs(input);
+};
+
+// ====== STORE ======
 export const useProposalsStore = create((set, get) => ({
-  // UI State
   isModalOpen: false,
   mode: "add",
   selectedProposal: null,
-  openModal: (mode = "add", proposal = null) => {
-    set({ isModalOpen: true, mode, selectedProposal: proposal });
-  },
-  closeModal: () => set({ isModalOpen: false }),
+  setIsModalOpen: (v) => set({ isModalOpen: !!v }),
+  openModal: (mode = "add", proposal = null) =>
+    set({ isModalOpen: true, mode, selectedProposal: proposal }),
+  closeModal: () => set({ isModalOpen: false, mode: "add", selectedProposal: null }),
 
-  // Data State
   proposals: [],
   finalProposals: [],
   selectedProposalId: null,
@@ -62,12 +93,11 @@ export const useProposalsStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  // ============ SETTERS ============
   setError: (err) => set({ error: err }),
 
   setSearchTerm: (term) => {
     const filtered = (get().proposals || []).filter((p) =>
-      p.title.toLowerCase().includes((term || "").toLowerCase())
+      (p.title || "").toLowerCase().includes((term || "").toLowerCase())
     );
     set({ searchTerm: term, finalProposals: filtered });
   },
@@ -80,13 +110,42 @@ export const useProposalsStore = create((set, get) => ({
 
   setMode: (mode) => set({ mode }),
 
-  // ================== NORMALIZE ==================
+  // ====== NORMALIZE (đã nâng cấp bắt file PDF) ======
   normalizeProposal: (p) => {
-    const normalized = {
+    // cố gắng lấy theo các field quen thuộc trước
+    let pdf =
+      p?.pdfUrl ||
+      p?.filePath ||
+      p?.pdfPath ||
+      p?.documentUrl ||
+      p?.documentPath ||
+      p?.fileUrl ||
+      "";
+
+    // nếu vẫn chưa có -> quét sâu toàn object
+    if (!pdf) pdf = extractPdfUrl(p);
+
+    // debug nhẹ để bạn kiểm tra BE trả gì
+    if (!pdf) {
+      console.log("🕵️ Không tìm thấy PDF trong item:", p);
+    } else {
+      console.log("📄 PDF phát hiện:", pdf);
+    }
+
+    // nếu là đường dẫn tương đối -> ghép host
+    if (pdf && !/^https?:\/\//i.test(pdf)) {
+      pdf = `${API_HOST}${pdf.startsWith("/") ? "" : "/"}${pdf}`;
+    }
+
+    return {
       id: String(p.projectId || p.id),
       title: p.title || "Không có tiêu đề",
       summary: p.description || p.summary || "Chưa có mô tả",
-      mentor: p.mentor?.fullName || p.lecturer?.fullName || "Chưa có giảng viên",
+      mentor:
+        p.mentor?.fullName ||
+        p.lecturer?.fullName ||
+        p.mentorName ||
+        "Chưa có giảng viên",
       members: Array.isArray(p.teamMembers)
         ? p.teamMembers.map(
             (m) => m.fullName || m.studentName || m.name || "Thành viên"
@@ -105,57 +164,48 @@ export const useProposalsStore = create((set, get) => ({
           : "Chờ duyệt",
       goals: p.goals || ["Chưa cập nhật"],
       technologies: p.technologies || ["Chưa cập nhật"],
-      pdfUrl: p.pdfUrl || p.filePath || p.pdfPath || "",
+      pdfUrl: pdf || "",
     };
-    // console.log("Debug - Normalized proposal:", normalized);
-    return normalized;
   },
 
-  // ================== ADD PROPOSAL ==================
+  // ====== ADD / GET / APPROVE / REJECT / DELETE (giữ nguyên logic trước) ======
   addProposal: async (formData) => {
+    set({ isLoading: true, error: null });
     try {
       const res = await fetch(`${PROPOSALS_URL}/upload`, {
         method: "POST",
-        headers: {
-          ...authHeaders(), // ✅ chỉ thêm Authorization (đừng set Content-Type cho FormData)
-        },
+        headers: authHeaders({}, { hasBody: true, isFormData: true }),
         body: formData,
+        credentials: USE_COOKIES ? "include" : "same-origin",
       });
-
       const payload = await parseApiResponse(res);
-      if (!res.ok)
-        throw new Error(payload?.message || res.statusText || "Tạo đề tài thất bại");
-
-      // console.log("Debug - Response khi tạo đề tài:", payload);
+      if (!res.ok) throw new Error(payload?.message || res.statusText || "Tạo đề tài thất bại");
       await get().fetchProposals();
+      set({ isLoading: false, isModalOpen: false, mode: "add", selectedProposal: null });
       return true;
     } catch (err) {
       console.error("Lỗi khi tạo đề tài:", err);
+      set({ isLoading: false, error: err.message });
       alert(`Tạo đề tài thất bại: ${err.message}`);
       return false;
     }
   },
 
-  // ================== FETCH ALL ==================
   fetchProposals: async () => {
     set({ isLoading: true, error: null });
     try {
       const res = await fetch(PROPOSALS_URL, {
         method: "GET",
-        headers: {
-          Accept: "application/json",
-          ...authHeaders(), // ✅ cần bearer token
-        },
+        headers: authHeaders(),
+        credentials: USE_COOKIES ? "include" : "same-origin",
       });
-
       const payload = await parseApiResponse(res);
-      if (!res.ok)
-        throw new Error(payload?.message || res.statusText || "Lỗi tải dữ liệu");
+      if (!res.ok) throw new Error(payload?.message || res.statusText || "Lỗi tải dữ liệu");
 
       const rawData = payload?.data ?? payload;
       const normalizedData = (rawData || []).map(get().normalizeProposal);
 
-      const newCounts = {
+      const counts = {
         "Tất cả": normalizedData.length,
         "Đã duyệt": normalizedData.filter((p) => p.status === "Đã duyệt").length,
         "Chờ duyệt": normalizedData.filter((p) => p.status === "Chờ duyệt").length,
@@ -165,7 +215,7 @@ export const useProposalsStore = create((set, get) => ({
       set({
         proposals: normalizedData,
         finalProposals: normalizedData,
-        counts: newCounts,
+        counts,
         selectedProposalId: normalizedData[0]?.id || null,
         selectedProposal: normalizedData[0] || null,
         isLoading: false,
@@ -176,7 +226,6 @@ export const useProposalsStore = create((set, get) => ({
     }
   },
 
-  // ================== APPROVE PROPOSAL ==================
   approveProposal: async (id) => {
     const { selectedProposal } = get();
     if (selectedProposal?.status !== "Chờ duyệt") {
@@ -187,13 +236,10 @@ export const useProposalsStore = create((set, get) => ({
     try {
       const res = await fetch(`${PROPOSALS_URL}/${id}/status`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders(), // ✅
-        },
+        headers: authHeaders({}, { hasBody: true }),
         body: JSON.stringify({ Status: "Approved" }),
+        credentials: USE_COOKIES ? "include" : "same-origin",
       });
-
       const payload = await parseApiResponse(res);
       if (!res.ok) throw new Error(payload?.message || "Duyệt đề tài thất bại");
 
@@ -206,7 +252,6 @@ export const useProposalsStore = create((set, get) => ({
     }
   },
 
-  // ================== REJECT PROPOSAL ==================
   rejectProposal: async (id) => {
     const { selectedProposal } = get();
     if (selectedProposal?.status !== "Chờ duyệt") {
@@ -217,16 +262,10 @@ export const useProposalsStore = create((set, get) => ({
     try {
       const res = await fetch(`${PROPOSALS_URL}/${id}/status`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          ...authHeaders(), // ✅
-        },
-        body: JSON.stringify({
-          Status: "Rejected",
-          RejectionReason: "Không phù hợp",
-        }),
+        headers: authHeaders({}, { hasBody: true }),
+        body: JSON.stringify({ Status: "Rejected", RejectionReason: "Không phù hợp" }),
+        credentials: USE_COOKIES ? "include" : "same-origin",
       });
-
       const payload = await parseApiResponse(res);
       if (!res.ok) throw new Error(payload?.message || "Từ chối đề tài thất bại");
 
@@ -239,17 +278,14 @@ export const useProposalsStore = create((set, get) => ({
     }
   },
 
-  // ================== DELETE PROPOSAL ==================
   deleteProposal: async (id) => {
     set({ isLoading: true, error: null });
     try {
       const res = await fetch(`${PROPOSALS_URL}/${id}`, {
         method: "DELETE",
-        headers: {
-          ...authHeaders(), // ✅
-        },
+        headers: authHeaders(),
+        credentials: USE_COOKIES ? "include" : "same-origin",
       });
-
       const payload = await parseApiResponse(res);
       if (!res.ok) throw new Error(payload?.message || "Xóa đề tài thất bại");
 
@@ -262,35 +298,9 @@ export const useProposalsStore = create((set, get) => ({
     }
   },
 
-  // ================== EDIT PROPOSAL ==================
-  updateProposal: async (id, formData) => {
-    try {
-      const res = await fetch(`${PROPOSALS_URL}/${id}/update`, {
-        method: "POST",
-        headers: {
-          ...authHeaders(), // ✅ KHÔNG set Content-Type khi gửi FormData
-        },
-        body: formData,
-      });
-      const payload = await parseApiResponse(res);
-      if (!res.ok) throw new Error(payload?.message || "Cập nhật đề tài thất bại");
-
-      await get().fetchProposals();
-      set({ isModalOpen: false, mode: "add" });
-      return true;
-    } catch (err) {
-      console.error("Lỗi khi cập nhật đề tài:", err);
-      alert(`Cập nhật thất bại: ${err.message}`);
-      return false;
-    }
-  },
-
-  // ===== Filter theo tab =====
   setFilterStatus: (status) => {
     let filtered = get().proposals || [];
-    if (status !== "Tất cả") {
-      filtered = filtered.filter((p) => p.status === status);
-    }
+    if (status && status !== "Tất cả") filtered = filtered.filter((p) => p.status === status);
     set({ finalProposals: filtered });
   },
 }));
