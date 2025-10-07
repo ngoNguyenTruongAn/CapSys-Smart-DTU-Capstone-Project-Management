@@ -116,19 +116,30 @@ function Proposaldetail() {
         <div className={styles["right-content"]}>
           <div className={styles["right-content-overview-card"]}>
             <div className={styles["right-content-overview-card-header"]}>
-              <div className={styles["right-content-overview-card-header-left"]}>
-                <span className={styles["DetailsCard-id"]} style={{ marginRight: "10px" }}>
+              <div
+                className={styles["right-content-overview-card-header-left"]}
+              >
+                <span
+                  className={styles["DetailsCard-id"]}
+                  style={{ marginRight: "10px" }}
+                >
                   {pid}
                 </span>
-                <span className={`${styles["DetailsCard-status"]} ${badgeClass}`}>
+                <span
+                  className={`${styles["DetailsCard-status"]} ${badgeClass}`}
+                >
                   {statusLabel}
                 </span>
               </div>
 
-              <div className={styles["right-content-overview-card-header-right"]}>
+              <div
+                className={styles["right-content-overview-card-header-right"]}
+              >
                 {isWaiting && <ApprovedButton onClick={handleApprove} />}
                 {isWaiting && <RejectButton onClick={handleReject} />}
-                {(isApproved || isRejected) && <DeleteButton onClick={handleDelete} />}
+                {(isApproved || isRejected) && (
+                  <DeleteButton onClick={handleDelete} />
+                )}
               </div>
             </div>
 
@@ -141,26 +152,43 @@ function Proposaldetail() {
                   className={styles["DetailsCard-avatar"]}
                 />
                 <div className={styles["overview-card-wrapper-info-text"]}>
-                  <p className={styles["DetailsCard-mentor"]} style={{ color: "#000" }}>
+                  <p
+                    className={styles["DetailsCard-mentor"]}
+                    style={{ color: "#000" }}
+                  >
                     GVHD: {mentor}
                   </p>
-                  <p className={styles["DetailsCard-date"]} style={{ marginBottom: 0 }}>
+                  <p
+                    className={styles["DetailsCard-date"]}
+                    style={{ marginBottom: 0 }}
+                  >
                     Ngày đăng ký: {registerDate}
                   </p>
                 </div>
               </span>
 
-              <h1 className={styles["overview-card-member-info-title"]}>Danh sách thành viên:</h1>
+              <h1 className={styles["overview-card-member-info-title"]}>
+                Danh sách thành viên:
+              </h1>
               <ul className={styles["overview-card-member-info-list"]}>
                 {members.map((member, index) => (
-                  <li key={index} className={styles["overview-card-member-info-item"]}>
+                  <li
+                    key={index}
+                    className={styles["overview-card-member-info-item"]}
+                  >
                     <img
-                      src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${(index % 5) + 1}.png`}
+                      src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${
+                        (index % 5) + 1
+                      }.png`}
                       alt="avatar-member"
                       className={styles["overview-card-member-info-avatar"]}
                     />
-                    <div className={styles["overview-card-member-info-item-text"]}>
-                      <p className={styles["overview-card-member-info-name"]}>{member}</p>
+                    <div
+                      className={styles["overview-card-member-info-item-text"]}
+                    >
+                      <p className={styles["overview-card-member-info-name"]}>
+                        {member}
+                      </p>
                       <p className={styles["overview-card-member-student-id"]}>
                         {`28211134${(100 + index).toString().padStart(3, "0")}`}
                       </p>
@@ -172,15 +200,24 @@ function Proposaldetail() {
           </div>
 
           <div className={styles["right-content-discribe-card"]}>
-            <h3 className={styles["right-content-discribe-card-title"]}>Mô tả đồ án</h3>
-            <p className={styles["right-content-discribe-card-description"]}>{summary}</p>
+            <h3 className={styles["right-content-discribe-card-title"]}>
+              Mô tả đồ án
+            </h3>
+            <p className={styles["right-content-discribe-card-description"]}>
+              {summary}
+            </p>
           </div>
 
           <div className={styles["right-content-goal-card"]}>
-            <h3 className={styles["right-content-goal-card-title"]}>Mục tiêu đồ án</h3>
+            <h3 className={styles["right-content-goal-card-title"]}>
+              Mục tiêu đồ án
+            </h3>
             <ol className={styles["right-content-goal-card-list"]}>
               {goals.map((goal, index) => (
-                <li key={index} className={styles["right-content-goal-card-item"]}>
+                <li
+                  key={index}
+                  className={styles["right-content-goal-card-item"]}
+                >
                   {goal}
                 </li>
               ))}
@@ -188,10 +225,15 @@ function Proposaldetail() {
           </div>
 
           <div className={styles["right-content-technology-card"]}>
-            <h3 className={styles["right-content-technology-card-title"]}>Công nghệ sử dụng</h3>
+            <h3 className={styles["right-content-technology-card-title"]}>
+              Công nghệ sử dụng
+            </h3>
             <ul className={styles["right-content-technology-card-list"]}>
               {technologies.map((tech, index) => (
-                <li key={index} className={styles["right-content-technology-card-item"]}>
+                <li
+                  key={index}
+                  className={styles["right-content-technology-card-item"]}
+                >
                   {tech}
                 </li>
               ))}
@@ -199,19 +241,47 @@ function Proposaldetail() {
           </div>
 
           <div className={styles["right-content-document-card"]}>
-            <h3 className={styles["right-content-document-card-title"]}>Tài liệu đính kèm</h3>
+            <h3 className={styles["right-content-document-card-title"]}>
+              Tài liệu đính kèm
+            </h3>
             <ul className={styles["right-content-document-card-list"]}>
               {pdfUrl ? (
                 <li className={styles["right-content-document-card-item"]}>
-                  <div className={styles["right-content-document-card-item-content"]}>
-                    <span className={styles["right-content-document-card-item-content-icon"]}>
+                  <div
+                    className={
+                      styles["right-content-document-card-item-content"]
+                    }
+                  >
+                    <span
+                      className={
+                        styles["right-content-document-card-item-content-icon"]
+                      }
+                    >
                       <FontAwesomeIcon icon={faFile} />
                     </span>
-                    <span className={styles["right-content-document-card-item-content-wrapper"]}>
-                      <p className={styles["right-content-document-card-item-content-text"]}>
+                    <span
+                      className={
+                        styles[
+                          "right-content-document-card-item-content-wrapper"
+                        ]
+                      }
+                    >
+                      <p
+                        className={
+                          styles[
+                            "right-content-document-card-item-content-text"
+                          ]
+                        }
+                      >
                         Tài liệu đề xuất
                       </p>
-                      <p className={styles["right-content-document-card-item-content-number"]}>
+                      <p
+                        className={
+                          styles[
+                            "right-content-document-card-item-content-number"
+                          ]
+                        }
+                      >
                         {pdfUrl.toLowerCase().endsWith(".pdf") ? "PDF" : "File"}
                       </p>
                     </span>
@@ -220,14 +290,24 @@ function Proposaldetail() {
                     href={pdfUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={styles["right-content-document-card-item-button"]}
+                    className={
+                      styles["right-content-document-card-item-button"]
+                    }
                   >
                     <FontAwesomeIcon icon={faDownload} />
-                    <p className={styles["right-content-document-card-item-button-text"]}>Mở/Tải</p>
+                    <p
+                      className={
+                        styles["right-content-document-card-item-button-text"]
+                      }
+                    >
+                      Mở/Tải
+                    </p>
                   </a>
                 </li>
               ) : (
-                <p className={styles["no-document"]}>Chưa có tài liệu đính kèm.</p>
+                <p className={styles["no-document"]}>
+                  Chưa có tài liệu đính kèm.
+                </p>
               )}
             </ul>
           </div>

@@ -16,11 +16,13 @@ function App() {
     <Routes>
       <Route path="/" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
+
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<TongQuan />} />
         <Route path="quan-ly-do-an" element={<QuanLyDoAn />} />
         <Route path="quan-ly-tai-khoan" element={<QuanLyTaiKhoan />} />
       </Route>
+
       <Route path="verification-code" element={<VerificationCode />} />
       <Route path="confirm-forgot" element={<ConfirmForgot />} />
       <Route path="/proposals" element={<Proposals />} />
