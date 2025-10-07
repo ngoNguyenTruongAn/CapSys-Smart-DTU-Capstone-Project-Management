@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
+import "./ActionModal.scss";
 import { getTeamByIdAPI, updateTeamAPI } from "../../../../services/TeamsAPI";
 
 const UpdateAction = ({ show, setShow, teamId, onUpdated }) => {
@@ -59,7 +60,13 @@ const UpdateAction = ({ show, setShow, teamId, onUpdated }) => {
   };
 
   return (
-    <Modal show={show} onHide={() => setShow(false)} size="lg" centered>
+    <Modal
+      show={show}
+      onHide={() => setShow(false)}
+      size="lg"
+      centered
+      dialogClassName="qlda-modal"
+    >
       <Modal.Header closeButton>
         <Modal.Title>Cập nhật nhóm</Modal.Title>
       </Modal.Header>

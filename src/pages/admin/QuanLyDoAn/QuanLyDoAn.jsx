@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import "./QuanLyDoAn.scss";
-import { getAllTeamsAPI } from "../../../services/TeamsAPI";
+import { deleteTeamAPI, getAllTeamsAPI } from "../../../services/TeamsAPI";
 import {
   useReactTable,
   getCoreRowModel,
@@ -130,7 +130,13 @@ const QuanLyDoAn = () => {
               >
                 Sửa
               </button>
-              <button onClick={() => alert(`Xóa ${value}`)}>Xóa</button>
+              <button
+                onClick={() => {
+                  handleDelete(value);
+                }}
+              >
+                Xóa
+              </button>
             </div>
           );
         },
@@ -138,6 +144,20 @@ const QuanLyDoAn = () => {
     ],
     []
   );
+
+  const handleDelete = async (teamId) => {
+    // confirm delete
+    const confirm = window.confirm("Bạn có chắc chắn muốn xóa nhóm này?");
+    if (!confirm) return;
+    try {
+      await deleteTeamAPI(teamId);
+      fetchProjects();
+      alert("Xóa nhóm thành công!");
+    } catch (error) {
+      console.error("Delete team error:", error);
+      alert("Xóa nhóm thất bại: " + error.message);
+    }
+  };
 
   const table = useReactTable({
     data: projects,
@@ -237,13 +257,13 @@ const QuanLyDoAn = () => {
               )}
             </tbody>
           </table>
-          <p>
+          <p style={{ fontSize: "1.7rem", margin: "3rem 0" }}>
             Hiển thị {projects.length} đề tài | Trang {pageIndex + 1} /{" "}
             {pageCount}
           </p>
 
           {/* Điều khiển phân trang */}
-          <div className="pagination">
+          <div className="pagination qlda-pagination">
             <button
               onClick={() => table.setPageIndex(0)}
               disabled={!canPreviousPage}

@@ -137,13 +137,13 @@ const QuanLyTaiKhoan = () => {
                     <td>{item.gpa}</td>
                     <td>
                       <button onClick={() => alert(`Xem ${item.fullName}`)}>
-                        👁️ Xem
+                        Xem
                       </button>
                       <button onClick={() => alert(`Sửa ${item.fullName}`)}>
-                        ✏️ Sửa
+                        Sửa
                       </button>
                       <button onClick={() => alert(`Xóa ${item.fullName}`)}>
-                        🗑️ Xóa
+                        Xóa
                       </button>
                     </td>
                   </tr>
@@ -156,13 +156,13 @@ const QuanLyTaiKhoan = () => {
                     <td>{item.phone}</td>
                     <td>
                       <button onClick={() => alert(`Xem ${item.fullName}`)}>
-                        👁️ Xem
+                        Xem
                       </button>
                       <button onClick={() => alert(`Sửa ${item.fullName}`)}>
-                        ✏️ Sửa
+                        Sửa
                       </button>
                       <button onClick={() => alert(`Xóa ${item.fullName}`)}>
-                        🗑️ Xóa
+                        Xóa
                       </button>
                     </td>
                   </tr>

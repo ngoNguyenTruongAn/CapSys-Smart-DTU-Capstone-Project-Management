@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Modal, Button, Table, Badge } from "react-bootstrap";
 import { getTeamByIdAPI } from "../../../../services/TeamsAPI";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./ActionModal.scss";
 
 const ViewAction = ({ show, setShow, teamId }) => {
   const [team, setTeam] = useState(null);
@@ -19,7 +20,13 @@ const ViewAction = ({ show, setShow, teamId }) => {
   const handleClose = () => setShow(false);
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered>
+    <Modal
+      show={show}
+      onHide={handleClose}
+      size="lg"
+      centered
+      dialogClassName="qlda-modal"
+    >
       <Modal.Header closeButton>
         <Modal.Title>
           Nhóm: <span className="text-primary">{team?.teamName}</span>
