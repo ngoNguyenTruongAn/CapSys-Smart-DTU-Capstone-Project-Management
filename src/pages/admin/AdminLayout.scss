@@ -1,0 +1,38 @@
+.admin-page {
+  min-height: 100vh;
+  background-color: #eaf2fd;
+}
+
+/* Navbar full width nhưng có inner container căn giữa */
+.admin-navbar {
+  width: 100%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+
+  .navbar-inner {
+    max-width: 1200px; // Giới hạn chiều rộng nội dung
+    margin: 0 auto; // Căn giữa khi màn hình rộng
+    // padding: 0 1rem; // Khoảng đệm hai bên khi màn hình nhỏ
+  }
+}
+
+/* Content container */
+.admin-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  // padding: 1.5rem;
+
+  .admin-content {
+    // background: #fff;
+    // border-radius: 8px;
+    // box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    // padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-container {
+    max-width: 95%;
+    padding: 1rem;
+  }
+}

@@ -1,101 +1,122 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { users } from "../../components/data/users";
-import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import "./Login.scss";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  login,
+  selectAuthLoading,
+  selectAuthError,
+} from "../../store/authSlice";
 
 const Login = () => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState(""); // Lỗi tổng (sai mật khẩu…)
-  const [emailError, setEmailError] = useState(""); // 🔹 Lỗi riêng cho email
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const loading = useSelector(selectAuthLoading);
+  const authError = useSelector(selectAuthError);
+  const validateEmail = (val) => {
+    // Regex cải thiện: cho phép ký tự đặc biệt, kiểm tra độ dài
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
-  // 🔹 Khi nhập input
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Kiểm tra độ dài tổng thể
+    if (val.length > 254) return false;
 
-    // ✅ Realtime validate email nếu field là email
-    if (name === "email") {
-      if (value && !/^[\w.+-]+@dtu\.edu\.vn$/i.test(value)) {
-        setEmailError("Email phải kết thúc bằng @dtu.edu.vn");
-      } else {
-        setEmailError("");
-      }
-    }
+    // Kiểm tra local part không bắt đầu/kết thúc bằng dấu chấm
+    const localPart = val.split("@")[0];
+    if (localPart.startsWith(".") || localPart.endsWith(".")) return false;
+
+    return emailRegex.test(val);
   };
 
-  const handleSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    setEmailError("");
+    setPasswordError("");
 
-    // Kiểm tra lần cuối trước khi submit
-    if (!/^[\w.+-]+@dtu\.edu\.vn$/i.test(formData.email)) {
-      setEmailError("Email phải kết thúc bằng @dtu.edu.vn");
+    if (!validateEmail(email)) {
+      setEmailError("Email format is invalid");
+      return;
+    }
+    if (!password) {
+      setPasswordError("Password cannot be empty");
       return;
     }
 
-    const found = users.find(
-      (u) => u.email === formData.email && u.password === formData.password
-    );
-
-    if (!found) {
-      setError("Email hoặc mật khẩu không đúng!");
-      return;
-    }
-
-    localStorage.setItem(
-      "auth",
-      JSON.stringify({ email: found.email, role: found.role })
-    );
-
-    if (found.role === "admin") navigate("/admin");
-    else if (found.role === "lecturer") navigate("/lecturer");
-    else navigate("/student");
+    dispatch(login({ email, password }))
+      .unwrap()
+      .then((data) => {
+        const type = data.account?.accountType;
+        switch (type) {
+          case "Admin":
+            navigate("/admin");
+            break;
+          case "Lecturer":
+            navigate("/lecturer");
+            break;
+          case "Student":
+            navigate("/student");
+            break;
+          default:
+            navigate("/");
+        }
+      })
+      .catch((err) => {
+        setPasswordError(err || "Login failed");
+      });
   };
+
+  const handleForgotPassword = () => navigate("/forgot-password");
 
   return (
-    <div className="d-flex align-items-center justify-content-center min-vh-100 bg-light">
-      <div
-        className="card shadow-sm p-4"
-        style={{ maxWidth: "400px", width: "100%" }}
-      >
-        <h1 className="h4 text-center mb-4">Capstone Login</h1>
+    <div className="login-page">
+      <div className="login-container">
+        <h2 className="login-title">CAPSY SMART DTU</h2>
 
-        {error && (
-          <div className="alert alert-danger text-center py-2">{error}</div>
-        )}
-
-        <form onSubmit={handleSubmit} noValidate>
-          <div className="mb-3">
-            <label className="form-label">Email</label>
+        <form className="login-form" onSubmit={handleLoginSubmit}>
+          <div className="form-group">
+            <label htmlFor="email">Your Email</label>
             <input
-              name="email"
+              id="email"
               type="email"
-              className={`form-control ${emailError ? "is-invalid" : ""}`}
-              placeholder="name@dtu.edu.vn"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="contact@disdtech.com"
+              className={emailError ? "error" : ""}
             />
-            {/* 🔹 Hiện lỗi realtime */}
-            {emailError && <div className="invalid-feedback">{emailError}</div>}
+            {emailError && <span className="error-message">{emailError}</span>}
           </div>
 
-          <div className="mb-3">
-            <label className="form-label">Mật khẩu</label>
+          <div className="form-group">
+            <label htmlFor="password">Password</label>
             <input
-              name="password"
+              id="password"
               type="password"
-              className="form-control"
-              placeholder="••••••"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={passwordError ? "error" : ""}
             />
+            {passwordError && (
+              <span className="error-message">{passwordError}</span>
+            )}
+            {!passwordError && authError && (
+              <span className="error-message">{authError}</span>
+            )}
+
+            <button
+              type="button"
+              className="forgot-password"
+              onClick={handleForgotPassword}
+            >
+              Forgot password?
+            </button>
           </div>
 
-          <button type="submit" className="btn btn-primary w-100">
-            Đăng nhập
+          <button type="submit" className="continue-button" disabled={loading}>
+            {loading ? "Đang đăng nhập..." : "Continue"}
           </button>
         </form>
       </div>

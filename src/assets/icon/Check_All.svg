@@ -1,3 +1,7 @@
 <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+<<<<<<< HEAD
 <path d="M8.66667 13.5258L13.2629 18.122L22.4543 8.92957M3.25 13.5258L7.84619 18.122M17.0386 8.92957L13.5417 12.4584" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+=======
+<path d="M8.66667 13.5258L13.2629 18.122L22.4543 8.92957M3.25 13.5258L7.84619 18.122M17.0386 8.92957L13.5417 12.4584" stroke="#808291" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+>>>>>>> 05f9d803117978328e8b1a0944c90e0cff00eb17
 </svg>
