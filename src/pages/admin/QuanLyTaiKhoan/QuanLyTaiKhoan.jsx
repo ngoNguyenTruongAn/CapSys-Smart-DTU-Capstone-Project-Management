@@ -1,71 +1,162 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { getAllLecturersAPI } from "../../../services/LecturersAPI";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchStudents } from "../../../store/studentSlice";
+import { deleteStudent, fetchStudents } from "../../../store/studentSlice";
 import "./QuanLyTaiKhoan.scss";
 import RegisterStudent from "./RegisterStudent/RegisterStudent";
+import ViewStudent from "./ViewStudent/ViewStudent";
+import UpdateStudent from "./UpdateStudent/UpdateStudent";
 
 const QuanLyTaiKhoan = () => {
   const [lecturers, setLecturers] = useState([]);
+  const [lecturersLoading, setLecturersLoading] = useState(false);
+  const [lecturersError, setLecturersError] = useState(null);
   const [activeTab, setActiveTab] = useState("students");
   const [search, setSearch] = useState("");
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
-  // phân trang
-  const [page, setPage] = useState(1); // trang hiện tại
-  const [pageSize, setPageSize] = useState(5); // số dòng mỗi trang
+  // Phân trang (local state)
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const dispatch = useDispatch();
   const {
     data: students,
-    loading,
-    error,
+    loading: studentsLoading,
+    error: studentsError,
   } = useSelector((state) => state.students);
 
-  // fetch students bằng redux
+  // Fetch students qua Redux
   useEffect(() => {
     dispatch(fetchStudents());
   }, [dispatch]);
 
-  // fetch lecturers trực tiếp
+  // Fetch lecturers trực tiếp
   useEffect(() => {
     const fetchLecturers = async () => {
+      setLecturersLoading(true);
+      setLecturersError(null);
       try {
         const res = await getAllLecturersAPI();
         setLecturers(res.data || []);
       } catch (err) {
         console.error("Lỗi tải giảng viên:", err);
+        setLecturersError("Không thể tải danh sách giảng viên");
+        setLecturers([]);
+      } finally {
+        setLecturersLoading(false);
       }
     };
     fetchLecturers();
   }, []);
 
-  // Lọc theo search
-  const filteredStudents = (students || []).filter(
-    (s) =>
-      (s.fullName && s.fullName.toLowerCase().includes(search.toLowerCase())) ||
-      (s.studentCode &&
-        s.studentCode.toLowerCase().includes(search.toLowerCase()))
+  // Hàm filter chung để tránh duplication
+  const filterItems = useMemo(() => {
+    return (items, searchTerm, type) => {
+      if (!searchTerm) return items;
+      const lowerSearch = searchTerm.toLowerCase();
+      return items.filter((item) => {
+        const name = item.fullName?.toLowerCase() || "";
+        const code =
+          type === "students"
+            ? item.studentCode?.toLowerCase() || ""
+            : item.lecturerCode?.toLowerCase() || "";
+        return name.includes(lowerSearch) || code.includes(lowerSearch);
+      });
+    };
+  }, []);
+
+  // Filtered data (memoized để optimize)
+  const filteredStudents = useMemo(
+    () => filterItems(students || [], search, "students"),
+    [students, search, filterItems]
   );
 
-  const filteredLecturers = (lecturers || []).filter(
-    (l) =>
-      (l.fullName && l.fullName.toLowerCase().includes(search.toLowerCase())) ||
-      (l.lecturerCode &&
-        l.lecturerCode.toLowerCase().includes(search.toLowerCase()))
+  const filteredLecturers = useMemo(
+    () => filterItems(lecturers || [], search, "lecturers"),
+    [lecturers, search, filterItems]
   );
 
-  // chọn data theo tab
-  const data = activeTab === "students" ? filteredStudents : filteredLecturers;
+  // Data theo tab
+  const data = useMemo(
+    () => (activeTab === "students" ? filteredStudents : filteredLecturers),
+    [activeTab, filteredStudents, filteredLecturers]
+  );
 
-  // tính phân trang
+  // Phân trang (memoized)
   const totalItems = data.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
-  const currentPageData = data.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = useMemo(
+    () => Math.ceil(totalItems / pageSize),
+    [totalItems, pageSize]
+  );
+  const currentPageData = useMemo(
+    () => data.slice((page - 1) * pageSize, page * pageSize),
+    [data, page, pageSize]
+  );
 
-  // reset page khi đổi tab hoặc search
+  // Reset page khi đổi tab, search, hoặc pageSize
   useEffect(() => {
     setPage(1);
-  }, [activeTab, search]);
+  }, [activeTab, search, pageSize]);
+
+  // Adjust page tự động nếu page > totalPages (sau delete hoặc filter thay đổi)
+  useEffect(() => {
+    if (page > totalPages && totalPages > 0) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
+
+  // Modals state cho students
+  const [showViewStudent, setShowViewStudent] = useState(false);
+  const [showUpdateStudent, setShowUpdateStudent] = useState(false);
+  const [studentId, setStudentId] = useState(null);
+
+  const handleViewStudent = (id) => {
+    setStudentId(id);
+    setShowViewStudent(true);
+  };
+
+  const handleUpdateStudent = (id) => {
+    setStudentId(id);
+    setShowUpdateStudent(true);
+  };
+
+  const handleDeleteStudent = (studentId) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa sinh viên này?")) {
+      dispatch(deleteStudent(studentId))
+        .unwrap()
+        .then(() => {
+          alert("Xóa sinh viên thành công");
+          // Reducer sẽ update students → useEffect adjust page tự động
+        })
+        .catch((error) => {
+          console.error("Lỗi khi xóa sinh viên:", error);
+          alert(`Xóa sinh viên thất bại: ${error}`);
+        });
+    }
+  };
+
+  // Placeholder handlers cho lecturers (gợi ý: implement modals tương tự students)
+  const handleViewLecturer = (lecturerId) => {
+    alert(`Xem giảng viên: ${lecturerId}`);
+    // TODO: Tạo modal ViewLecturer
+  };
+
+  const handleUpdateLecturer = (lecturerId) => {
+    alert(`Sửa giảng viên: ${lecturerId}`);
+    // TODO: Tạo modal UpdateLecturer
+  };
+
+  const handleDeleteLecturer = (lecturerId) => {
+    if (window.confirm(`Xóa giảng viên ${lecturerId}?`)) {
+      alert("Xóa giảng viên thành công (placeholder)");
+      // TODO: Implement delete API và update lecturers state
+    }
+  };
+
+  // Loading/Error chung
+  const isLoading =
+    activeTab === "students" ? studentsLoading : lecturersLoading;
+  const error = activeTab === "students" ? studentsError : lecturersError;
 
   return (
     <div className="quanlytaikhoan-page">
@@ -74,6 +165,7 @@ const QuanLyTaiKhoan = () => {
           ➕ Thêm tài khoản
         </button>
         <button onClick={() => alert("Import Excel")}>📂 Import Excel</button>
+        {/* TODO: Thêm debounce cho search nếu cần (sử dụng lodash.debounce) */}
         <input
           type="text"
           placeholder="🔍 Tìm kiếm..."
@@ -97,7 +189,7 @@ const QuanLyTaiKhoan = () => {
         </button>
       </div>
 
-      {loading && <p>Đang tải dữ liệu sinh viên...</p>}
+      {isLoading && <p>Đang tải dữ liệu...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
       <div className="qltk-table-box">
@@ -136,13 +228,17 @@ const QuanLyTaiKhoan = () => {
                     <td>{item.major}</td>
                     <td>{item.gpa}</td>
                     <td>
-                      <button onClick={() => alert(`Xem ${item.fullName}`)}>
+                      <button onClick={() => handleViewStudent(item.studentId)}>
                         Xem
                       </button>
-                      <button onClick={() => alert(`Sửa ${item.fullName}`)}>
+                      <button
+                        onClick={() => handleUpdateStudent(item.studentId)}
+                      >
                         Sửa
                       </button>
-                      <button onClick={() => alert(`Xóa ${item.fullName}`)}>
+                      <button
+                        onClick={() => handleDeleteStudent(item.studentId)}
+                      >
                         Xóa
                       </button>
                     </td>
@@ -155,13 +251,19 @@ const QuanLyTaiKhoan = () => {
                     <td>{item.faculty}</td>
                     <td>{item.phone}</td>
                     <td>
-                      <button onClick={() => alert(`Xem ${item.fullName}`)}>
+                      <button
+                        onClick={() => handleViewLecturer(item.lecturerId)}
+                      >
                         Xem
                       </button>
-                      <button onClick={() => alert(`Sửa ${item.fullName}`)}>
+                      <button
+                        onClick={() => handleUpdateLecturer(item.lecturerId)}
+                      >
                         Sửa
                       </button>
-                      <button onClick={() => alert(`Xóa ${item.fullName}`)}>
+                      <button
+                        onClick={() => handleDeleteLecturer(item.lecturerId)}
+                      >
                         Xóa
                       </button>
                     </td>
@@ -189,6 +291,12 @@ const QuanLyTaiKhoan = () => {
                     activeTab === "students" ? "sinh viên" : "giảng viên"
                   } trong hệ thống`}
             </p>
+            {!search && (
+              <button onClick={() => setShowRegisterStudent(true)}>
+                ➕ Thêm {activeTab === "students" ? "sinh viên" : "giảng viên"}{" "}
+                mới
+              </button>
+            )}
           </div>
         )}
 
@@ -221,7 +329,7 @@ const QuanLyTaiKhoan = () => {
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value));
-                setPage(1);
+                // Reset page=1 đã handle ở useEffect
               }}
             >
               {[5, 10, 20, 50].map((size) => (
@@ -233,9 +341,20 @@ const QuanLyTaiKhoan = () => {
           </div>
         )}
       </div>
+
       <RegisterStudent
         show={showRegisterStudent}
         setShow={setShowRegisterStudent}
+      />
+      <ViewStudent
+        show={showViewStudent}
+        setShow={setShowViewStudent}
+        studentId={studentId}
+      />
+      <UpdateStudent
+        show={showUpdateStudent}
+        setShow={setShowUpdateStudent}
+        studentId={studentId}
       />
     </div>
   );

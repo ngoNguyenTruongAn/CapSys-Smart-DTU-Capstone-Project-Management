@@ -1,0 +1,63 @@
+.modal-dialog.qlda-modal {
+  font-size: 1.8rem;
+}
+
+.modal-dialog.qlda-modal .modal-content {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.modal-dialog.qlda-modal .modal-header {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-dialog.qlda-modal .modal-title {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.modal-dialog.qlda-modal .modal-body {
+  padding: 1.25rem;
+}
+
+.modal-dialog.qlda-modal .modal-footer {
+  border-top: 1px solid #e5e7eb;
+}
+
+.modal-dialog.qlda-modal .table {
+  font-size: 1.5rem;
+}
+
+.modal-dialog.qlda-modal .btn {
+  font-size: 1.8rem;
+}
+
+/* Form typography tăng cỡ chữ */
+.modal-dialog.qlda-modal .form-label {
+  font-size: 1.7rem;
+  font-weight: 600;
+}
+.modal-dialog.qlda-modal .form-control,
+.modal-dialog.qlda-modal .form-select {
+  font-size: 1.7rem;
+  padding: 0.75rem 1rem;
+}
+
+/* Badge màu trung tính hơn */
+.modal-dialog.qlda-modal .badge.bg-info {
+  background-color: #e0f2fe !important;
+  color: #0369a1 !important;
+}
+.modal-dialog.qlda-modal .badge.bg-success {
+  background-color: #dcfce7 !important;
+  color: #166534 !important;
+}
+.modal-dialog.qlda-modal .badge.bg-warning {
+  background-color: #fef3c7 !important;
+  color: #92400e !important;
+}
+.modal-dialog.qlda-modal .badge.bg-secondary {
+  background-color: #e5e7eb !important;
+  color: #374151 !important;
+}

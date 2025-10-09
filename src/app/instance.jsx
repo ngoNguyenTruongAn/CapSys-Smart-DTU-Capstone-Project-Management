@@ -14,52 +14,83 @@ function onRefreshed(newToken) {
   refreshSubscribers = [];
 }
 
+function onRefreshFailed(error) {
+  // Clear queue và reject tất cả subscribers khi refresh fail
+  refreshSubscribers.forEach((cb) => cb(error)); // Hoặc chỉ reject mà không pass token
+  refreshSubscribers = [];
+  isRefreshing = false;
+}
+
+// Function riêng để handle refresh token
+async function handleRefresh() {
+  if (isRefreshing) {
+    return new Promise((resolve, reject) => {
+      refreshSubscribers.push((newToken, error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(newToken);
+        }
+      });
+    });
+  }
+
+  isRefreshing = true;
+  const token = localStorage.getItem("token");
+  const refreshToken = localStorage.getItem("refreshToken");
+
+  // Kiểm tra token tồn tại trước khi gọi API
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+
+  try {
+    const data = await refreshTokenAPI({ token, refreshToken });
+
+    // Lưu token mới
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("refreshToken", data.refreshToken);
+
+    // Cập nhật header mặc định cho instance
+    instance.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+
+    onRefreshed(data.token);
+    isRefreshing = false;
+    return data.token;
+  } catch (err) {
+    // Refresh fail → logout
+    localStorage.clear();
+    // Có thể dispatch event để app handle logout (ví dụ: Redux action hoặc custom event)
+    window.dispatchEvent(new CustomEvent("auth:logout"));
+    // Redirect đến trang login thay vì root
+    window.location.href = "/";
+    onRefreshFailed(err);
+    return Promise.reject(err);
+  }
+}
+
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Nếu bị 401 và chưa retry
+    // Chỉ handle 401 và chưa retry (giả sử 401 là token expired)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const token = localStorage.getItem("token");
-          const refreshToken = localStorage.getItem("refreshToken");
+      try {
+        const newToken = await handleRefresh();
 
-          const data = await refreshTokenAPI({ token, refreshToken });
-
-          // ✅ Lưu lại token và refreshToken mới
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("refreshToken", data.refreshToken);
-
-          // Gắn token mới vào header mặc định
-          instance.defaults.headers.common[
-            "Authorization"
-          ] = `Bearer ${data.token}`;
-
-          isRefreshing = false;
-          onRefreshed(data.token);
-        } catch (err) {
-          isRefreshing = false;
-          // refresh cũng fail → logout
-          localStorage.clear();
-          window.location.href = "/";
-          return Promise.reject(err);
-        }
+        // Set header cho original request và retry
+        originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+        return instance(originalRequest);
+      } catch (refreshError) {
+        // Nếu refresh fail, reject original error
+        return Promise.reject(error);
       }
-
-      // Hàng đợi chờ token mới
-      return new Promise((resolve) => {
-        refreshSubscribers.push((newToken) => {
-          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-          resolve(instance(originalRequest));
-        });
-      });
     }
 
+    // Các lỗi khác: reject bình thường
     return Promise.reject(error);
   }
 );
