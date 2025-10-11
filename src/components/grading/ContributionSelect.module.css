@@ -1,0 +1,152 @@
+.wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #e8f1ff;
+    color: #0b3b86;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    border: 1px solid #cfe1ff;
+    font-size: 14px;
+    gap: 20px;
+  }
+  
+  .labelText {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+  
+  /* Ẩn thị giác <select>, vẫn submit & trigger onChange */
+  .visuallyHiddenSelect {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+    white-space: nowrap;
+    clip-path: inset(50%);
+    clip: rect(0 0 0 0);
+    overflow: hidden;
+  }
+  
+  /* ---- Style “mẫu” (custom select 1) ---- */
+  .filterSelect { position: relative; min-width: 180px; }
+  
+  .filterSelect__button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-md, 10px) var(--spacing-lg, 14px);
+    border: 1px solid var(--border-light, #93c5fd);
+    border-radius: var(--radius-md, 10px);
+    background: var(--bg-white, #fff);
+    color: var(--text-primary, #0b3b86);
+    font-weight: 600;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+  }
+  
+  .filterSelect__button:focus {
+    outline: none;
+    border-color: var(--primary-blue, #2563eb);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .15);
+  }
+  
+  .filterSelect__chevron {
+    flex: 0 0 auto;
+    color: var(--text-secondary, #637083);
+  }
+  
+  .filterSelect__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--bg-white, #fff);
+    border: 1px solid var(--border-light, #93c5fd);
+    border-radius: var(--radius-md, 10px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    padding: 6px 6px;
+    z-index: 20;
+    width: 100%;
+  }
+  
+  .filterSelect__option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    font-size: 1.4rem;
+    color: var(--text-primary, #0b3b86);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background .15s ease;
+    box-sizing: border-box;
+    border-radius: 8px;
+    text-align: left;
+  }
+  
+  .filterSelect__option:hover,
+  .filterSelect__option:focus {
+    outline: none;
+    background: rgba(0,0,0,.06);
+  }
+  
+  .filterSelect__check {
+    opacity: 0;
+    margin-left: var(--spacing-md, 12px);
+    color: #637083;
+  }
+  .is-selected .filterSelect__check { opacity: 1; }
+  
+  .filterSelect__optionLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* ---- Sizer ẩn để đo width lớn nhất ---- */
+  .selectSizerHost {
+    position: absolute;
+    visibility: hidden;
+    pointer-events: none;
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  
+  .selectSizerButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm, 8px);
+    padding: var(--spacing-md, 10px) var(--spacing-lg, 14px);
+    border: 1px solid var(--border-light, #93c5fd);
+    border-radius: var(--radius-md, 10px);
+    background: var(--bg-white, #fff);
+    color: var(--text-primary, #0b3b86);
+    font-weight: 600;
+    font-size: 1.4rem;
+    line-height: 1;
+    box-sizing: border-box;
+    width: max-content;
+  }
+  .selectSizerLabel { white-space: nowrap; }
+  .selectSizerChevron { flex: 0 0 auto; color: var(--text-secondary, #637083); }
+  
+  /* Disabled tone tương tự */
+  .disabled {
+    opacity: .6;
+    pointer-events: none;
+  }
+  

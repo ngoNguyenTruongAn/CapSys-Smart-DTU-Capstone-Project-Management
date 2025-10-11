@@ -1,0 +1,460 @@
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  text-align: center;
+}
+
+.page {
+  padding: 24px;
+  background: #f3f6fb;
+  min-height: 100vh;
+}
+
+.headerBar {
+  margin-bottom: 8px;
+}
+
+.backLink {
+  border: 0;
+  background: none;
+  color: #2563eb;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  margin-bottom: 8px;
+  display: flex;
+  text-align: center;
+  gap: 6px;
+}
+
+.backLink span {
+  color: #808291;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 8px 0 16px;
+}
+
+.sessionMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.sessionMeta_title {
+  height: 100%;
+}
+
+.sessionName {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.sessionInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.sessionInfo span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.loadingState {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  color: #2563eb;
+  font-weight: 600;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(2, 6, 23, 0.04);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table thead th {
+  background: #f8fafc;
+  color: #334155;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.table tbody td {
+  font-size: 14px;
+  color: #0f172a;
+  padding: 16px;
+  border-bottom: 1px solid #eef2f7;
+  vertical-align: middle;
+}
+
+.colTitle {
+  width: 220px;
+  font-weight: 600;
+}
+
+.colDesc {
+  color: #475569;
+  min-height: 0;
+  line-height: 3rem;
+}
+
+.description {
+  padding-bottom: 0 !important;
+  position: relative;
+}
+
+.descWrap {
+  position: absolute;
+  inset: 0;          /* tôn trọng padding của td */
+  display: grid;
+  grid-template-rows: 1fr auto;
+  row-gap: 8px;
+  min-height: 0;
+  padding: 16px 16px 0;  
+}
+
+.headScore {
+  text-align: center !important;
+}
+
+.colScore {
+  width: 120px;
+  text-align: center;
+}
+
+.colIps {
+  width: 80px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.scoreInput {
+  width: 80px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-weight: 600;
+  background: #f9fafb;
+}
+
+.scoreInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  outline: none;
+  background: #fff;
+}
+
+.gradeIPS {
+  background-color: #f9fafb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 8px 10px;
+  border-top: 2px solid #E5E7EB;
+}
+
+.hint {
+  font-size: 12px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.weight {
+  font-size: 12px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.colComment {
+  width: 320px;
+}
+
+.commentInput {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: block;
+  min-height: 72px;
+  resize: vertical;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.4;
+  background: #f9fafb;
+  resize: none;
+  overflow: scroll;
+
+  /* Ẩn scrollbar (Firefox + IE/Edge cũ) */
+  scrollbar-width: none;    /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge Legacy */
+}
+
+.commentInput::-webkit-scrollbar {  /* Chrome/Safari/Edge Chromium */
+  width: 0;
+  height: 0;
+}
+
+.commentInput:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  outline: none;
+  background: #fff;
+}
+
+.contribution {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #e8f1ff;
+  color: #0b3b86;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  border: 1px solid #cfe1ff;
+  font-size: 14px;
+  gap: 20px;
+}
+
+.contributionSelect {
+  min-width: 220px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #93c5fd;
+  background: #fff;
+  font-weight: 600;
+  color: #0b3b86;
+  outline: none;
+}
+
+.contributionSelect:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.groupHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 36px 16px 20px;
+}
+
+.groupHeader h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.groupMeta {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 12px;
+}
+
+.actionBtns {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn:disabled {
+  background: #cbd5f5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btnPrimary {
+  background: #2563eb;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.pendingRow {
+  background: #fff8e1;
+}
+
+.iconBtn {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.iconBtn:hover {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.iconBtnActive {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+@media (max-width: 992px) {
+  .sessionMeta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .studentSelector select {
+    width: 100%;
+  }
+
+  .colComment {
+    width: auto;
+  }
+}
+
+.groupHeader_title h2{
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Lớp phủ toasts: cố định bên phải, xếp chồng theo cột */
+.toastLayer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none; /* tránh chặn click nền; từng toast sẽ bật lại */
+}
+
+/* Khối toast chung */
+.toast {
+  pointer-events: auto;
+  min-width: 250px;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.12);
+  padding: 12px 40px 12px 16px; /* chừa chỗ nút close */
+  color: #0f172a;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  position: relative;
+
+  /* mặc định: ẩn ngoài khung, mờ */
+  opacity: 0;
+  transform: translateX(24px);
+}
+
+/* Biến thể màu */
+.toastSuccess {
+  background: rgb(220, 252, 231); 
+  border: 1px solid rgb(187, 247, 208);
+  color: #166534;
+  box-shadow: 0 10px 30px rgba(220, 252, 231, 0.5);
+}
+.toastError {
+  background: rgb(254, 226, 226); 
+  border: 1px solid #fecaca; 
+  color: #b91c1c;
+  box-shadow: 0 10px 30px rgba(254, 226, 226, 0.5);
+}
+
+/* Nút đóng */
+.toastClose {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  border: 0;
+  background: none;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+}
+.toastClose:hover {
+  color: #334155;
+}
+
+/* Nội dung */
+.toastContent {
+  margin-right: 8px;
+  line-height: 1.45;
+}
+
+/* Hiện vào với animation */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(24px); }
+}
+
+/* Trạng thái show/hide (có thể chỉ cần show) */
+.toastShow {
+  animation: toastIn .25s ease-out forwards;
+}
+.toastHide {
+  animation: toastOut .25s ease-in forwards;
+}
+
+/* Giảm chuyển động nếu user chọn reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .toast, .toastShow, .toastHide {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+}

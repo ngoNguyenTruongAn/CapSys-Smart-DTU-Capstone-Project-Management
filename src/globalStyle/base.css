@@ -1,0 +1,66 @@
+*{
+    margin: 0;
+    padding: 0;
+    border: 0;
+    font-size: 100%;
+}
+
+html{
+    /* 10px */
+   font-size: 62.5%;
+   line-height: 1.6rem;
+   font-family: "Space Grotesk", sans-serif;
+   box-sizing: border-box;
+}
+
+li {
+   list-style: none;
+}
+
+a {
+   text-decoration: none;
+   color: var(--text-color);
+}
+
+:root {
+   /* Colors từ ảnh */
+   --primary-blue: #3B82F6;
+   --light-blue: #EBF4FF;
+   --success-green: #45987C;
+   --light-green: #DAFCEB;
+   --warning-yellow: #B6973D;
+   --light-yellow: #FEFABD;
+   --error-red: #E14B4B;
+   --light-red: #FEF2F2;
+   
+   /* Text colors */
+   --text-primary: #1F2937;
+   --text-secondary: #6B7280;
+   --text-white: #FFFFFF;
+   
+   /* Background colors */
+   --bg-primary: #F8FAFC;
+   --bg-white: #FFFFFF;
+   --bg-card: #FFFFFF;
+   
+   /* Border colors */
+   --border-light: #E5E7EB;
+   --border-medium: #D1D5DB;
+   
+   /* Spacing */
+   --spacing-xs: 0.4rem;
+   --spacing-sm: 0.8rem;
+   --spacing-md: 1.6rem;
+   --spacing-lg: 2.4rem;
+   --spacing-xl: 3.2rem;
+   
+   /* Border radius */
+   --radius-sm: 0.4rem;
+   --radius-md: 0.8rem;
+   --radius-lg: 1.2rem;
+   
+   /* Shadows */
+   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
