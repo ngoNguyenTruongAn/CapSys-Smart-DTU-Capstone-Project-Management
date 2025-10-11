@@ -75,7 +75,6 @@ Trong `handleStartGrading` function:
 const handleStartGrading = (teamId) => {
   // Sử dụng React Router
   navigate(`/grading/${teamId}`);
-
   // Hoặc chuyển state
   setCurrentTeam(teamId);
   setShowGradingModal(true);
@@ -85,19 +84,16 @@ const handleStartGrading = (teamId) => {
 ## CSS Variables
 
 ### Màu sắc chính
-
 - `--primary-blue`: #3B82F6 (xanh chính)
 - `--success-green`: #10B981 (xanh lá)
 - `--warning-yellow`: #F59E0B (vàng)
 - `--error-red`: #EF4444 (đỏ)
 
 ### Background colors
-
 - `--bg-primary`: #F8FAFC (nền chính)
 - `--bg-white`: #FFFFFF (nền trắng)
 
 ### Spacing
-
 - `--spacing-xs`: 0.4rem
 - `--spacing-sm`: 0.8rem
 - `--spacing-md`: 1.6rem
@@ -107,7 +103,6 @@ const handleStartGrading = (teamId) => {
 ## Responsive Design
 
 Layout tự động responsive:
-
 - **Desktop**: 3 cột grid
 - **Tablet**: 2 cột grid
 - **Mobile**: 1 cột grid
@@ -125,7 +120,6 @@ Chỉnh sửa CSS variables trong `base.css`
 - Typography: CSS variables trong `base.css`
 
 ### Thêm animations
-
 ```css
 .group-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
