@@ -8,26 +8,29 @@ import { ReactComponent as NotebookIcon } from "../../assets/icon/Notebook.svg";
 import { ReactComponent as StarIcon } from "../../assets/icon/Star.svg";
 import { ReactComponent as CalendarIcon } from "../../assets/icon/Calendar.svg";
 import { ReactComponent as CheckIcon } from "../../assets/icon/Check_All.svg";
-import { useNavigate } from "react-router-dom";
+import { ReactComponent as LogoutIcon } from "../../assets/icon/log-out.svg";
+import { ReactComponent as ManageAcc } from "../../assets/icon/users.svg";
+import { ReactComponent as Proposal } from "../../assets/icon/check-square.svg";
+import { NavLink, useNavigate } from "react-router-dom";
 import { LogoutAPI } from "../../services/AuthAPI";
 
 const Navbar = () => {
   const navigate = useNavigate();
+
   const handleLogout = async () => {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
 
     try {
-      // Gọi API logout nếu cần
       const response = await LogoutAPI();
       console.log("Logout successful:", response);
     } catch (error) {
       console.error("Logout failed:", error);
     } finally {
-      // Chuyển hướng về trang login bất kể API có lỗi hay không
       navigate("/");
     }
   };
+
   return (
     <nav className="navbar">
       {/* Logo + Tên hệ thống */}
@@ -52,38 +55,56 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
       {/* Menu */}
       <div className="nav-bottom">
         <ul className="navbar__menu">
-          <li onClick={() => navigate("")}>
-            <MenuIcon className="menu-icon" />
-            Tổng quan
-          </li>
-          <li onClick={() => navigate("quan-ly-do-an")}>
-            <NotebookIcon className="menu-icon" />
-            Quản lý đồ án
-          </li>
-          <li onClick={() => navigate("quan-ly-tai-khoan")}>
-            <StarIcon className="menu-icon" />
-            Quản lý tài khoản
-          </li>
-          <li onClick={() => navigate("/proposals")}>
-            <StarIcon className="menu-icon" />
-            Quản lý Proposals
+          <li>
+            <NavLink to="" end className={({ isActive }) => (isActive ? "active" : "")}>
+              <MenuIcon className="menu-icon" />
+              Tổng quan
+            </NavLink>
           </li>
           <li>
-            <StarIcon className="menu-icon" />
-            Chấm điểm
+            <NavLink to="quan-ly-do-an" className={({ isActive }) => (isActive ? "active" : "")}>
+              <NotebookIcon className="menu-icon" />
+              Quản lý đồ án
+            </NavLink>
           </li>
           <li>
-            <CalendarIcon className="menu-icon" />
-            Lịch bảo vệ
+            <NavLink to="quan-ly-tai-khoan" className={({ isActive }) => (isActive ? "active" : "")}>
+              <ManageAcc className="menu-icon" />
+              Quản lý tài khoản
+            </NavLink>
           </li>
           <li>
-            <CheckIcon className="menu-icon" />
-            Phê duyệt
+            <NavLink to="/proposals" className={({ isActive }) => (isActive ? "active" : "")}>
+              <Proposal className="menu-icon" />
+              Quản lý Proposals
+            </NavLink>
           </li>
-          <li onClick={() => handleLogout()}>Logout</li>
+          <li>
+            <NavLink to="cham-diem" className={({ isActive }) => (isActive ? "active" : "")}>
+              <StarIcon className="menu-icon" />
+              Chấm điểm
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="lich-bao-ve" className={({ isActive }) => (isActive ? "active" : "")}>
+              <CalendarIcon className="menu-icon" />
+              Lịch bảo vệ
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="phe-duyet" className={({ isActive }) => (isActive ? "active" : "")}>
+              <CheckIcon className="menu-icon" />
+              Phê duyệt
+            </NavLink>
+          </li>
+          <li onClick={handleLogout}>
+            <LogoutIcon className="menu-icon" />
+            Logout
+          </li>
         </ul>
       </div>
     </nav>
