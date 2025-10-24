@@ -6,7 +6,7 @@ import what from "../../../assets/image/what.png";
 import { getAllLecturersAPI } from "../../../services/LecturersAPI";
 import { getAllStudentsAPI } from "../../../services/StudentsAPI";
 import { getAllTeamsAPI } from "../../../services/TeamsAPI";
-
+import { getAllProposalsAPI } from "../../../services/ProposalAPI";
 // import chart
 import {
   PieChart,
@@ -15,6 +15,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Text,
 } from "recharts";
 
 const COLORS = [
@@ -37,17 +38,23 @@ const TongQuan = () => {
   });
 
   const [studentByMajor, setStudentByMajor] = useState([]);
-
+  const [proposalsByStatus, setProposalsByStatus] = useState([]);
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [lecturersRes, studentsRes, teamsCap1Res, teamsCap2Res] =
-          await Promise.all([
-            getAllLecturersAPI(),
-            getAllStudentsAPI(),
-            getAllTeamsAPI(1),
-            getAllTeamsAPI(2),
-          ]);
+        const [
+          lecturersRes,
+          studentsRes,
+          teamsCap1Res,
+          teamsCap2Res,
+          proposalsRes,
+        ] = await Promise.all([
+          getAllLecturersAPI(),
+          getAllStudentsAPI(),
+          getAllTeamsAPI(1),
+          getAllTeamsAPI(2),
+          getAllProposalsAPI(),
+        ]);
 
         const students = studentsRes.data || [];
         const teamsCap1 = teamsCap1Res.data || [];
@@ -65,6 +72,19 @@ const TongQuan = () => {
         }));
 
         setStudentByMajor(majorData);
+
+        const proposals = proposalsRes.data || [];
+        const proposalsByStatus = proposals.reduce((acc, p) => {
+          acc[p.status] = (acc[p.status] || 0) + 1;
+          return acc;
+        }, {});
+        const proposalsByStatusData = Object.entries(proposalsByStatus).map(
+          ([name, value]) => ({
+            name,
+            value,
+          })
+        );
+        setProposalsByStatus(proposalsByStatusData);
 
         setStats({
           lecturers: lecturersRes.data?.length || 0,
@@ -137,9 +157,23 @@ const TongQuan = () => {
 
       {/* Biểu đồ tròn thống kê sinh viên theo ngành */}
       <div className="tq-chart">
-        <h3>Thống kê sinh viên theo ngành</h3>
+        {/* <h3>Thống kê sinh viên theo ngành</h3> */}
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
+            <text
+              dominant-baseline="middle"
+              font-size="16"
+              font-weight="bold"
+              x="50%0"
+              y="0"
+              class="recharts-text"
+              text-anchor="middle"
+              fill="#808080"
+            >
+              <tspan x="50%" dy="5%">
+                Thống kê sinh viên theo ngành
+              </tspan>
+            </text>
             <Pie
               data={studentByMajor}
               dataKey="value"
@@ -151,6 +185,44 @@ const TongQuan = () => {
               label
             >
               {studentByMajor.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+        {/* Biểu đồ tròn thống kê proposals theo status */}
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <text
+              x="50%0"
+              y="50%0"
+              class="recharts-text"
+              text-anchor="middle"
+              fill="#808080"
+              dominant-baseline="middle"
+              font-size="16"
+              font-weight="bold"
+            >
+              <tspan x="50%" dy="5%">
+                Thống kê đề tài theo trạng thái
+              </tspan>
+            </text>
+            <Pie
+              data={proposalsByStatus}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={100}
+              fill="#8884d8"
+              label
+            >
+              {proposalsByStatus.map((entry, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={COLORS[index % COLORS.length]}

@@ -65,4 +65,27 @@ const deleteTeamAPI = async (teamId) => {
   }
 };
 
-export { getAllTeamsAPI, getTeamByIdAPI, updateTeamAPI, deleteTeamAPI };
+// create team
+const createTeamAPI = async (teamData) => {
+  const data = {
+    teamName: teamData.teamName,
+    projectTitle: teamData.projectTitle,
+    studentIds: teamData.studentIds,
+    teamLeaderId: teamData.teamLeaderId,
+    capstoneType: teamData.capstoneType,
+  };
+  try {
+    const response = await instance.post("Teams/create", data);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response.data.message || "Server Error");
+  }
+};
+
+export {
+  getAllTeamsAPI,
+  getTeamByIdAPI,
+  updateTeamAPI,
+  deleteTeamAPI,
+  createTeamAPI,
+};

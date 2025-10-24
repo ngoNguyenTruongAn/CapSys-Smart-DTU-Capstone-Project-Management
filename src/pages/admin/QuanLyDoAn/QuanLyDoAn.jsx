@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-table";
 import ViewAction from "./Action/ViewAction";
 import UpdateAction from "./Action/UpdateAction";
+import CreateTeamModal from "./CreateTeamModal/CreateTeamModal";
 
 const QuanLyDoAn = () => {
   const [projects, setProjects] = useState([]);
@@ -22,7 +23,7 @@ const QuanLyDoAn = () => {
   const [show, setShow] = useState(false);
   const [teamId, setTeamId] = useState(null);
   const [update, setUpdate] = useState(false);
-
+  const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   // ---- Fetch dữ liệu từ API ----
   const fetchProjects = useCallback(async () => {
     try {
@@ -177,8 +178,14 @@ const QuanLyDoAn = () => {
   const canPreviousPage = table.getCanPreviousPage();
   const canNextPage = table.getCanNextPage();
 
+  // Tạo nhóm mới button
+  const handleCreateTeam = () => {
+    setShowCreateTeamModal(true);
+  };
   return (
     <div className="quanlydoan-page">
+      {/* Tạo nhóm mới button */}
+      <button onClick={handleCreateTeam}>Tạo nhóm mới</button>
       <header className="qlda-toolbar">
         <select
           value={capstoneType}
@@ -305,6 +312,11 @@ const QuanLyDoAn = () => {
         setShow={setUpdate}
         teamId={teamId}
         onUpdated={fetchProjects}
+      />
+      <CreateTeamModal
+        show={showCreateTeamModal}
+        setShow={setShowCreateTeamModal}
+        onCreated={fetchProjects}
       />
     </div>
   );

@@ -118,13 +118,21 @@ CapSys-Smart-DTU-Capstone-Project-Management-main/
 │   │   └── admin/
 │   │       ├── QuanLyDoAn/
 │   │       │   ├── Action/
+│   │       │   │   ├── ActionModal.scss
 │   │       │   │   ├── UpdateAction.jsx
 │   │       │   │   └── ViewAction.jsx
 │   │       │   ├── QuanLyDoAn.jsx
 │   │       │   └── QuanLyDoAn.scss
 │   │       ├── QuanLyTaiKhoan/
 │   │       │   ├── RegisterStudent/
-│   │       │   │   └── RegisterStudent.jsx
+│   │       │   │   ├── RegisterStudent.jsx
+│   │       │   │   └── RegisterStudent.scss
+│   │       │   ├── UpdateStudent/
+│   │       │   │   ├── UpdateStudent.jsx
+│   │       │   │   └── UpdateStudent.scss
+│   │       │   ├── ViewStudent/
+│   │       │   │   ├── ViewStudent.jsx
+│   │       │   │   └── ViewStudent.scss
 │   │       │   ├── QuanLyTaiKhoan.jsx
 │   │       │   └── QuanLyTaiKhoan.scss
 │   │       ├── TongQuan/
@@ -282,52 +290,83 @@ function onRefreshed(newToken) {
   refreshSubscribers = [];
 }
 
+function onRefreshFailed(error) {
+  // Clear queue và reject tất cả subscribers khi refresh fail
+  refreshSubscribers.forEach((cb) => cb(error)); // Hoặc chỉ reject mà không pass token
+  refreshSubscribers = [];
+  isRefreshing = false;
+}
+
+// Function riêng để handle refresh token
+async function handleRefresh() {
+  if (isRefreshing) {
+    return new Promise((resolve, reject) => {
+      refreshSubscribers.push((newToken, error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(newToken);
+        }
+      });
+    });
+  }
+
+  isRefreshing = true;
+  const token = localStorage.getItem("token");
+  const refreshToken = localStorage.getItem("refreshToken");
+
+  // Kiểm tra token tồn tại trước khi gọi API
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+
+  try {
+    const data = await refreshTokenAPI({ token, refreshToken });
+
+    // Lưu token mới
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("refreshToken", data.refreshToken);
+
+    // Cập nhật header mặc định cho instance
+    instance.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+
+    onRefreshed(data.token);
+    isRefreshing = false;
+    return data.token;
+  } catch (err) {
+    // Refresh fail → logout
+    localStorage.clear();
+    // Có thể dispatch event để app handle logout (ví dụ: Redux action hoặc custom event)
+    window.dispatchEvent(new CustomEvent("auth:logout"));
+    // Redirect đến trang login thay vì root
+    window.location.href = "/";
+    onRefreshFailed(err);
+    return Promise.reject(err);
+  }
+}
+
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // Nếu bị 401 và chưa retry
+    // Chỉ handle 401 và chưa retry (giả sử 401 là token expired)
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const token = localStorage.getItem("token");
-          const refreshToken = localStorage.getItem("refreshToken");
+      try {
+        const newToken = await handleRefresh();
 
-          const data = await refreshTokenAPI({ token, refreshToken });
-
-          // ✅ Lưu lại token và refreshToken mới
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("refreshToken", data.refreshToken);
-
-          // Gắn token mới vào header mặc định
-          instance.defaults.headers.common[
-            "Authorization"
-          ] = `Bearer ${data.token}`;
-
-          isRefreshing = false;
-          onRefreshed(data.token);
-        } catch (err) {
-          isRefreshing = false;
-          // refresh cũng fail → logout
-          localStorage.clear();
-          window.location.href = "/";
-          return Promise.reject(err);
-        }
+        // Set header cho original request và retry
+        originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+        return instance(originalRequest);
+      } catch (refreshError) {
+        // Nếu refresh fail, reject original error
+        return Promise.reject(error);
       }
-
-      // Hàng đợi chờ token mới
-      return new Promise((resolve) => {
-        refreshSubscribers.push((newToken) => {
-          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
-          resolve(instance(originalRequest));
-        });
-      });
     }
 
+    // Các lỗi khác: reject bình thường
     return Promise.reject(error);
   }
 );
@@ -2342,7 +2381,7 @@ export default function Proposals() {
 ```jsx
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import "./QuanLyDoAn.scss";
-import { getAllTeamsAPI } from "../../../services/TeamsAPI";
+import { deleteTeamAPI, getAllTeamsAPI } from "../../../services/TeamsAPI";
 import {
   useReactTable,
   getCoreRowModel,
@@ -2472,7 +2511,13 @@ const QuanLyDoAn = () => {
               >
                 Sửa
               </button>
-              <button onClick={() => alert(`Xóa ${value}`)}>Xóa</button>
+              <button
+                onClick={() => {
+                  handleDelete(value);
+                }}
+              >
+                Xóa
+              </button>
             </div>
           );
         },
@@ -2480,6 +2525,20 @@ const QuanLyDoAn = () => {
     ],
     []
   );
+
+  const handleDelete = async (teamId) => {
+    // confirm delete
+    const confirm = window.confirm("Bạn có chắc chắn muốn xóa nhóm này?");
+    if (!confirm) return;
+    try {
+      await deleteTeamAPI(teamId);
+      fetchProjects();
+      alert("Xóa nhóm thành công!");
+    } catch (error) {
+      console.error("Delete team error:", error);
+      alert("Xóa nhóm thất bại: " + error.message);
+    }
+  };
 
   const table = useReactTable({
     data: projects,
@@ -2579,13 +2638,13 @@ const QuanLyDoAn = () => {
               )}
             </tbody>
           </table>
-          <p>
+          <p style={{ fontSize: "1.7rem", margin: "3rem 0" }}>
             Hiển thị {projects.length} đề tài | Trang {pageIndex + 1} /{" "}
             {pageCount}
           </p>
 
           {/* Điều khiển phân trang */}
-          <div className="pagination">
+          <div className="pagination qlda-pagination">
             <button
               onClick={() => table.setPageIndex(0)}
               disabled={!canPreviousPage}
@@ -2640,6 +2699,7 @@ export default QuanLyDoAn;
 ```jsx
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
+import "./ActionModal.scss";
 import { getTeamByIdAPI, updateTeamAPI } from "../../../../services/TeamsAPI";
 
 const UpdateAction = ({ show, setShow, teamId, onUpdated }) => {
@@ -2699,7 +2759,13 @@ const UpdateAction = ({ show, setShow, teamId, onUpdated }) => {
   };
 
   return (
-    <Modal show={show} onHide={() => setShow(false)} size="lg" centered>
+    <Modal
+      show={show}
+      onHide={() => setShow(false)}
+      size="lg"
+      centered
+      dialogClassName="qlda-modal"
+    >
       <Modal.Header closeButton>
         <Modal.Title>Cập nhật nhóm</Modal.Title>
       </Modal.Header>
@@ -2783,6 +2849,7 @@ import React, { useEffect, useState } from "react";
 import { Modal, Button, Table, Badge } from "react-bootstrap";
 import { getTeamByIdAPI } from "../../../../services/TeamsAPI";
 import "bootstrap/dist/css/bootstrap.min.css";
+import "./ActionModal.scss";
 
 const ViewAction = ({ show, setShow, teamId }) => {
   const [team, setTeam] = useState(null);
@@ -2800,7 +2867,13 @@ const ViewAction = ({ show, setShow, teamId }) => {
   const handleClose = () => setShow(false);
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered>
+    <Modal
+      show={show}
+      onHide={handleClose}
+      size="lg"
+      centered
+      dialogClassName="qlda-modal"
+    >
       <Modal.Header closeButton>
         <Modal.Title>
           Nhóm: <span className="text-primary">{team?.teamName}</span>
@@ -2893,74 +2966,165 @@ export default ViewAction;
 
 ### src\pages\admin\QuanLyTaiKhoan\QuanLyTaiKhoan.jsx
 ```jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { getAllLecturersAPI } from "../../../services/LecturersAPI";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchStudents } from "../../../store/studentSlice";
+import { deleteStudent, fetchStudents } from "../../../store/studentSlice";
 import "./QuanLyTaiKhoan.scss";
 import RegisterStudent from "./RegisterStudent/RegisterStudent";
+import ViewStudent from "./ViewStudent/ViewStudent";
+import UpdateStudent from "./UpdateStudent/UpdateStudent";
 
 const QuanLyTaiKhoan = () => {
   const [lecturers, setLecturers] = useState([]);
+  const [lecturersLoading, setLecturersLoading] = useState(false);
+  const [lecturersError, setLecturersError] = useState(null);
   const [activeTab, setActiveTab] = useState("students");
   const [search, setSearch] = useState("");
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
-  // phân trang
-  const [page, setPage] = useState(1); // trang hiện tại
-  const [pageSize, setPageSize] = useState(5); // số dòng mỗi trang
+  // Phân trang (local state)
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const dispatch = useDispatch();
   const {
     data: students,
-    loading,
-    error,
+    loading: studentsLoading,
+    error: studentsError,
   } = useSelector((state) => state.students);
 
-  // fetch students bằng redux
+  // Fetch students qua Redux
   useEffect(() => {
     dispatch(fetchStudents());
   }, [dispatch]);
 
-  // fetch lecturers trực tiếp
+  // Fetch lecturers trực tiếp
   useEffect(() => {
     const fetchLecturers = async () => {
+      setLecturersLoading(true);
+      setLecturersError(null);
       try {
         const res = await getAllLecturersAPI();
         setLecturers(res.data || []);
       } catch (err) {
         console.error("Lỗi tải giảng viên:", err);
+        setLecturersError("Không thể tải danh sách giảng viên");
+        setLecturers([]);
+      } finally {
+        setLecturersLoading(false);
       }
     };
     fetchLecturers();
   }, []);
 
-  // Lọc theo search
-  const filteredStudents = (students || []).filter(
-    (s) =>
-      (s.fullName && s.fullName.toLowerCase().includes(search.toLowerCase())) ||
-      (s.studentCode &&
-        s.studentCode.toLowerCase().includes(search.toLowerCase()))
+  // Hàm filter chung để tránh duplication
+  const filterItems = useMemo(() => {
+    return (items, searchTerm, type) => {
+      if (!searchTerm) return items;
+      const lowerSearch = searchTerm.toLowerCase();
+      return items.filter((item) => {
+        const name = item.fullName?.toLowerCase() || "";
+        const code =
+          type === "students"
+            ? item.studentCode?.toLowerCase() || ""
+            : item.lecturerCode?.toLowerCase() || "";
+        return name.includes(lowerSearch) || code.includes(lowerSearch);
+      });
+    };
+  }, []);
+
+  // Filtered data (memoized để optimize)
+  const filteredStudents = useMemo(
+    () => filterItems(students || [], search, "students"),
+    [students, search, filterItems]
   );
 
-  const filteredLecturers = (lecturers || []).filter(
-    (l) =>
-      (l.fullName && l.fullName.toLowerCase().includes(search.toLowerCase())) ||
-      (l.lecturerCode &&
-        l.lecturerCode.toLowerCase().includes(search.toLowerCase()))
+  const filteredLecturers = useMemo(
+    () => filterItems(lecturers || [], search, "lecturers"),
+    [lecturers, search, filterItems]
   );
 
-  // chọn data theo tab
-  const data = activeTab === "students" ? filteredStudents : filteredLecturers;
+  // Data theo tab
+  const data = useMemo(
+    () => (activeTab === "students" ? filteredStudents : filteredLecturers),
+    [activeTab, filteredStudents, filteredLecturers]
+  );
 
-  // tính phân trang
+  // Phân trang (memoized)
   const totalItems = data.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
-  const currentPageData = data.slice((page - 1) * pageSize, page * pageSize);
+  const totalPages = useMemo(
+    () => Math.ceil(totalItems / pageSize),
+    [totalItems, pageSize]
+  );
+  const currentPageData = useMemo(
+    () => data.slice((page - 1) * pageSize, page * pageSize),
+    [data, page, pageSize]
+  );
 
-  // reset page khi đổi tab hoặc search
+  // Reset page khi đổi tab, search, hoặc pageSize
   useEffect(() => {
     setPage(1);
-  }, [activeTab, search]);
+  }, [activeTab, search, pageSize]);
+
+  // Adjust page tự động nếu page > totalPages (sau delete hoặc filter thay đổi)
+  useEffect(() => {
+    if (page > totalPages && totalPages > 0) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
+
+  // Modals state cho students
+  const [showViewStudent, setShowViewStudent] = useState(false);
+  const [showUpdateStudent, setShowUpdateStudent] = useState(false);
+  const [studentId, setStudentId] = useState(null);
+
+  const handleViewStudent = (id) => {
+    setStudentId(id);
+    setShowViewStudent(true);
+  };
+
+  const handleUpdateStudent = (id) => {
+    setStudentId(id);
+    setShowUpdateStudent(true);
+  };
+
+  const handleDeleteStudent = (studentId) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa sinh viên này?")) {
+      dispatch(deleteStudent(studentId))
+        .unwrap()
+        .then(() => {
+          alert("Xóa sinh viên thành công");
+          // Reducer sẽ update students → useEffect adjust page tự động
+        })
+        .catch((error) => {
+          console.error("Lỗi khi xóa sinh viên:", error);
+          alert(`Xóa sinh viên thất bại: ${error}`);
+        });
+    }
+  };
+
+  // Placeholder handlers cho lecturers (gợi ý: implement modals tương tự students)
+  const handleViewLecturer = (lecturerId) => {
+    alert(`Xem giảng viên: ${lecturerId}`);
+    // TODO: Tạo modal ViewLecturer
+  };
+
+  const handleUpdateLecturer = (lecturerId) => {
+    alert(`Sửa giảng viên: ${lecturerId}`);
+    // TODO: Tạo modal UpdateLecturer
+  };
+
+  const handleDeleteLecturer = (lecturerId) => {
+    if (window.confirm(`Xóa giảng viên ${lecturerId}?`)) {
+      alert("Xóa giảng viên thành công (placeholder)");
+      // TODO: Implement delete API và update lecturers state
+    }
+  };
+
+  // Loading/Error chung
+  const isLoading =
+    activeTab === "students" ? studentsLoading : lecturersLoading;
+  const error = activeTab === "students" ? studentsError : lecturersError;
 
   return (
     <div className="quanlytaikhoan-page">
@@ -2969,6 +3133,7 @@ const QuanLyTaiKhoan = () => {
           ➕ Thêm tài khoản
         </button>
         <button onClick={() => alert("Import Excel")}>📂 Import Excel</button>
+        {/* TODO: Thêm debounce cho search nếu cần (sử dụng lodash.debounce) */}
         <input
           type="text"
           placeholder="🔍 Tìm kiếm..."
@@ -2992,7 +3157,7 @@ const QuanLyTaiKhoan = () => {
         </button>
       </div>
 
-      {loading && <p>Đang tải dữ liệu sinh viên...</p>}
+      {isLoading && <p>Đang tải dữ liệu...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
       <div className="qltk-table-box">
@@ -3031,14 +3196,18 @@ const QuanLyTaiKhoan = () => {
                     <td>{item.major}</td>
                     <td>{item.gpa}</td>
                     <td>
-                      <button onClick={() => alert(`Xem ${item.fullName}`)}>
-                        👁️ Xem
+                      <button onClick={() => handleViewStudent(item.studentId)}>
+                        Xem
                       </button>
-                      <button onClick={() => alert(`Sửa ${item.fullName}`)}>
-                        ✏️ Sửa
+                      <button
+                        onClick={() => handleUpdateStudent(item.studentId)}
+                      >
+                        Sửa
                       </button>
-                      <button onClick={() => alert(`Xóa ${item.fullName}`)}>
-                        🗑️ Xóa
+                      <button
+                        onClick={() => handleDeleteStudent(item.studentId)}
+                      >
+                        Xóa
                       </button>
                     </td>
                   </tr>
@@ -3050,14 +3219,20 @@ const QuanLyTaiKhoan = () => {
                     <td>{item.faculty}</td>
                     <td>{item.phone}</td>
                     <td>
-                      <button onClick={() => alert(`Xem ${item.fullName}`)}>
-                        👁️ Xem
+                      <button
+                        onClick={() => handleViewLecturer(item.lecturerId)}
+                      >
+                        Xem
                       </button>
-                      <button onClick={() => alert(`Sửa ${item.fullName}`)}>
-                        ✏️ Sửa
+                      <button
+                        onClick={() => handleUpdateLecturer(item.lecturerId)}
+                      >
+                        Sửa
                       </button>
-                      <button onClick={() => alert(`Xóa ${item.fullName}`)}>
-                        🗑️ Xóa
+                      <button
+                        onClick={() => handleDeleteLecturer(item.lecturerId)}
+                      >
+                        Xóa
                       </button>
                     </td>
                   </tr>
@@ -3084,6 +3259,12 @@ const QuanLyTaiKhoan = () => {
                     activeTab === "students" ? "sinh viên" : "giảng viên"
                   } trong hệ thống`}
             </p>
+            {!search && (
+              <button onClick={() => setShowRegisterStudent(true)}>
+                ➕ Thêm {activeTab === "students" ? "sinh viên" : "giảng viên"}{" "}
+                mới
+              </button>
+            )}
           </div>
         )}
 
@@ -3116,7 +3297,7 @@ const QuanLyTaiKhoan = () => {
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value));
-                setPage(1);
+                // Reset page=1 đã handle ở useEffect
               }}
             >
               {[5, 10, 20, 50].map((size) => (
@@ -3128,9 +3309,20 @@ const QuanLyTaiKhoan = () => {
           </div>
         )}
       </div>
+
       <RegisterStudent
         show={showRegisterStudent}
         setShow={setShowRegisterStudent}
+      />
+      <ViewStudent
+        show={showViewStudent}
+        setShow={setShowViewStudent}
+        studentId={studentId}
+      />
+      <UpdateStudent
+        show={showUpdateStudent}
+        setShow={setShowUpdateStudent}
+        studentId={studentId}
       />
     </div>
   );
@@ -3144,12 +3336,12 @@ export default QuanLyTaiKhoan;
 ```jsx
 import React, { useState } from "react";
 import { Button, Modal, Form } from "react-bootstrap";
+import "./RegisterStudent.scss";
 import { useDispatch, useSelector } from "react-redux";
 import {
   registerStudent,
   selectAuthLoading,
 } from "../../../../store/authSlice";
-
 const RegisterStudent = ({ show, setShow }) => {
   const dispatch = useDispatch();
   const loading = useSelector(selectAuthLoading);
@@ -3198,114 +3390,122 @@ const RegisterStudent = ({ show, setShow }) => {
   };
 
   return (
-    <Modal show={show} onHide={handleClose} size="lg" centered>
+    <Modal
+      show={show}
+      onHide={handleClose}
+      size="lg"
+      centered
+      dialogClassName="qltk-register-modal"
+    >
       <Modal.Header closeButton>
         <Modal.Title>Đăng ký sinh viên</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form onSubmit={handleSubmit}>
-          <Form.Group className="mb-3">
-            <Form.Label>Email</Form.Label>
-            <Form.Control
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              autoComplete="off"
-              required
-            />
-          </Form.Group>
+          <div className="register-form-grid">
+            <Form.Group className="mb-3">
+              <Form.Label>Email</Form.Label>
+              <Form.Control
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                autoComplete="off"
+                required
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Mật khẩu</Form.Label>
-            <Form.Control
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              autoComplete="new-password"
-              required
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mật khẩu</Form.Label>
+              <Form.Control
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                autoComplete="new-password"
+                required
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Mã sinh viên</Form.Label>
-            <Form.Control
-              type="text"
-              name="studentCode"
-              value={formData.studentCode}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mã sinh viên</Form.Label>
+              <Form.Control
+                type="text"
+                name="studentCode"
+                value={formData.studentCode}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Họ tên</Form.Label>
-            <Form.Control
-              type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Họ tên</Form.Label>
+              <Form.Control
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Khoa</Form.Label>
-            <Form.Control
-              type="text"
-              name="faculty"
-              value={formData.faculty}
-              onChange={handleChange}
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Khoa</Form.Label>
+              <Form.Control
+                type="text"
+                name="faculty"
+                value={formData.faculty}
+                onChange={handleChange}
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Chuyên ngành</Form.Label>
-            <Form.Control
-              type="text"
-              name="major"
-              value={formData.major}
-              onChange={handleChange}
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Chuyên ngành</Form.Label>
+              <Form.Control
+                type="text"
+                name="major"
+                value={formData.major}
+                onChange={handleChange}
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Điện thoại</Form.Label>
-            <Form.Control
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              pattern="[0-9]{10,11}"
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Điện thoại</Form.Label>
+              <Form.Control
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                pattern="[0-9]{10,11}"
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Capstone Type</Form.Label>
-            <Form.Select
-              name="capstoneType"
-              value={formData.capstoneType}
-              onChange={handleChange}
-            >
-              <option value="">-- Chọn Capstone --</option>
-              <option value="1">Capstone 1</option>
-              <option value="2">Capstone 2</option>
-            </Form.Select>
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Capstone Type</Form.Label>
+              <Form.Select
+                name="capstoneType"
+                value={formData.capstoneType}
+                onChange={handleChange}
+              >
+                <option value="">-- Chọn Capstone --</option>
+                <option value="1">Capstone 1</option>
+                <option value="2">Capstone 2</option>
+              </Form.Select>
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>GPA</Form.Label>
-            <Form.Control
-              type="number"
-              name="gpa"
-              value={formData.gpa}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              max="4"
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>GPA</Form.Label>
+              <Form.Control
+                type="number"
+                name="gpa"
+                value={formData.gpa}
+                onChange={handleChange}
+                step="0.01"
+                min="0"
+                max="4"
+              />
+            </Form.Group>
+          </div>
         </Form>
       </Modal.Body>
       <Modal.Footer>
@@ -3326,6 +3526,364 @@ const RegisterStudent = ({ show, setShow }) => {
 };
 
 export default RegisterStudent;
+
+```
+
+### src\pages\admin\QuanLyTaiKhoan\UpdateStudent\UpdateStudent.jsx
+```jsx
+import React, { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import { Modal, Form, Button } from "react-bootstrap";
+import { updateStudent } from "../../../../store/studentSlice";
+import { getStudentByIdAPI } from "../../../../services/StudentsAPI";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./UpdateStudent.scss";
+
+const UpdateStudent = ({ show, setShow, studentId }) => {
+  const dispatch = useDispatch();
+
+  const [formData, setFormData] = useState({
+    studentCode: "",
+    fullName: "",
+    faculty: "",
+    major: "",
+    phone: "",
+    gpa: "",
+    capstoneType: "",
+  });
+
+  // Load student khi mở modal
+  useEffect(() => {
+    if (show && studentId) {
+      const fetchStudent = async () => {
+        try {
+          const res = await getStudentByIdAPI(studentId);
+          setFormData({
+            studentCode: res.data.studentCode || "",
+            fullName: res.data.fullName || "",
+            faculty: res.data.faculty || "",
+            major: res.data.major || "",
+            phone: res.data.phone || "",
+            gpa: res.data.gpa || "",
+            capstoneType: res.data.capstoneType || "",
+          });
+        } catch (err) {
+          console.error("Lỗi khi lấy thông tin sinh viên:", err);
+        }
+      };
+      fetchStudent();
+    }
+  }, [show, studentId]);
+
+  // Handle change input
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Validate form
+  const validateForm = () => {
+    const { studentCode, fullName, faculty, major, phone, gpa, capstoneType } =
+      formData;
+
+    if (
+      !studentCode ||
+      !fullName ||
+      !faculty ||
+      !major ||
+      !phone ||
+      gpa === "" ||
+      !capstoneType
+    ) {
+      alert("Vui lòng nhập đầy đủ thông tin!");
+      return false;
+    }
+
+    // MSSV không chứa khoảng trắng
+    if (/\s/.test(studentCode)) {
+      alert("MSSV không được chứa khoảng trắng!");
+      return false;
+    }
+
+    // Số điện thoại: 10 chữ số, bắt đầu bằng 0
+    const phoneRegex = /^0\d{9}$/;
+    if (!phoneRegex.test(phone)) {
+      alert("Số điện thoại không hợp lệ! (Ví dụ: 0912345678)");
+      return false;
+    }
+
+    // GPA trong khoảng 0 - 4
+    const gpaValue = parseFloat(gpa);
+    if (isNaN(gpaValue) || gpaValue < 0 || gpaValue > 4) {
+      alert("GPA phải nằm trong khoảng từ 0 đến 4!");
+      return false;
+    }
+
+    return true;
+  };
+
+  // Submit update student
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    try {
+      const res = await dispatch(
+        updateStudent({ id: studentId, data: formData })
+      ).unwrap();
+
+      if (res.success) {
+        alert("Cập nhật thành công");
+        setShow(false);
+      } else {
+        alert("Cập nhật thất bại: " + res.message);
+      }
+    } catch (err) {
+      alert("Lỗi khi cập nhật: " + err);
+    }
+  };
+
+  // Close modal
+  const handleClose = () => {
+    setFormData({
+      studentCode: "",
+      fullName: "",
+      faculty: "",
+      major: "",
+      phone: "",
+      gpa: "",
+      capstoneType: "",
+    });
+    setShow(false);
+  };
+
+  return (
+    <Modal
+      show={show}
+      onHide={handleClose}
+      size="lg"
+      centered
+      dialogClassName="qltk-update-modal"
+    >
+      <Modal.Header closeButton>
+        <Modal.Title>Cập nhật sinh viên</Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <Form onSubmit={handleSubmit}>
+          <div className="update-form-grid">
+            <Form.Group className="mb-3">
+              <Form.Label>MSSV</Form.Label>
+              <Form.Control
+                type="text"
+                name="studentCode"
+                value={formData.studentCode}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Họ và tên</Form.Label>
+              <Form.Control
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Khoa</Form.Label>
+              <Form.Control
+                type="text"
+                name="faculty"
+                value={formData.faculty}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Chuyên ngành</Form.Label>
+              <Form.Control
+                type="text"
+                name="major"
+                value={formData.major}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>GPA</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                min="0"
+                max="4"
+                name="gpa"
+                value={formData.gpa}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Điện thoại</Form.Label>
+              <Form.Control
+                type="text"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Loại Capstone</Form.Label>
+              <Form.Select
+                name="capstoneType"
+                value={formData.capstoneType}
+                onChange={handleChange}
+                required
+              >
+                <option value="">-- Chọn Loại Capstone --</option>
+                <option value="1">Capstone 1</option>
+                <option value="2">Capstone 2</option>
+              </Form.Select>
+            </Form.Group>
+          </div>
+
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleClose}>
+              Đóng
+            </Button>
+            <Button variant="primary" type="submit">
+              Cập nhật
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal.Body>
+    </Modal>
+  );
+};
+
+export default UpdateStudent;
+
+```
+
+### src\pages\admin\QuanLyTaiKhoan\ViewStudent\ViewStudent.jsx
+```jsx
+import React, { useEffect, useState } from "react";
+import { Modal, Button, Badge, Spinner } from "react-bootstrap";
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./ViewStudent.scss";
+import { getStudentById } from "../../../../store/studentSlice";
+import { useDispatch } from "react-redux";
+
+const ViewStudent = ({ show, setShow, studentId }) => {
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (show && studentId) {
+      const fetchStudent = async () => {
+        try {
+          setLoading(true);
+          const studentRes = await dispatch(getStudentById(studentId)).unwrap();
+          setStudent(studentRes); // thunk đã return object student
+        } catch (err) {
+          console.error("Lỗi khi load student:", err);
+          setStudent(null);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchStudent();
+    }
+  }, [show, studentId, dispatch]);
+
+  const handleClose = () => {
+    setStudent(null); // clear data khi đóng modal
+    setShow(false);
+  };
+
+  return (
+    <Modal
+      show={show}
+      onHide={handleClose}
+      size="lg"
+      centered
+      dialogClassName="qlda-modal"
+    >
+      <Modal.Header closeButton>
+        <Modal.Title>
+          {student ? (
+            <>
+              Sinh viên:{" "}
+              <span className="text-primary">{student.fullName}</span>
+            </>
+          ) : (
+            "Đang tải dữ liệu..."
+          )}
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        {loading ? (
+          <div className="d-flex justify-content-center align-items-center p-4">
+            <Spinner animation="border" role="status" />
+            <span className="ms-2">Đang tải...</span>
+          </div>
+        ) : student ? (
+          <div className="mb-3">
+            <p>
+              <b>MSSV:</b> {student.studentCode || "—"}
+            </p>
+            <p>
+              <b>Email:</b> {student.email || "—"}
+            </p>
+            <p>
+              <b>Khoa:</b> {student.faculty || "—"}
+            </p>
+            <p>
+              <b>Chuyên ngành:</b> {student.major || "—"}
+            </p>
+            <p>
+              <b>Điện thoại:</b> {student.phone || "—"}
+            </p>
+            <p>
+              <b>GPA:</b> {student.gpa ?? "—"}
+            </p>
+            <p>
+              <b>Loại Capstone:</b>{" "}
+              <Badge bg="info">
+                {student.capstoneType
+                  ? `Capstone ${student.capstoneType}`
+                  : "Chưa rõ"}
+              </Badge>
+            </p>
+            <p>
+              <b>Mã Nhóm:</b> {student.teamId || "Chưa có"}
+            </p>
+            <p>
+              <b>Tên Nhóm:</b> {student.teamName || "Chưa có"}
+            </p>
+          </div>
+        ) : (
+          <p className="text-muted">Không tìm thấy dữ liệu sinh viên.</p>
+        )}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={handleClose}>
+          Đóng
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
+
+export default ViewStudent;
 
 ```
 
@@ -4136,14 +4694,6 @@ const getAllStudentsAPI = async () => {
     throw new Error(error.response.data.message || "Server Error");
   }
 };
-const deleteStudentAPI = async (id) => {
-  try {
-    const response = await instance.delete(`/Students/insert/${id}`);
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
-  }
-};
 
 const updateStudentAPI = async (id, studentData) => {
   try {
@@ -4156,7 +4706,56 @@ const updateStudentAPI = async (id, studentData) => {
     throw new Error(error.response.data.message || "Server Error");
   }
 };
-export { getAllStudentsAPI, deleteStudentAPI, updateStudentAPI };
+
+const getStudentByIdAPI = async (id) => {
+  try {
+    const response = await instance.get(`/Students/get-student-by-id/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response.data.message || "Server Error");
+  }
+};
+
+const updateStudentByStudentCodeAPI = async (id, data) => {
+  const dataUpdate = {
+    studentCode: data.studentCode,
+    fullName: data.fullName,
+    faculty: data.faculty,
+    major: data.major,
+    phone: data.phone,
+    gpa: data.gpa,
+    capstoneType: Number(data.capstoneType), // ép kiểu nếu backend cần int
+  };
+  try {
+    const response = await instance.put(
+      `/Students/update-student/${id}`,
+      dataUpdate
+    );
+    if (response.data.success !== true) {
+      throw new Error(response.data.message || "Update failed");
+    }
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.response?.data?.message || "Server Error");
+  }
+};
+
+const deleteStudentByStudentCodeAPI = async (id) => {
+  try {
+    const response = await instance.delete(`/Students/delete-student/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response.data.message || "Server Error");
+  }
+};
+
+export {
+  getAllStudentsAPI,
+  updateStudentAPI,
+  getStudentByIdAPI,
+  updateStudentByStudentCodeAPI,
+  deleteStudentByStudentCodeAPI,
+};
 
 ```
 
@@ -4219,7 +4818,17 @@ const updateTeamAPI = async (
   }
 };
 
-export { getAllTeamsAPI, getTeamByIdAPI, updateTeamAPI };
+// delete team
+const deleteTeamAPI = async (teamId) => {
+  try {
+    const response = await instance.delete(`Teams/delete/${teamId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response.data.message || "Server Error");
+  }
+};
+
+export { getAllTeamsAPI, getTeamByIdAPI, updateTeamAPI, deleteTeamAPI };
 
 ```
 
@@ -4470,15 +5079,20 @@ export default store;
 ```js
 // src/redux/slices/StudentSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getAllStudentsAPI } from "../services/StudentsAPI";
+import {
+  deleteStudentByStudentCodeAPI,
+  getAllStudentsAPI,
+  getStudentByIdAPI,
+  updateStudentByStudentCodeAPI,
+} from "../services/StudentsAPI"; // Giả sử path đúng
 
-// Async thunk để fetch sinh viên từ API
+// Async thunks
 export const fetchStudents = createAsyncThunk(
   "students/fetchStudents",
   async (_, { rejectWithValue }) => {
     try {
       const res = await getAllStudentsAPI();
-      return res.data; // giả sử API trả về { data: [...] }
+      return res.data; // Giả sử { data: [...] }
     } catch (err) {
       return rejectWithValue(
         err.response?.data?.message || "Không thể tải danh sách sinh viên"
@@ -4487,39 +5101,165 @@ export const fetchStudents = createAsyncThunk(
   }
 );
 
+export const getStudentById = createAsyncThunk(
+  "students/getStudentById",
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await getStudentByIdAPI(id);
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Lỗi không xác định"
+      );
+    }
+  }
+);
+
+export const updateStudent = createAsyncThunk(
+  "students/updateStudent",
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const res = await updateStudentByStudentCodeAPI(id, data);
+      if (!res.success) {
+        return rejectWithValue(res.message || "Cập nhật thất bại");
+      }
+      return res; // { success, message, data: updatedStudent }
+    } catch (err) {
+      return rejectWithValue(
+        err.response?.data?.message || "Lỗi không xác định"
+      );
+    }
+  }
+);
+
+export const deleteStudent = createAsyncThunk(
+  "students/deleteStudent",
+  async (studentId, { rejectWithValue }) => {
+    try {
+      const res = await deleteStudentByStudentCodeAPI(studentId);
+      if (!res.success) {
+        return rejectWithValue(res.message || "Xóa sinh viên thất bại");
+      }
+      return { success: true, studentId };
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || err.message || "Lỗi không xác định";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 const studentSlice = createSlice({
   name: "students",
   initialState: {
-    data: [],
+    data: [], // list students
+    selectedStudent: null, // single student
     loading: false,
     error: null,
   },
   reducers: {
     clearStudents: (state) => {
       state.data = [];
+      state.selectedStudent = null;
       state.loading = false;
       state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      // fetchStudents pending
+      // fetchStudents
       .addCase(fetchStudents.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      // fetchStudents thành công
       .addCase(fetchStudents.fulfilled, (state, action) => {
         state.loading = false;
         state.data = action.payload || [];
+        state.error = null;
       })
-      // fetchStudents thất bại
       .addCase(fetchStudents.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Lỗi không xác định";
+      })
+
+      // getStudentById
+      .addCase(getStudentById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getStudentById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.selectedStudent = action.payload || null;
+        state.error = null;
+      })
+      .addCase(getStudentById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Lỗi không xác định";
+      })
+
+      // updateStudent
+      .addCase(updateStudent.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateStudent.fulfilled, (state, action) => {
+        state.loading = false;
+        const res = action.payload;
+        if (res?.success && res?.data) {
+          const updatedStudent = res.data;
+          // Update trong list data
+          const index = state.data.findIndex(
+            (s) => s.studentId === updatedStudent.studentId
+          );
+          if (index !== -1) {
+            state.data[index] = updatedStudent;
+          }
+          // Update selectedStudent nếu đang chọn
+          if (
+            state.selectedStudent &&
+            state.selectedStudent.studentId === updatedStudent.studentId
+          ) {
+            state.selectedStudent = updatedStudent;
+          }
+        }
+        state.error = null;
+      })
+      .addCase(updateStudent.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Lỗi không xác định";
+      })
+
+      // deleteStudent
+      .addCase(deleteStudent.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteStudent.fulfilled, (state, action) => {
+        state.loading = false;
+        const deletedId = action.meta.arg; // ID từ thunk arg
+        // Filter data để loại bỏ student đã xóa
+        state.data = state.data.filter((s) => s.studentId !== deletedId);
+        // Clear selectedStudent nếu đang chọn student bị xóa
+        if (
+          state.selectedStudent &&
+          state.selectedStudent.studentId === deletedId
+        ) {
+          state.selectedStudent = null;
+        }
+        state.error = null;
+      })
+      .addCase(deleteStudent.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || "Lỗi không xác định";
       });
   },
 });
+
+// Selectors
+export const selectStudentsLoading = (state) => state.students.loading;
+export const selectStudentsError = (state) => state.students.error;
+export const selectStudentsData = (state) => state.students.data;
+export const selectSelectedStudent = (state) => state.students.selectedStudent;
 
 export const { clearStudents } = studentSlice.actions;
 export default studentSlice.reducer;
