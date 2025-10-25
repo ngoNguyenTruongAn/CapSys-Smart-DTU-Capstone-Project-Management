@@ -10,8 +10,10 @@ import {
 import ViewAction from "./Action/ViewAction";
 import UpdateAction from "./Action/UpdateAction";
 import CreateTeamModal from "./CreateTeamModal/CreateTeamModal";
+import { useNavigate } from "react-router-dom";
 
 const QuanLyDoAn = () => {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [rawData, setRawData] = useState([]);
   const [capstoneType, setCapstoneType] = useState("1");
@@ -23,7 +25,7 @@ const QuanLyDoAn = () => {
   const [show, setShow] = useState(false);
   const [teamId, setTeamId] = useState(null);
   const [update, setUpdate] = useState(false);
-  const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
+  // const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   // ---- Fetch dữ liệu từ API ----
   const fetchProjects = useCallback(async () => {
     try {
@@ -179,13 +181,16 @@ const QuanLyDoAn = () => {
   const canNextPage = table.getCanNextPage();
 
   // Tạo nhóm mới button
-  const handleCreateTeam = () => {
-    setShowCreateTeamModal(true);
+  // const handleCreateTeam = () => {
+  //   setShowCreateTeamModal(true);
+  // };
+  const handleManageTeam = () => {
+    navigate("/admin/quan-ly-do-an/quan-ly-nhom-do-an");
   };
   return (
     <div className="quanlydoan-page">
       {/* Tạo nhóm mới button */}
-      <button onClick={handleCreateTeam}>Tạo nhóm mới</button>
+      <button onClick={handleManageTeam}>Quản Lí Nhóm Đề Tài</button>
       <header className="qlda-toolbar">
         <select
           value={capstoneType}
@@ -313,11 +318,11 @@ const QuanLyDoAn = () => {
         teamId={teamId}
         onUpdated={fetchProjects}
       />
-      <CreateTeamModal
+      {/* <CreateTeamModal
         show={showCreateTeamModal}
         setShow={setShowCreateTeamModal}
         onCreated={fetchProjects}
-      />
+      /> */}
     </div>
   );
 };

@@ -10,6 +10,7 @@ import QuanLyTaiKhoan from "./pages/admin/QuanLyTaiKhoan/QuanLyTaiKhoan";
 
 import Proposals from "./pages/admin/Proposals";
 import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-detail";
+import QuanLyNhomDeTai from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/QuanLyNhomDeTai";
 
 function App() {
   return (
@@ -22,7 +23,10 @@ function App() {
         <Route path="quan-ly-do-an" element={<QuanLyDoAn />} />
         <Route path="quan-ly-tai-khoan" element={<QuanLyTaiKhoan />} />
       </Route>
-
+      <Route
+        path="/admin/quan-ly-do-an/quan-ly-nhom-do-an"
+        element={<QuanLyNhomDeTai />}
+      />
       <Route path="verification-code" element={<VerificationCode />} />
       <Route path="confirm-forgot" element={<ConfirmForgot />} />
       <Route path="/proposals" element={<Proposals />} />
