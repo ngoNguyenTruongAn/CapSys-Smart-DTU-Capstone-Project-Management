@@ -63,10 +63,23 @@ const deleteStudentByStudentCodeAPI = async (id) => {
   }
 };
 
+const insertStudentsFromFileAPI = async (ExcelFile, CapstoneType) => {
+  const formData = new FormData();
+  formData.append("ExcelFile", ExcelFile);
+  formData.append("CapstoneType", CapstoneType);
+  try {
+    const response = await instance.post(`/Students/insert`, formData);
+    return response;
+  } catch (error) {
+    throw new Error(error.response.data.message || "Server Error");
+  }
+};
+
 export {
   getAllStudentsAPI,
   updateStudentAPI,
   getStudentByIdAPI,
   updateStudentByStudentCodeAPI,
   deleteStudentByStudentCodeAPI,
+  insertStudentsFromFileAPI,
 };

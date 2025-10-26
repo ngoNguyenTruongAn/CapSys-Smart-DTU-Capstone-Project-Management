@@ -7,10 +7,11 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import TongQuan from "./pages/admin/TongQuan/TongQuan";
 import QuanLyDoAn from "./pages/admin/QuanLyDoAn/QuanLyDoAn";
 import QuanLyTaiKhoan from "./pages/admin/QuanLyTaiKhoan/QuanLyTaiKhoan";
-
 import Proposals from "./pages/admin/Proposals";
 import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-detail";
 import QuanLyNhomDeTai from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/QuanLyNhomDeTai";
+import StudentsContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/StudentsContent";
+import TeamsContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/TeamsContent";
 
 function App() {
   return (
@@ -26,7 +27,10 @@ function App() {
       <Route
         path="/admin/quan-ly-do-an/quan-ly-nhom-do-an"
         element={<QuanLyNhomDeTai />}
-      />
+      >
+        <Route index element={<StudentsContent />} />
+        <Route path="nhom" element={<TeamsContent />} />
+      </Route>
       <Route path="verification-code" element={<VerificationCode />} />
       <Route path="confirm-forgot" element={<ConfirmForgot />} />
       <Route path="/proposals" element={<Proposals />} />

@@ -1,75 +1,97 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import "./QuanLyDoAn.scss";
-import { deleteTeamAPI, getAllTeamsAPI } from "../../../services/TeamsAPI";
+import {
+  deleteTeam as deleteTeamAction,
+  fetchAllTeams,
+} from "../../../store/teamSlice";
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   flexRender,
 } from "@tanstack/react-table";
-import ViewAction from "./Action/ViewAction";
-import UpdateAction from "./Action/UpdateAction";
-import CreateTeamModal from "./CreateTeamModal/CreateTeamModal";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import TeamDetailModal from "./Action/TeamDetailModal";
 
 const QuanLyDoAn = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  // Redux state
+  const { data: rawData, loading } = useSelector((state) => state.teams);
+
+  // Local state
   const [projects, setProjects] = useState([]);
-  const [rawData, setRawData] = useState([]);
   const [capstoneType, setCapstoneType] = useState("1");
   const [year, setYear] = useState("");
   const [semester, setSemester] = useState("");
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [show, setShow] = useState(false);
   const [teamId, setTeamId] = useState(null);
-  const [update, setUpdate] = useState(false);
-  // const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
-  // ---- Fetch dữ liệu từ API ----
+  const [teamDetailModal, setTeamDetailModal] = useState(false);
+  // ---- Fetch dữ liệu từ API (dùng Redux) ----
   const fetchProjects = useCallback(async () => {
     try {
-      setLoading(true);
       const apiCapstoneType = capstoneType ? Number(capstoneType) : undefined;
-      const res = await getAllTeamsAPI(apiCapstoneType);
-      const data = res.data || [];
-      setRawData(data);
-      // Lúc fetch về thì áp dụng filter luôn
-      applyFilters(data);
+      await dispatch(fetchAllTeams(apiCapstoneType));
     } catch (err) {
       console.error("Fetch projects error:", err);
-      setRawData([]);
-      setProjects([]);
-    } finally {
-      setLoading(false);
     }
-  }, [capstoneType, year, semester, status, search]);
+  }, [capstoneType, dispatch]);
 
   // ---- Áp dụng filter (chỉ gọi trong fetch hoặc refresh) ----
-  const applyFilters = (data) => {
-    let filtered = [...data];
+  const applyFilters = useCallback(
+    (data) => {
+      let filtered = [...data];
 
-    if (year) filtered = filtered.filter((t) => t.academicYear === year);
-    if (semester)
-      filtered = filtered.filter((t) => String(t.semester) === semester);
-    if (status) filtered = filtered.filter((t) => t.status === status);
+      if (year) filtered = filtered.filter((t) => t.academicYear === year);
+      if (semester)
+        filtered = filtered.filter((t) => String(t.semester) === semester);
+      if (status) filtered = filtered.filter((t) => t.status === status);
 
-    if (search) {
-      const s = search.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
-          (t.projectTitle && t.projectTitle.toLowerCase().includes(s)) ||
-          (t.teamName && t.teamName.toLowerCase().includes(s))
-      );
-    }
+      if (search) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(
+          (t) =>
+            (t.projectTitle && t.projectTitle.toLowerCase().includes(s)) ||
+            (t.teamName && t.teamName.toLowerCase().includes(s))
+        );
+      }
 
-    setProjects(filtered);
-  };
+      setProjects(filtered);
+    },
+    [year, semester, status, search]
+  );
 
   // Gọi API khi capstoneType thay đổi (ban đầu hoặc chọn lại Capstone 1/2)
   useEffect(() => {
     fetchProjects();
-  }, [capstoneType, fetchProjects]);
+  }, [fetchProjects]);
+
+  // Áp dụng filter khi rawData thay đổi
+  useEffect(() => {
+    if (rawData && rawData.length > 0) {
+      applyFilters(rawData);
+    }
+  }, [rawData, applyFilters]);
+
+  const handleDelete = useCallback(
+    async (teamId) => {
+      // confirm delete
+      const confirm = window.confirm("Bạn có chắc chắn muốn xóa nhóm này?");
+      if (!confirm) return;
+      try {
+        await dispatch(deleteTeamAction(teamId)).unwrap();
+        await fetchProjects();
+        alert("Xóa nhóm thành công!");
+      } catch (error) {
+        console.error("Delete team error:", error);
+        alert("Xóa nhóm thất bại: " + error.message);
+      }
+    },
+    [dispatch, fetchProjects]
+  );
 
   // ---- react-table config ----
   const columns = useMemo(
@@ -119,21 +141,14 @@ const QuanLyDoAn = () => {
             <div className="qlda-actions">
               <button
                 onClick={() => {
-                  setShow(true);
+                  setTeamDetailModal(true);
                   setTeamId(value);
                 }}
               >
-                Xem
+                Chi tiết
               </button>
               <button
-                onClick={() => {
-                  setUpdate(true);
-                  setTeamId(value);
-                }}
-              >
-                Sửa
-              </button>
-              <button
+                style={{ backgroundColor: "red", color: "white" }}
                 onClick={() => {
                   handleDelete(value);
                 }}
@@ -145,22 +160,8 @@ const QuanLyDoAn = () => {
         },
       },
     ],
-    []
+    [handleDelete]
   );
-
-  const handleDelete = async (teamId) => {
-    // confirm delete
-    const confirm = window.confirm("Bạn có chắc chắn muốn xóa nhóm này?");
-    if (!confirm) return;
-    try {
-      await deleteTeamAPI(teamId);
-      fetchProjects();
-      alert("Xóa nhóm thành công!");
-    } catch (error) {
-      console.error("Delete team error:", error);
-      alert("Xóa nhóm thất bại: " + error.message);
-    }
-  };
 
   const table = useReactTable({
     data: projects,
@@ -180,17 +181,24 @@ const QuanLyDoAn = () => {
   const canPreviousPage = table.getCanPreviousPage();
   const canNextPage = table.getCanNextPage();
 
-  // Tạo nhóm mới button
-  // const handleCreateTeam = () => {
-  //   setShowCreateTeamModal(true);
-  // };
   const handleManageTeam = () => {
     navigate("/admin/quan-ly-do-an/quan-ly-nhom-do-an");
   };
   return (
     <div className="quanlydoan-page">
       {/* Tạo nhóm mới button */}
-      <button onClick={handleManageTeam}>Quản Lí Nhóm Đề Tài</button>
+      <button
+        style={{
+          backgroundColor: "#1d62ed",
+          color: "white",
+          padding: "5px",
+          borderRadius: "5px",
+          marginBottom: "10px",
+        }}
+        onClick={handleManageTeam}
+      >
+        Quản Lí Nhóm Đề Tài
+      </button>
       <header className="qlda-toolbar">
         <select
           value={capstoneType}
@@ -311,18 +319,13 @@ const QuanLyDoAn = () => {
           </div>
         </div>
       )}
-      <ViewAction show={show} setShow={setShow} teamId={teamId} />
-      <UpdateAction
-        show={update}
-        setShow={setUpdate}
+
+      <TeamDetailModal
+        show={teamDetailModal}
+        setShow={setTeamDetailModal}
         teamId={teamId}
         onUpdated={fetchProjects}
       />
-      {/* <CreateTeamModal
-        show={showCreateTeamModal}
-        setShow={setShowCreateTeamModal}
-        onCreated={fetchProjects}
-      /> */}
     </div>
   );
 };

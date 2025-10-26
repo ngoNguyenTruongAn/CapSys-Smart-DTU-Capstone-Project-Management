@@ -5,7 +5,7 @@ import {
   getAllLecturersAPI,
   getLecturerByIdAPI,
   updateLecturerBylecturerCodeAPI,
-} from "../services/LecturersAPI"; 
+} from "../services/LecturersAPI";
 
 // Lấy danh sách giảng viên
 export const fetchLecturers = createAsyncThunk(
@@ -30,7 +30,9 @@ export const getLecturerById = createAsyncThunk(
       const res = await getLecturerByIdAPI(id);
       return res.data; // object lecturer
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Lỗi không xác định");
+      return rejectWithValue(
+        err.response?.data?.message || "Lỗi không xác định"
+      );
     }
   }
 );
@@ -46,7 +48,9 @@ export const updateLecturer = createAsyncThunk(
       }
       return res.data; // object lecturer đã cập nhật
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Lỗi không xác định");
+      return rejectWithValue(
+        err.response?.data?.message || "Lỗi không xác định"
+      );
     }
   }
 );
@@ -57,20 +61,23 @@ export const deleteLecturer = createAsyncThunk(
   async (lecturerId, { rejectWithValue }) => {
     try {
       const res = await deleteLecturerByLecturerCodeAPI(lecturerId);
-      return lecturerId;
+      if (!res.success) {
+        return rejectWithValue(res.message || "Xóa giảng viên thất bại");
+      }
+      return res.data;
     } catch (err) {
-      console.error("API delete lecturer error:", err);
-      return rejectWithValue(err.response?.data?.message || "Xóa giảng viên thất bại");
+      return rejectWithValue(
+        err.response?.data?.message || "Lỗi không xác định"
+      );
     }
   }
 );
-
 
 /* ----------------- Slice ----------------- */
 const lecturerSlice = createSlice({
   name: "lecturers",
   initialState: {
-    data: [],              // danh sách giảng viên
+    data: [], // danh sách giảng viên
     selectedLecturer: null, // giảng viên được chọn
     loading: false,
     error: null,
@@ -168,7 +175,8 @@ const lecturerSlice = createSlice({
 export const selectLecturersLoading = (state) => state.lecturers.loading;
 export const selectLecturersError = (state) => state.lecturers.error;
 export const selectLecturersData = (state) => state.lecturers.data;
-export const selectSelectedLecturer = (state) => state.lecturers.selectedLecturer;
+export const selectSelectedLecturer = (state) =>
+  state.lecturers.selectedLecturer;
 
 export const { clearLecturers } = lecturerSlice.actions;
 export default lecturerSlice.reducer;
