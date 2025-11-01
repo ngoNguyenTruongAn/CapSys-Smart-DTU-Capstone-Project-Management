@@ -3,6 +3,30 @@
   font-size: 1.7rem; // tăng size toàn trang
   line-height: 1.5; // cho dễ đọc hơn
 
+  .btn-manage-team {
+    background-color: #1d62ed; // xanh như bản cũ
+    color: #fff;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    cursor: pointer;
+
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    // hiệu ứng hover và nhấn cho mượt
+    &:hover {
+      background-color: #3b7bff;
+      box-shadow: 0 4px 10px rgba(29, 98, 237, 0.3);
+    }
+
+    &:active {
+      transform: translateY(1px);
+      background-color: #1756d3;
+    }
+  }
+
   .qlda-toolbar {
     display: flex;
     flex-wrap: wrap;

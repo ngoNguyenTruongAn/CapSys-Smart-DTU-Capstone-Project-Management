@@ -187,16 +187,7 @@ const QuanLyDoAn = () => {
   return (
     <div className="quanlydoan-page">
       {/* Tạo nhóm mới button */}
-      <button
-        style={{
-          backgroundColor: "#1d62ed",
-          color: "white",
-          padding: "5px",
-          borderRadius: "5px",
-          marginBottom: "10px",
-        }}
-        onClick={handleManageTeam}
-      >
+      <button className="btn-manage-team" onClick={handleManageTeam}>
         Quản Lí Nhóm Đề Tài
       </button>
       <header className="qlda-toolbar">

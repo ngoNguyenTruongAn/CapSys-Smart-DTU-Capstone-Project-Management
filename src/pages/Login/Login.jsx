@@ -115,7 +115,11 @@ const Login = () => {
             </button>
           </div>
 
-          <button type="submit" className="continue-button" disabled={loading}>
+          <button
+            type="submit"
+            className={`btn-loading ${loading ? "animation" : ""}`}
+            disabled={loading}
+          >
             {loading ? "Đang đăng nhập..." : "Continue"}
           </button>
         </form>
