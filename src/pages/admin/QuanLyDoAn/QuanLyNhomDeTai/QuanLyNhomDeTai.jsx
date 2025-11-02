@@ -160,6 +160,12 @@ const QuanLyNhomDeTai = () => {
         >
           🏢 Nhóm ({teams?.length || 0})
         </NavLink>
+         <NavLink
+            to="mentor"
+            className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
+          >
+            👨‍🏫 Giảng viên
+          </NavLink>
       </div>
 
       {/* Main Content (Dùng Outlet và truyền context) */}

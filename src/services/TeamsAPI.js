@@ -107,26 +107,32 @@ const autoArrangeTeamAPI = async (capstoneType) => {
 };
 
 //Chuyển SV sang team khác
-const postMoveStudentAPI = async (studentId, targetTeamId) => {
+const postMoveStudentAPI = async (studentIds, targetTeamId) => {
   try {
-    const response = await instance.post(
-      `Teams/move-student/${studentId}/${targetTeamId}`
-    );
-    return response.data;
+    for (const studentId of studentIds) {
+      await instance.post("Teams/move-student", {
+        studentId,
+        targetTeamId
+      });
+    }
+
+    return { success: true, message: "Di chuyển sinh viên thành công!" };
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    console.error("Error moving student:", error);
+    throw new Error(error.response?.data?.message || "Lỗi server");
   }
 };
 
 //Chuyển SV sang team khác
 const postSwapStudentAPI = async (studentId1, studentId2) => {
   try {
-    const response = await instance.post(
-      `Teams/swap-student/${studentId1}/${studentId2}`
-    );
+    const response = await instance.post("/Teams/swap-students", {
+      studentId1,
+      studentId2,
+    });
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(error.response?.data?.message || "Lỗi khi đổi sinh viên");
   }
 };
 

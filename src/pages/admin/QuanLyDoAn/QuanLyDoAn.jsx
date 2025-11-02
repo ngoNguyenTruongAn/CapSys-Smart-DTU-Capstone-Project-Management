@@ -13,6 +13,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import TeamDetailModal from "./Action/TeamDetailModal";
+import MoveStudentModal from "./Action/MoveStudentModal";
+import SwapStudentModal from "./Action/SwapStudentModal";
 
 const QuanLyDoAn = () => {
   const navigate = useNavigate();
@@ -30,6 +32,9 @@ const QuanLyDoAn = () => {
   const [search, setSearch] = useState("");
   const [teamId, setTeamId] = useState(null);
   const [teamDetailModal, setTeamDetailModal] = useState(false);
+  const [moveModal, setMoveModal] = useState(false);
+  const [selectedTeamStudents, setSelectedTeamStudents] = useState([]);
+  const [swapModal, setSwapModal] = useState(false);
   // ---- Fetch dữ liệu từ API (dùng Redux) ----
   const fetchProjects = useCallback(async () => {
     try {
@@ -137,6 +142,7 @@ const QuanLyDoAn = () => {
         accessorKey: "teamId",
         cell: (info) => {
           const value = info.getValue();
+          const team = info.row.original; 
           return (
             <div className="qlda-actions">
               <button
@@ -154,6 +160,26 @@ const QuanLyDoAn = () => {
                 }}
               >
                 Xóa
+              </button>
+              <button
+                style={{ backgroundColor: "#007bff", color: "white" }}
+                onClick={() => {
+                  setSelectedTeamStudents(team.students || []);
+                  setTeamId(value);
+                  setMoveModal(true);
+                }}
+              >
+                Chuyển SV
+              </button>
+              <button
+                style={{ backgroundColor: "orange", color: "white" }}
+                onClick={() => {
+                  setTeamId(value);
+                  setSelectedTeamStudents(team.students || []);
+                  setSwapModal(true);
+                }}
+              >
+                Đổi SV
               </button>
             </div>
           );
@@ -317,6 +343,23 @@ const QuanLyDoAn = () => {
         teamId={teamId}
         onUpdated={fetchProjects}
       />
+
+      <MoveStudentModal
+        show={moveModal}
+        setShow={setMoveModal}
+        currentTeamId={teamId}
+        students={selectedTeamStudents}
+        teams={projects}
+      />
+      
+      <SwapStudentModal
+        show={swapModal}
+        setShow={setSwapModal} 
+        currentTeamId={teamId}
+        students={selectedTeamStudents}
+        teams={projects}
+      />
+
     </div>
   );
 };

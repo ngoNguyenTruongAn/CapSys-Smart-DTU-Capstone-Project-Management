@@ -12,6 +12,7 @@ import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-det
 import QuanLyNhomDeTai from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/QuanLyNhomDeTai";
 import StudentsContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/StudentsContent";
 import TeamsContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/TeamsContent";
+import MentorContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/MentorContent";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
       >
         <Route index element={<StudentsContent />} />
         <Route path="nhom" element={<TeamsContent />} />
+        <Route path="mentor" element={<MentorContent />} />
       </Route>
       <Route path="verification-code" element={<VerificationCode />} />
       <Route path="confirm-forgot" element={<ConfirmForgot />} />
