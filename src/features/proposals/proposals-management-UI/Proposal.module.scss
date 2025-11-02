@@ -175,7 +175,7 @@ font-family: Arial, Helvetica, sans-serif;
 // Card
 .Card-wrapper{
  width: 28.3333%;
- height:420px;
+ height:fit-content;
  background-color: #fff;
  padding: 10px 30px;
  border-radius: 16px;
@@ -293,13 +293,20 @@ background-color: rgba(#26C55E,20%);
   width: fit-content;
   height: fit-content;
   padding: 10px;
-  background-color: var(--second-color);
+  
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
   
 }
 .Card-member-info-content-text{
   font-size: 1.4rem;
    color: var(--text-color);
    font-weight: 600;
+   background-color: var(--second-color);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
 }
 .Card-date{
   height: fit-content;

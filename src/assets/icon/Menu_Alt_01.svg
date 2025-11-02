@@ -4,4 +4,7 @@
 
 <path d="M12.9998 18.4167H20.5832M5.4165 13H20.5832M5.4165 7.58334H20.5832" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 
+=======
+<path d="M12.9998 18.4167H20.5832M5.4165 13H20.5832M5.4165 7.58334H20.5832" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
 </svg>

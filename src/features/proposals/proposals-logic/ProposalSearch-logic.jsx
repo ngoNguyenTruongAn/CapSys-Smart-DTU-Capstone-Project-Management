@@ -1,4 +1,3 @@
-
 export const searchProposals = (proposals, searchTerm) => {
   if (!searchTerm) {
     return proposals;

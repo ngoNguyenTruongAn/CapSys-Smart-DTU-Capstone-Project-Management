@@ -2,7 +2,7 @@ import { useState } from 'react';
 import styles from './Proposal.module.scss';
 import ProposalSearch from './ProposalSearch';
 
-function Tabs({ onTabChange, counts, onSearch }) {
+function Tabs({ onTabChange = () => {}, counts = {}, onSearch }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const tabs = [
@@ -14,11 +14,7 @@ function Tabs({ onTabChange, counts, onSearch }) {
 
   const handleTabClick = (index, tabName) => {
     setActiveIndex(index);
-    if (typeof onTabChange === 'function') {
-      onTabChange(tabName);
-    } else {
-      console.warn('onTabChange không phải là hàm, vui lòng kiểm tra prop từ component cha.');
-    }
+    onTabChange(tabName);
   };
 
   return (
@@ -30,7 +26,7 @@ function Tabs({ onTabChange, counts, onSearch }) {
             className={`${styles['tabs-list-item']} ${activeIndex === index ? styles.active : ''}`}
             onClick={() => handleTabClick(index, tab)}
           >
-            {tab} ({counts[tab] || 0})
+            {tab} ({counts?.[tab] ?? 0})
           </li>
         ))}
       </ul>

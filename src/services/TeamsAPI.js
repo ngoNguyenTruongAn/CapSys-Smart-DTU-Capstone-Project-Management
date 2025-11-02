@@ -55,4 +55,14 @@ const updateTeamAPI = async (
   }
 };
 
-export { getAllTeamsAPI, getTeamByIdAPI, updateTeamAPI };
+// delete team
+const deleteTeamAPI = async (teamId) => {
+  try {
+    const response = await instance.delete(`Teams/delete/${teamId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response.data.message || "Server Error");
+  }
+};
+
+export { getAllTeamsAPI, getTeamByIdAPI, updateTeamAPI, deleteTeamAPI };

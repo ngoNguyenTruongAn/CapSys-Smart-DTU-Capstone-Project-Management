@@ -7,23 +7,32 @@ import ViewDetailButton from "../layout-proposal-common/Button/ViewDetailButton"
 
 // Hàm xử lý tên tùy chỉnh
 const formatName = (fullName) => {
-  if (!fullName) return '';
-  const parts = fullName.split(' ');
-  
+  // Nếu không có hoặc không phải string → convert sang string an toàn
+  if (!fullName) return "";
+  if (typeof fullName !== "string") {
+    try {
+      fullName = String(fullName.fullName || fullName.name || fullName.StudentName || "");
+    } catch {
+      return "";
+    }
+  }
+
+  fullName = fullName.trim();
+  const parts = fullName.split(/\s+/); // tách theo khoảng trắng
+
   if (parts.length > 2) {
-    const lastName = parts[parts.length - 1]; 
-    const middleName = parts[parts.length - 2]; 
-    const firstNames = parts.slice(0, parts.length - 2); 
-    
-    const initials = firstNames.map(part => part.charAt(0)).join('.');
-    
+    const lastName = parts[parts.length - 1];
+    const middleName = parts[parts.length - 2];
+    const firstNames = parts.slice(0, parts.length - 2);
+    const initials = firstNames.map((part) => part.charAt(0).toUpperCase()).join(".");
     return `${initials}. ${middleName} ${lastName}`;
   } else if (parts.length === 2) {
-    return `${parts[0].charAt(0)}. ${parts[1]}`;
+    return `${parts[0].charAt(0).toUpperCase()}. ${parts[1]}`;
   } else {
     return fullName;
   }
 };
+
 
 function ProposalCard({ proposal }) {
   const { id, title, summary, mentor, members, registerDate, approveDate, status } = proposal;

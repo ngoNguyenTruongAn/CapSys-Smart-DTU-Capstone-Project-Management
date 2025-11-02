@@ -4,7 +4,11 @@ import styles from "../../proposals-management-UI/Proposal.module.scss";
 
 function AddButton({ onClick }) {
   return (
-    <button type="button" onClick={onClick} className={styles["addButton-wrapper"]}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={styles["addButton-wrapper"]}
+    >
       <span className={styles["addButton-icon"]}>
         <FontAwesomeIcon icon={faPlus} />
       </span>

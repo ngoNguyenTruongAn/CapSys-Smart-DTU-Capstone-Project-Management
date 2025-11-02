@@ -1,91 +1,98 @@
 import React, { useEffect, useState } from "react";
 import "./TongQuan.scss";
 import file from "../../../assets/image/file.png";
-// import confirm from "../../../assets/image/confirm.png";
 import time from "../../../assets/image/time.png";
 import what from "../../../assets/image/what.png";
 import { getAllLecturersAPI } from "../../../services/LecturersAPI";
 import { getAllStudentsAPI } from "../../../services/StudentsAPI";
 import { getAllTeamsAPI } from "../../../services/TeamsAPI";
+
+// import chart
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#B84FFF",
+  "#FF4FC3",
+];
+
 const TongQuan = () => {
-  const [totalLecturers, setTotalLecturers] = useState(0);
-  const [totalStudents, setTotalStudents] = useState(0);
-  const [totalTeamsCap1, setTotalTeamsCap1] = useState(0);
-  const [totalTeamsCap2, setTotalTeamsCap2] = useState(0);
-  const [totalTeamsCap1WithMentor, setTotalTeamsCap1WithMentor] = useState(0);
-  const [totalTeamsCap2WithMentor, setTotalTeamsCap2WithMentor] = useState(0);
-  // Viết hàm lấy dữ liệu
-  const getTotalTeamsCap1 = async () => {
-    try {
-      const response = await getAllTeamsAPI(1);
-      setTotalTeamsCap1(response.data.length);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  const getTotalTeamsCap1WithMentor = async () => {
-    try {
-      const response = await getAllTeamsAPI(1);
-      setTotalTeamsCap1WithMentor(response.data.length);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  const getTotalTeamsCap2WithMentor = async () => {
-    try {
-      const response = await getAllTeamsAPI(2);
-      setTotalTeamsCap2WithMentor(response.data.length);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  const getTotalTeamsCap2 = async () => {
-    try {
-      const response = await getAllTeamsAPI(2);
-      setTotalTeamsCap2(response.data.length);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  const getTotalStudents = async () => {
-    try {
-      const response = await getAllStudentsAPI();
-      setTotalStudents(response.data.length);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const [stats, setStats] = useState({
+    lecturers: 0,
+    students: 0,
+    teamsCap1: 0,
+    teamsCap1WithMentor: 0,
+    teamsCap2: 0,
+    teamsCap2WithMentor: 0,
+  });
 
-  const getTotalLecturers = async () => {
-    try {
-      const response = await getAllLecturersAPI();
-      setTotalLecturers(response.data.length);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const [studentByMajor, setStudentByMajor] = useState([]);
 
-  // Gọi 1 lần khi component mount
   useEffect(() => {
-    getTotalLecturers();
-    getTotalStudents();
-    getTotalTeamsCap1();
-    getTotalTeamsCap2();
-    getTotalTeamsCap1WithMentor();
-    getTotalTeamsCap2WithMentor();
+    const fetchData = async () => {
+      try {
+        const [lecturersRes, studentsRes, teamsCap1Res, teamsCap2Res] =
+          await Promise.all([
+            getAllLecturersAPI(),
+            getAllStudentsAPI(),
+            getAllTeamsAPI(1),
+            getAllTeamsAPI(2),
+          ]);
+
+        const students = studentsRes.data || [];
+        const teamsCap1 = teamsCap1Res.data || [];
+        const teamsCap2 = teamsCap2Res.data || [];
+
+        // group students by major
+        const grouped = students.reduce((acc, s) => {
+          const major = s.major || "Khác";
+          acc[major] = (acc[major] || 0) + 1;
+          return acc;
+        }, {});
+        const majorData = Object.entries(grouped).map(([name, value]) => ({
+          name,
+          value,
+        }));
+
+        setStudentByMajor(majorData);
+
+        setStats({
+          lecturers: lecturersRes.data?.length || 0,
+          students: students.length,
+          teamsCap1: teamsCap1.length,
+          teamsCap1WithMentor: teamsCap1.filter((t) => t.mentorId).length,
+          teamsCap2: teamsCap2.length,
+          teamsCap2WithMentor: teamsCap2.filter((t) => t.mentorId).length,
+        });
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    };
+
+    fetchData();
   }, []);
 
   return (
     <div className="tongquan-page">
       <div className="tq-stats">
+        {/* các card cũ */}
         <div className="tq-stat-card">
           <div className="tq-icon">
             <img src={what} alt="students" />
           </div>
           <div className="tq-info">
             <div className="tq-stat-title">Tổng sinh viên</div>
-            <div className="tq-stat-value">{totalStudents}</div>
-            {/* <div className="tq-stat-sub">demo data</div> */}
+            <div className="tq-stat-value">{stats.students}</div>
           </div>
         </div>
 
@@ -95,37 +102,65 @@ const TongQuan = () => {
           </div>
           <div className="tq-info">
             <div className="tq-stat-title">Tổng nhóm (Cap1)</div>
-            <div className="tq-stat-value">{totalTeamsCap1}</div>
+            <div className="tq-stat-value">{stats.teamsCap1}</div>
             <div className="tq-stat-sub">
-              {totalTeamsCap1WithMentor} có mentor ·{" "}
-              {totalTeamsCap1 - totalTeamsCap1WithMentor} chưa
-            </div>
-          </div>
-        </div>
-        <div className="tq-stat-card">
-          <div className="tq-icon">
-            <img src={file} alt="teams" />
-          </div>
-          <div className="tq-info">
-            <div className="tq-stat-title">Tổng nhóm (Cap2)</div>
-            <div className="tq-stat-value">{totalTeamsCap2}</div>
-            <div className="tq-stat-sub">
-              {totalTeamsCap2WithMentor} có mentor ·{" "}
-              {totalTeamsCap2 - totalTeamsCap2WithMentor} chưa
+              {stats.teamsCap1WithMentor} có mentor ·{" "}
+              {stats.teamsCap1 - stats.teamsCap1WithMentor} chưa
             </div>
           </div>
         </div>
 
         <div className="tq-stat-card">
           <div className="tq-icon">
-            <img src={what} alt="mentors" />
+            <img src={file} alt="teams" />
+          </div>
+          <div className="tq-info">
+            <div className="tq-stat-title">Tổng nhóm (Cap2)</div>
+            <div className="tq-stat-value">{stats.teamsCap2}</div>
+            <div className="tq-stat-sub">
+              {stats.teamsCap2WithMentor} có mentor ·{" "}
+              {stats.teamsCap2 - stats.teamsCap2WithMentor} chưa
+            </div>
+          </div>
+        </div>
+
+        <div className="tq-stat-card">
+          <div className="tq-icon">
+            <img src={what} alt="lecturers" />
           </div>
           <div className="tq-info">
             <div className="tq-stat-title">Giảng viên</div>
-            <div className="tq-stat-value">{totalLecturers}</div>
-            {/* <div className="tq-stat-sub">Mentors tracked</div> */}
+            <div className="tq-stat-value">{stats.lecturers}</div>
           </div>
         </div>
+      </div>
+
+      {/* Biểu đồ tròn thống kê sinh viên theo ngành */}
+      <div className="tq-chart">
+        <h3>Thống kê sinh viên theo ngành</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <Pie
+              data={studentByMajor}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={100}
+              fill="#8884d8"
+              label
+            >
+              {studentByMajor.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
+              ))}
+            </Pie>
+            <Tooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

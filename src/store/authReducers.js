@@ -1,4 +1,10 @@
-import { login, logoutAsync, forgetPassword, resetPassword } from "./authSlice";
+import {
+  login,
+  logoutAsync,
+  forgetPassword,
+  resetPassword,
+  registerStudent,
+} from "./authSlice";
 
 export const extraReducers = (builder) => {
   builder
@@ -68,5 +74,19 @@ export const extraReducers = (builder) => {
     .addCase(resetPassword.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || "ResetPassword failed";
+    })
+
+    // case registerStudent
+    .addCase(registerStudent.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    })
+    .addCase(registerStudent.fulfilled, (state) => {
+      state.loading = false;
+      state.error = null;
+    })
+    .addCase(registerStudent.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || "RegisterStudent failed";
     });
 };

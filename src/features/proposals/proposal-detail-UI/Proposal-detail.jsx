@@ -1,54 +1,71 @@
-// src/features/proposals/proposals-detail-UI/Proposal-detail.jsx
+// Proposal-detail.jsx
 import HeaderDetail from "./Header-Detail";
 import styles from "./ProposalDetails.module.scss";
 import ProposalSearch from "../proposals-management-UI/ProposalSearch";
 import CardDetailsList from "./Proposal-details-list";
-import { useProposalsStore } from "../proposals-logic/useProposalsStore";
+import { useProposalsStore } from "../../../services/ProposalAPI";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { faDownload } from "@fortawesome/free-solid-svg-icons";
 
 import DeleteButton from "../layout-proposal-common/Button/DeleteButton";
 import ApprovedButton from "../layout-proposal-common/Button/ApprovedButton";
-import React, { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { getStatusKey, getStatusLabel } from "../proposals-logic/status.utils";
 import RejectButton from "../layout-proposal-common/Button/RejectButton";
 import AddProposalModal from "../layout-proposal-common/Modal/AddProposalModal";
 
 function Proposaldetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const {
     proposals,
     fetchProposals,
+    fetchProposalById,   // 🔹 thêm
     setSearchTerm,
-    selectedProposal,
-    selectedProposalId,
-    setSelectedProposalId,
     approveProposal,
     rejectProposal,
     deleteProposal,
-    openModal,
     isModalOpen,
     closeModal,
   } = useProposalsStore();
 
-  // Fetch khi chưa có data
+  const [selectedId, setSelectedId] = useState(id ? Number(id) : null);
+  useEffect(() => {
+    setSelectedId(id ? Number(id) : null);
+  }, [id]);
+
+  // danh sách
   useEffect(() => {
     if (!proposals || proposals.length === 0) fetchProposals();
   }, [proposals, fetchProposals]);
 
-  // Đồng bộ id URL -> selected
+  // 🔎 chi tiết
   useEffect(() => {
-    if (id) setSelectedProposalId(Number(id));
-  }, [id, setSelectedProposalId]);
+    if (id) fetchProposalById(id);
+  }, [id, fetchProposalById]);
 
-  // Scroll top
+  // scroll top
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, []);
+
+  const selectedProposal = useMemo(() => {
+    if (!proposals || !id) return null;
+    const pid = String(id);
+    return proposals.find(
+      (p) => String(p.id ?? p.proposalId ?? p.ProposalID) === pid
+    );
+  }, [proposals, id]);
+
+  const handleSetSelectedProposalId = (newId) => {
+    setSelectedId(newId);
+    navigate(`/proposal-detail/${newId}`);
+  };
 
   if (!selectedProposal) {
     return (
@@ -58,19 +75,53 @@ function Proposaldetail() {
     );
   }
 
-  const {
-    id: pid,
-    title,
-    mentor,
-    registerDate,
-    summary,
-    members,
-    status,
-    goals,
-    technologies,
-    pdfUrl,
-  } = selectedProposal;
+  const pid =
+    selectedProposal.id ??
+    selectedProposal.proposalId ??
+    selectedProposal.ProposalID;
 
+  const title =
+    selectedProposal.title ??
+    selectedProposal.proposalTitle ??
+    "(Không có tiêu đề)";
+
+  const mentor =
+    selectedProposal.mentor ?? selectedProposal.mentorName ?? "";
+
+  const registerDate =
+    selectedProposal.registerDate ??
+    selectedProposal.submittedDate ??
+    selectedProposal.createdDate ??
+    selectedProposal.CreatedDate ??
+    selectedProposal.createdAt ??
+    "";
+
+  const summary = selectedProposal.summary ?? selectedProposal.abstract ?? "";
+  const goals = Array.isArray(selectedProposal.goals) ? selectedProposal.goals : [];
+  const technologies = Array.isArray(selectedProposal.technologies) ? selectedProposal.technologies : [];
+
+  const members =
+    (Array.isArray(selectedProposal.members) && selectedProposal.members) ||
+    (Array.isArray(selectedProposal.teamMembers) && selectedProposal.teamMembers) ||
+    (Array.isArray(selectedProposal.students) && selectedProposal.students) ||
+    [];
+
+  // 🔗 PDF URL: ưu tiên GoogleDriveUrl; nếu có GoogleDriveFileId thì build link view
+  const rawDriveUrl =
+    selectedProposal.GoogleDriveUrl ||
+    selectedProposal.googleDriveUrl ||
+    selectedProposal.documentUrl ||
+    selectedProposal.pdfUrl ||
+    "";
+  const driveFileId =
+    selectedProposal.GoogleDriveFileId ||
+    selectedProposal.googleDriveFileId ||
+    "";
+  const pdfUrl =
+    rawDriveUrl ||
+    (driveFileId ? `https://drive.google.com/file/d/${driveFileId}/view` : "");
+
+  const status = selectedProposal.status;
   const statusKey = getStatusKey(status);
   const statusLabel = getStatusLabel(statusKey);
   const badgeClass = styles["status-" + statusKey];
@@ -80,22 +131,22 @@ function Proposaldetail() {
   const isRejected = statusKey === "reject";
 
   const handleApprove = () => {
-    approveProposal(pid).then(() => {
-      window.location.href = "/proposals";
-    });
+    if (typeof approveProposal === "function") {
+      approveProposal(pid).then(() => navigate("/proposals"));
+    }
   };
 
   const handleReject = () => {
-    rejectProposal(pid).then(() => {
-      window.location.href = "/proposals";
-    });
+    if (typeof rejectProposal === "function") {
+      rejectProposal(pid).then(() => navigate("/proposals"));
+    }
   };
 
   const handleDelete = () => {
     if (!confirm("Bạn có chắc chắn muốn xóa?")) return;
-    deleteProposal(pid).then(() => {
-      window.location.href = "/proposals";
-    });
+    if (typeof deleteProposal === "function") {
+      deleteProposal(pid).then(() => navigate("/proposals"));
+    }
   };
 
   return (
@@ -107,8 +158,8 @@ function Proposaldetail() {
           <div className={styles["Proposal-details-card"]}>
             <CardDetailsList
               proposals={proposals}
-              selectedProposalId={selectedProposalId}
-              setSelectedProposalId={setSelectedProposalId}
+              selectedProposalId={selectedId}
+              setSelectedProposalId={handleSetSelectedProposalId}
             />
           </div>
         </div>
@@ -142,31 +193,39 @@ function Proposaldetail() {
                 />
                 <div className={styles["overview-card-wrapper-info-text"]}>
                   <p className={styles["DetailsCard-mentor"]} style={{ color: "#000" }}>
-                    GVHD: {mentor}
+                    GVHD: {mentor || "—"}
                   </p>
                   <p className={styles["DetailsCard-date"]} style={{ marginBottom: 0 }}>
-                    Ngày đăng ký: {registerDate}
+                    Ngày đăng ký: {registerDate || "—"}
                   </p>
                 </div>
               </span>
 
               <h1 className={styles["overview-card-member-info-title"]}>Danh sách thành viên:</h1>
               <ul className={styles["overview-card-member-info-list"]}>
-                {members.map((member, index) => (
-                  <li key={index} className={styles["overview-card-member-info-item"]}>
-                    <img
-                      src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${(index % 5) + 1}.png`}
-                      alt="avatar-member"
-                      className={styles["overview-card-member-info-avatar"]}
-                    />
-                    <div className={styles["overview-card-member-info-item-text"]}>
-                      <p className={styles["overview-card-member-info-name"]}>{member}</p>
-                      <p className={styles["overview-card-member-student-id"]}>
-                        {`28211134${(100 + index).toString().padStart(3, "0")}`}
-                      </p>
-                    </div>
-                  </li>
-                ))}
+                {members.map((m, index) => {
+                  const name = typeof m === "string" ? m : (m.fullName || m.name || "");
+                  const code = typeof m === "string" ? "" : (m.studentCode || m.mssv || "");
+                  return (
+                    <li key={index} className={styles["overview-card-member-info-item"]}>
+                      <img
+                        src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${
+                          (index % 5) + 1
+                        }.png`}
+                        alt="avatar-member"
+                        className={styles["overview-card-member-info-avatar"]}
+                      />
+                      <div className={styles["overview-card-member-info-item-text"]}>
+                        <p className={styles["overview-card-member-info-name"]}>
+                          {name || "—"}
+                        </p>
+                        <p className={styles["overview-card-member-student-id"]}>
+                          {code || `28211134${(100 + index).toString().padStart(3, "0")}`}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           </div>
@@ -212,7 +271,7 @@ function Proposaldetail() {
                         Tài liệu đề xuất
                       </p>
                       <p className={styles["right-content-document-card-item-content-number"]}>
-                        {pdfUrl.toLowerCase().endsWith(".pdf") ? "PDF" : "File"}
+                        {String(pdfUrl).toLowerCase().includes("/file/d/") ? "PDF" : "File"}
                       </p>
                     </span>
                   </div>
@@ -223,7 +282,9 @@ function Proposaldetail() {
                     className={styles["right-content-document-card-item-button"]}
                   >
                     <FontAwesomeIcon icon={faDownload} />
-                    <p className={styles["right-content-document-card-item-button-text"]}>Mở/Tải</p>
+                    <p className={styles["right-content-document-card-item-button-text"]}>
+                      Mở/Tải
+                    </p>
                   </a>
                 </li>
               ) : (

@@ -1,5 +1,4 @@
-import { Routes, Route } from "react-router-dom";
-
+import { Route, Routes } from "react-router-dom";
 import Login from "./pages/Login/Login";
 import Proposals from "./pages/admin/Proposals";
 import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-detail";
@@ -9,6 +8,9 @@ import ConfirmForgot from "./pages/ForgotPassword/ConfirmForgot";
 import AdminLayout from "./pages/admin/AdminLayout";
 import TongQuan from "./pages/admin/TongQuan/TongQuan";
 import QuanLyDoAn from "./pages/admin/QuanLyDoAn/QuanLyDoAn";
+import QuanLyTaiKhoan from "./pages/admin/QuanLyTaiKhoan/QuanLyTaiKhoan";
+
+
 
 function App() {
   return (
@@ -17,18 +19,17 @@ function App() {
       <Route path="/" element={<Login />} />
       <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/verification-code" element={<VerificationCode />} />
-      <Route path="/confirm-forgot" element={<ConfirmForgot />} />
 
-      {/* ====== Proposal routes ====== */}
-      <Route path="/proposal-detail/:id" element={<Proposaldetail />} />
-      <Route path="/proposals" element={<Proposals />} />
-
-      {/* ====== Admin layout ====== */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<TongQuan />} />
         <Route path="quan-ly-do-an" element={<QuanLyDoAn />} />
+        <Route path="quan-ly-tai-khoan" element={<QuanLyTaiKhoan />} />
       </Route>
+
+      <Route path="verification-code" element={<VerificationCode />} />
+      <Route path="confirm-forgot" element={<ConfirmForgot />} />
+      <Route path="/proposals" element={<Proposals />} />
+      <Route path="/proposal-detail/:id" element={<Proposaldetail />} />
     </Routes>
   );
 }

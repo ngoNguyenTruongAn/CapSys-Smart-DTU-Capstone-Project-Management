@@ -3,7 +3,7 @@ import "./Navbar.scss";
 import logoCap from "../../assets/logo/Frame41.png";
 import anh from "../../assets/image/hue.jpg";
 
-// ✅ Import SVG dưới dạng default (chuẩn cho vite-plugin-svgr)
+// ⬇️ Dùng default import + ?react
 import Bell from "../../assets/icon/Bell.svg?react";
 import MenuIcon from "../../assets/icon/Menu_Alt_01.svg?react";
 import NotebookIcon from "../../assets/icon/Notebook.svg?react";
@@ -20,28 +20,18 @@ const Navbar = () => {
   const handleLogout = async () => {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
-
-    try {
-      const response = await LogoutAPI();
-      console.log("Logout successful:", response);
-    } catch (error) {
-      console.error("Logout failed:", error);
-    } finally {
-      navigate("/");
-    }
+    try { await LogoutAPI(); } catch (e) { console.error(e); }
+    finally { navigate("/"); }
   };
 
   return (
     <nav className="navbar">
-      {/* ======== TOP: Logo + User Info ======== */}
       <div className="nav-top">
         <div className="navbar__logo">
           <img src={logoCap} alt="logo" />
           <div className="logo-text">
             <span className="logo-text-top">Quản Lý Đồ Án Capstone</span>
-            <span className="logo-text-bottom">
-              Hệ thống quản lý đồ án tốt nghiệp
-            </span>
+            <span className="logo-text-bottom">Hệ thống quản lý đồ án tốt nghiệp</span>
           </div>
         </div>
 
@@ -55,21 +45,15 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* ======== BOTTOM: Menu ======== */}
       <div className="nav-bottom">
         <ul className="navbar__menu">
           <li onClick={() => navigate("")}>
             <MenuIcon className="menu-icon" />
             Tổng quan
           </li>
-          <li>
+          <li onClick={() => navigate("/admin/quan-ly-do-an")}>
             <NotebookIcon className="menu-icon" />
-            <Link
-              to="/proposals"
-              style={{ textDecoration: "none", color: "inherit" }}
-            >
-              Quản lý đồ án
-            </Link>
+            Quản lý đồ án
           </li>
           <li>
             <StarIcon className="menu-icon" />

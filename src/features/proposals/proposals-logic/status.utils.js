@@ -1,10 +1,6 @@
 // Chuẩn hoá mọi chuỗi trạng thái -> key thống nhất: approved | waiting | reject
 export function getStatusKey(raw) {
-  const s = (raw || "")
-    .toString()
-    .trim()
-    .toLowerCase()
-    .normalize("NFC");
+  const s = (raw || "").toString().trim().toLowerCase().normalize("NFC");
 
   // reject
   if (s.includes("từ chối") || s.includes("reject")) return "reject";
@@ -21,7 +17,11 @@ export function getStatusKey(raw) {
   }
 
   // approved (đã duyệt / đã phê duyệt / approved)
-  if (s.includes("duyệt") || s.includes("phê duyệt") || s.includes("approved")) {
+  if (
+    s.includes("duyệt") ||
+    s.includes("phê duyệt") ||
+    s.includes("approved")
+  ) {
     return "approved";
   }
 
