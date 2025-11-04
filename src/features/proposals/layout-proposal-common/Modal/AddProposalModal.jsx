@@ -1,34 +1,51 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styles from "./AddProposalModal.module.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { useProposalsStore } from "../../proposals-logic/useProposalsStore";
+import {
+  faPlus,
+  faTrash,
+  faSearch,
+  faFilePdf,
+} from "@fortawesome/free-solid-svg-icons";
+import { useProposalsStore } from "../../../../services/ProposalAPI";
 
 export default function AddProposalModal() {
-  const { isModalOpen, closeModal, addProposal, isLoading } = useProposalsStore();
+  const {
+    isModalOpen,
+    closeModal,
+    addProposal,
+    isLoading,
+    fetchTeamContext,
+    teamContext,
+    isTeamLoading,
+  } = useProposalsStore();
 
-  // dữ liệu form
-  const [id, setId] = useState("");
-  const [title, setTitle] = useState("");
-  const [mentor, setMentor] = useState("");
-  const [summary, setSummary] = useState("");
+  const [teamId, setTeamId] = useState("");
   const [members, setMembers] = useState([{ name: "", mssv: "" }]);
   const [goals, setGoals] = useState([""]);
   const [technologies, setTechnologies] = useState([""]);
-  const [teamId, setTeamId] = useState("");
-  const [files, setFiles] = useState([]);
+  const [file, setFile] = useState(null);
+
+  useEffect(() => {
+    if (!teamContext) return;
+    if (Array.isArray(teamContext.members) && teamContext.members.length) {
+      setMembers(
+        teamContext.members.map((m) => ({
+          name: m.fullName || "",
+          mssv: m.studentCode || "",
+        }))
+      );
+    } else {
+      setMembers([{ name: "", mssv: "" }]);
+    }
+  }, [teamContext]);
 
   if (!isModalOpen) return null;
 
   const addRow = (setter, empty) => setter((p) => [...p, empty]);
   const removeRow = (setter, i) =>
     setter((p) => (p.length > 1 ? p.filter((_, idx) => idx !== i) : p));
-  const handleMemberChange = (i, k, v) =>
-    setMembers((p) => {
-      const n = [...p];
-      n[i] = { ...n[i], [k]: v };
-      return n;
-    });
+
   const handleArrChange = (setter, i, v) =>
     setter((p) => {
       const n = [...p];
@@ -37,30 +54,71 @@ export default function AddProposalModal() {
     });
 
   const reset = () => {
-    setId("");
-    setTitle("");
-    setMentor("");
-    setSummary("");
+    setTeamId("");
     setMembers([{ name: "", mssv: "" }]);
     setGoals([""]);
     setTechnologies([""]);
-    setTeamId("");
-    setFiles([]);
+    setFile(null);
+  };
+
+  const onLookupTeam = async () => {
+    const id = teamId.trim();
+    if (!id) {
+      alert("Vui lòng nhập Team ID!");
+      return;
+    }
+    await fetchTeamContext(id);
   };
 
   const submit = async (e) => {
     e.preventDefault();
 
+    // ⛔ Guard: team đã có proposal thì chặn trên UI
+    if (teamContext?.existingProposal?.title) {
+      alert("Team này đã có proposal");
+      return;
+    }
+
+    // Dùng tiêu đề từ context nếu có, không thì fallback
+    const titleFromContext = teamContext?.existingProposal?.title || "";
+    const fallbackTitle =
+      (teamContext?.team?.teamCode &&
+        `Proposal ${teamContext.team.teamCode}`) ||
+      (teamId && `Proposal Team ${teamId}`) ||
+      "Untitled Proposal";
+    const titleToSend = (titleFromContext || fallbackTitle).trim();
+
+    if (!String(teamId).trim()) {
+      alert("Vui lòng nhập/tra cứu Team ID.");
+      return;
+    }
+    if (!file) {
+      alert("Vui lòng chọn file PDF.");
+      return;
+    }
+    if (file.type !== "application/pdf") {
+      alert("Chỉ chấp nhận file PDF.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File không được vượt quá 10MB.");
+      return;
+    }
+
     const trimmedMembers = members
-      .map((m) => ({ name: m.name.trim(), mssv: m.mssv.trim() }))
+      .map((m) => ({
+        name: (m.name || "").trim(),
+        mssv: (m.mssv || "").trim(),
+      }))
       .filter((m) => m.name);
 
     const fd = new FormData();
-    fd.append("Title", title.trim());
-    fd.append("MentorName", mentor.trim());
-    fd.append("TeamId", teamId.trim());      // ⬅ Team ID
-    fd.append("Description", summary.trim()); // ⬅ Mô tả
-    fd.append("Summary", summary.trim());     // ⬅ giữ thêm key Summary
+    fd.append("ProposalTitle", titleToSend);
+    fd.append("Title", titleToSend);
+    fd.append("TeamId", teamId.trim());
+    fd.append("MentorName", (teamContext?.mentorName || "").trim());
+    // gửi kèm Description rỗng cho khớp BE
+    fd.append("Description", "");
 
     trimmedMembers.forEach((m, idx) => {
       fd.append(`TeamMembers[${idx}].FullName`, m.name);
@@ -77,12 +135,16 @@ export default function AddProposalModal() {
       .filter(Boolean)
       .forEach((t, i) => fd.append(`Technologies[${i}]`, t));
 
-    (files || []).forEach((f) => fd.append("PdfFile", f));
+    // Tên field file đúng theo BE
+    fd.append("PdfFile", file);
 
     const ok = await addProposal(fd);
-    if (ok) {
+    if (ok?.success) {
       reset();
       closeModal();
+    } else {
+      // hiện đúng message từ store/BE
+      alert(`Lỗi khi thêm đề tài: ${ok?.message || "Không thể thêm đề tài"}`);
     }
   };
 
@@ -91,127 +153,115 @@ export default function AddProposalModal() {
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h3>Tạo đồ án mới</h3>
+          <p className={styles.subtitle}>
+            Nhập Team ID để tự động lấy thông tin nhóm
+          </p>
         </div>
 
         <form className={styles.body} onSubmit={submit}>
-          {/* ✅ Team ID được đưa lên đầu */}
-          <div className={styles.row}>
-            <p className={styles.label}>Team ID</p>
-            <input
-              placeholder="VD: 12"
-              value={teamId}
-              onChange={(e) => setTeamId(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.row}>
-            <p className={styles.label}>Mã đồ án</p>
-            <input
-              placeholder="VD: DA001"
-              value={id}
-              onChange={(e) => setId(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.row}>
-            <p className={styles.label}>Tiêu đề đồ án</p>
-            <input
-              placeholder="VD: Hệ thống quản lý thư viện"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-
-          <div className={styles.row}>
-            <p className={styles.label}>GVHD</p>
-            <input
-              placeholder="VD: Võ Đình Hiếu"
-              value={mentor}
-              onChange={(e) => setMentor(e.target.value)}
-            />
-          </div>
-
-          {/* Mô tả đề tài */}
-          <div className={styles.row}>
-            <p className={styles.label}>Mô tả đề tài</p>
-            <textarea
-              placeholder="Mô tả / tóm tắt ngắn gọn"
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              rows={4}
-            />
-          </div>
-
-          <div className={styles.group}>
-            <div className={styles.groupHeader}>
-              <p className={styles.label}>Thành viên nhóm</p>
+          <div className={styles.lookupRow}>
+            <label>Team ID</label>
+            <div className={styles.lookup}>
+              <input
+                placeholder="VD: 403"
+                value={teamId}
+                onChange={(e) => setTeamId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onLookupTeam();
+                  }
+                }}
+              />
               <button
                 type="button"
-                className={styles.addBtn}
-                onClick={() => addRow(setMembers, { name: "", mssv: "" })}
+                className={styles.lookupBtn}
+                onClick={onLookupTeam}
+                disabled={isTeamLoading}
+                title="Tra cứu nhóm"
               >
-                <FontAwesomeIcon icon={faPlus} className={styles.addIcon} />
-                Thêm thành viên
+                <FontAwesomeIcon icon={faSearch} />
               </button>
             </div>
-            {members.map((m, i) => (
-              <div key={i} className={styles.memberRow}>
-                <input
-                  placeholder="Tên thành viên"
-                  value={m.name}
-                  onChange={(e) =>
-                    handleMemberChange(i, "name", e.target.value)
-                  }
-                />
-                <input
-                  placeholder="MSSV"
-                  value={m.mssv}
-                  onChange={(e) =>
-                    handleMemberChange(i, "mssv", e.target.value)
-                  }
-                />
-                <button
-                  type="button"
-                  className={styles.removeBtn}
-                  onClick={() => removeRow(setMembers, i)}
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <div className={styles.teamTitle}>
+                <span className={styles.teamCode}>
+                  {teamContext?.team?.teamCode ||
+                    teamContext?.team?.teamId ||
+                    "—"}
+                </span>
+                <span
+                  className={`${styles.badge} ${
+                    teamContext?.existingProposal?.title
+                      ? styles.badgeSuccess
+                      : styles.badgeWarn
+                  }`}
                 >
-                  <FontAwesomeIcon
-                    icon={faTrash}
-                    className={styles.removeIcon}
-                  />
-                </button>
+                  {teamContext?.existingProposal?.title || "Đề tài: Chưa có"}
+                </span>
               </div>
-            ))}
+            </div>
+
+            <div className={styles.cardBody}>
+              <div className={styles.meta}>
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Mentor</span>
+                  <span className={styles.metaValue}>
+                    {teamContext?.mentorName || "Chưa có"}
+                  </span>
+                </div>
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>Số thành viên</span>
+                  <span className={styles.metaValue}>
+                    {(teamContext?.members || []).length}
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.memberList}>
+                {(teamContext?.members || []).map((m, i) => (
+                  <div key={i} className={styles.memberChip}>
+                    <span className={styles.memberName}>{m.fullName}</span>
+                    <span className={styles.memberCode}>{m.studentCode}</span>
+                  </div>
+                ))}
+                {!teamContext && (
+                  <div className={styles.placeholder}>
+                    Nhập Team ID và bấm tra cứu để hiển thị thông tin nhóm
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className={styles.group}>
             <div className={styles.groupHeader}>
-              <p className={styles.label}>Mục tiêu thực hiện</p>
+              <h4>Mục tiêu</h4>
               <button
                 type="button"
-                className={styles.addBtn}
+                className={styles.ghostBtn}
                 onClick={() => addRow(setGoals, "")}
               >
-                <FontAwesomeIcon icon={faPlus} className={styles.addIcon} />
-                Thêm mục tiêu
+                <FontAwesomeIcon icon={faPlus} /> Thêm mục tiêu
               </button>
             </div>
             {goals.map((g, i) => (
-              <div key={i} className={styles.lineRow}>
+              <div className={styles.lineRow} key={i}>
                 <input
-                  placeholder={`Mục tiêu ${i + 1}`}
+                  placeholder={`Mục tiêu #${i + 1}`}
                   value={g}
                   onChange={(e) => handleArrChange(setGoals, i, e.target.value)}
                 />
                 <button
                   type="button"
-                  className={styles.removeBtn}
+                  className={styles.iconBtn}
                   onClick={() => removeRow(setGoals, i)}
+                  title="Xóa mục tiêu"
                 >
-                  <FontAwesomeIcon
-                    icon={faTrash}
-                    className={styles.removeIcon}
-                  />
+                  <FontAwesomeIcon icon={faTrash} />
                 </button>
               </div>
             ))}
@@ -219,20 +269,19 @@ export default function AddProposalModal() {
 
           <div className={styles.group}>
             <div className={styles.groupHeader}>
-              <p className={styles.label}>Công nghệ sử dụng</p>
+              <h4>Công nghệ</h4>
               <button
                 type="button"
-                className={styles.addBtn}
+                className={styles.ghostBtn}
                 onClick={() => addRow(setTechnologies, "")}
               >
-                <FontAwesomeIcon icon={faPlus} className={styles.addIcon} />
-                Thêm công nghệ
+                <FontAwesomeIcon icon={faPlus} /> Thêm công nghệ
               </button>
             </div>
             {technologies.map((t, i) => (
-              <div key={i} className={styles.lineRow}>
+              <div className={styles.lineRow} key={i}>
                 <input
-                  placeholder="VD: React.js"
+                  placeholder={`Công nghệ #${i + 1}`}
                   value={t}
                   onChange={(e) =>
                     handleArrChange(setTechnologies, i, e.target.value)
@@ -240,56 +289,41 @@ export default function AddProposalModal() {
                 />
                 <button
                   type="button"
-                  className={styles.removeBtn}
+                  className={styles.iconBtn}
                   onClick={() => removeRow(setTechnologies, i)}
+                  title="Xóa công nghệ"
                 >
-                  <FontAwesomeIcon
-                    icon={faTrash}
-                    className={styles.removeIcon}
-                  />
+                  <FontAwesomeIcon icon={faTrash} />
                 </button>
               </div>
             ))}
           </div>
 
-          <div className={styles.rowCol}>
-            <p className={styles.label}>Tài liệu đính kèm</p>
-
-            <label className={styles.uploadBox}>
-              <input
-                type="file"
-                multiple
-                onChange={(e) => setFiles(Array.from(e.target.files || []))}
-                className={styles.hiddenInput}
-                accept="application/pdf"
-              />
-              <div className={styles.uploadContent}>
-                <FontAwesomeIcon icon={faPlus} className={styles.uploadIcon} />
-                <p>Chọn tệp để tải lên </p>
-                <span>Chỉ hỗ trợ PDF (tối đa 10MB)</span>
-              </div>
+          <div className={styles.fileRow}>
+            <label className={styles.fileLabel}>
+              <FontAwesomeIcon icon={faFilePdf} /> Tài liệu PDF
             </label>
-
-            {files.length > 0 && (
-              <div className={styles.files}>
-                {files.map((f, i) => (
-                  <span key={i}>{f.name}</span>
-                ))}
-              </div>
-            )}
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+            />
           </div>
 
           <div className={styles.footer}>
             <button
-              type="button"
-              className={styles.cancel}
-              onClick={closeModal}
+              type="submit"
+              className={styles.primaryBtn}
               disabled={isLoading}
             >
-              Hủy
+              {isLoading ? "Đang lưu..." : "Tạo đồ án"}
             </button>
-            <button type="submit" className={styles.create} disabled={isLoading}>
-              {isLoading ? "Đang tạo..." : "Tạo đồ án"}
+            <button
+              type="button"
+              onClick={closeModal}
+              className={styles.secondaryBtn}
+            >
+              Hủy
             </button>
           </div>
         </form>

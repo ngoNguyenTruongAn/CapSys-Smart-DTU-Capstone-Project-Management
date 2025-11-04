@@ -1,0 +1,122 @@
+.groupCard {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.groupCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-blue);
+}
+
+.groupCard_top {
+  display: flex;
+  font-size: 1.6rem;
+  font-weight: bold;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.groupCard__status {
+  font-size: 1.6rem;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 20px;
+}
+
+.groupCard__statusGraded {
+  background-color: var(--light-green);
+  color: var(--success-green);
+}
+
+.groupCard__statusGrading {
+  background-color: var(--light-yellow);
+  color: var(--warning-yellow);
+}
+
+.groupCard__statusNotGraded {
+  background-color: var(--light-red);
+  color: var(--error-red);
+}
+
+.groupCard__team {
+  color: #8A8B85;
+  background-color: #F4F3F8;
+  padding: 10px;
+  border-radius: 20px;
+}
+
+.groupCard__project {
+  font-size: 2.0rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-lg);
+  line-height: 2.0;
+}
+
+.groupCard__details {
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  justify-content: space-between;
+}
+
+.groupCard__detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--spacing-sm);
+  font-size: 1.4rem;
+  background-color: #F4F3F8;
+  padding: 16px 23px;
+  border-radius: 16px;
+}
+
+.groupCard__detail:last-child {
+  /* margin-bottom: 0; */
+}
+
+.groupCard__detailIcon {
+  /* font-size: 1.4rem;
+  width: 20px;
+  text-align: center; */
+}
+
+.groupCard__detailLabel {
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex: 1;
+}
+
+.groupCard__detailValue {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 2.0rem;
+}
+
+.groupCard__actionBtn {
+  width: 100%;
+  background: var(--primary-blue);
+  color: var(--text-white);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  font-size: 1.4rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.groupCard__actionBtn:hover {
+  background: #2563EB;
+  transform: translateY(-1px);
+}
+
+.groupCard__actionBtn:active {
+  transform: translateY(0);
+}

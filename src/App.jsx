@@ -7,13 +7,13 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import TongQuan from "./pages/admin/TongQuan/TongQuan";
 import QuanLyDoAn from "./pages/admin/QuanLyDoAn/QuanLyDoAn";
 import QuanLyTaiKhoan from "./pages/admin/QuanLyTaiKhoan/QuanLyTaiKhoan";
-import Proposals from "./pages/admin/Proposals";
-import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-detail";
 import QuanLyNhomDeTai from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/QuanLyNhomDeTai";
 import StudentsContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/StudentsContent";
 import TeamsContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/TeamsContent";
 import MentorContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/MentorContent";
-
+import Proposals from "./pages/admin/Proposals";
+import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-detail";
+import GradingPage from "./pages/grading/GradingPage";
 function App() {
   return (
     <Routes>
@@ -24,6 +24,7 @@ function App() {
         <Route index element={<TongQuan />} />
         <Route path="quan-ly-do-an" element={<QuanLyDoAn />} />
         <Route path="quan-ly-tai-khoan" element={<QuanLyTaiKhoan />} />
+        <Route path="cham-diem" element={<GradingPage />} />
       </Route>
       <Route
         path="/admin/quan-ly-do-an/quan-ly-nhom-do-an"

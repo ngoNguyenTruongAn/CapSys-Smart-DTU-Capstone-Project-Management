@@ -6,11 +6,10 @@ import what from "../../../assets/image/what.png";
 import { getAllLecturersAPI } from "../../../services/LecturersAPI";
 import { getAllStudentsAPI } from "../../../services/StudentsAPI";
 import { getAllTeamsAPI } from "../../../services/TeamsAPI";
-import { getAllProposalsAPI } from "../../../services/ProposalAPI";
 // import chart
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { TimelineLite, Power3 } from "gsap";
-
+import { getAllProposalsAPI } from "../../../services/Proposal";
 const COLORS = [
   "#0088FE",
   "#00C49F",

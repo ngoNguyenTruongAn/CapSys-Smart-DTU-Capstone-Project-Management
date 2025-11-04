@@ -1,11 +1,12 @@
 import Header from "../layout-proposal-common/Header";
 import AddButton from "../layout-proposal-common/Button/Addbutton";
 import AddProposalModal from "../layout-proposal-common/Modal/AddProposalModal";
-import { useProposalsStore } from "../proposals-logic/useProposalsStore";
+import { useProposalsStore } from "../../../services/ProposalAPI";
 
 function HeaderManagement() {
   // Dùng đúng state & action trong store hiện tại
-  const { isModalOpen, openModal, closeModal, addProposal } = useProposalsStore();
+  const { isModalOpen, openModal, closeModal, addProposal } =
+    useProposalsStore();
 
   return (
     <div>

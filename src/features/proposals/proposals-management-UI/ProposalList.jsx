@@ -3,7 +3,7 @@ import React, { useEffect } from "react";
 import styles from "./Proposal.module.scss";
 import ProposalCard from "./ProposalCard";
 import ProposalTabs from "./ProposalTabs";
-import { useProposalsStore } from "../proposals-logic/useProposalsStore";
+import { useProposalsStore } from "../../../services/ProposalAPI";
 
 export default function ProposalList() {
   const {
