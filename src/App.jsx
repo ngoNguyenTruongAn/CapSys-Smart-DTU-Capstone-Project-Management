@@ -1,7 +1,5 @@
 import { Route, Routes } from "react-router-dom";
 import Login from "./pages/Login/Login";
-import Proposals from "./pages/admin/Proposals";
-import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-detail";
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import VerificationCode from "./pages/ForgotPassword/VerificationCode";
 import ConfirmForgot from "./pages/ForgotPassword/ConfirmForgot";
@@ -9,23 +7,33 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import TongQuan from "./pages/admin/TongQuan/TongQuan";
 import QuanLyDoAn from "./pages/admin/QuanLyDoAn/QuanLyDoAn";
 import QuanLyTaiKhoan from "./pages/admin/QuanLyTaiKhoan/QuanLyTaiKhoan";
-
-
-
+import QuanLyNhomDeTai from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/QuanLyNhomDeTai";
+import StudentsContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/StudentsContent";
+import TeamsContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/TeamsContent";
+import MentorContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/MentorContent";
+import Proposals from "./pages/admin/Proposals";
+import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-detail";
+import GradingPage from "./pages/grading/GradingPage";
 function App() {
   return (
     <Routes>
-      {/* ====== Auth routes ====== */}
       <Route path="/" element={<Login />} />
-      <Route path="/login" element={<Login />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<TongQuan />} />
         <Route path="quan-ly-do-an" element={<QuanLyDoAn />} />
         <Route path="quan-ly-tai-khoan" element={<QuanLyTaiKhoan />} />
+        <Route path="cham-diem" element={<GradingPage />} />
       </Route>
-
+      <Route
+        path="/admin/quan-ly-do-an/quan-ly-nhom-do-an"
+        element={<QuanLyNhomDeTai />}
+      >
+        <Route index element={<StudentsContent />} />
+        <Route path="nhom" element={<TeamsContent />} />
+        <Route path="mentor" element={<MentorContent />} />
+      </Route>
       <Route path="verification-code" element={<VerificationCode />} />
       <Route path="confirm-forgot" element={<ConfirmForgot />} />
       <Route path="/proposals" element={<Proposals />} />

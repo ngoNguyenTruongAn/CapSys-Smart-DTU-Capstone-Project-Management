@@ -7,12 +7,33 @@ const ENV_BASE = import.meta?.env?.VITE_API_URL?.replace(/\/$/, "");
 const API_BASE = ENV_BASE || "http://localhost:5295/api";
 const PROPOSAL_URL = `${API_BASE}/Proposal`;
 
-// ====== helpers ======
-const getToken = () =>
-  localStorage.getItem("token") ||
-  sessionStorage.getItem("token") ||
-  "";
+// ====== auth + fetch wrappers ======
+const LOGIN_URL = "http://localhost:5173/";
 
+const getToken = () =>
+  localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+
+const handleUnauthorized = () => {
+  try {
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+  } catch {}
+  // dùng replace để không quay lại được trang lỗi bằng Back
+  window.location.replace(LOGIN_URL);
+};
+
+// KHÔNG tự chèn header ở đây, để nguyên options.headers từ caller.
+// Mục tiêu chỉ bắt 401 và redirect.
+const fetchSafe = async (url, options = {}) => {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("Unauthorized");
+  }
+  return res;
+};
+
+// ====== helpers ======
 const authHeaders = (extra = {}, { isFormData = false } = {}) => {
   const h = { ...extra };
   const token = getToken();
@@ -44,12 +65,7 @@ const normalizeMember = (m) => {
     "";
 
   const studentCode =
-    m.studentCode ||
-    m.StudentCode ||
-    m.mssv ||
-    m.MSSV ||
-    m.student_code ||
-    "";
+    m.studentCode || m.StudentCode || m.mssv || m.MSSV || m.student_code || "";
 
   if (!fullName) return null;
   return { fullName, studentCode };
@@ -107,10 +123,11 @@ const extractMentorName = (obj) => {
 const toCardShape = (p) => {
   if (!p) return null;
 
-  const id = p.id ?? p.proposalId ?? p.ProposalID;
+  // hỗ trợ cả Id/Title/Description từ BE
+  const id = p.id ?? p.Id ?? p.proposalId ?? p.ProposalID;
   const title =
-    p.title ?? p.proposalTitle ?? p.ProposalTitle ?? "(Không có tiêu đề)";
-  const summary = p.summary ?? p.abstract ?? "";
+    p.title ?? p.Title ?? p.proposalTitle ?? p.ProposalTitle ?? "(Không có tiêu đề)";
+  const summary = p.summary ?? p.abstract ?? p.Description ?? "";
 
   const registerDate =
     p.registerDate ||
@@ -121,8 +138,7 @@ const toCardShape = (p) => {
     p.createdAt ||
     null;
 
-  const approveDate =
-    p.approveDate || p.approvedDate || p.ApprovedDate || null;
+  const approveDate = p.approveDate || p.approvedDate || p.ApprovedDate || null;
 
   const raw = String(p.status ?? p.Status ?? "").toLowerCase();
   let status = "Chờ duyệt";
@@ -136,12 +152,13 @@ const toCardShape = (p) => {
     title,
     summary,
     mentor: p.mentorName || p.mentor || "",
+    // các component đang đọc members/teamMembers/students
     members: Array.isArray(p.members) ? p.members : [],
     registerDate,
     approveDate,
     status,
     teamId: p.teamId ?? p.TeamId,
-    // Giữ nguyên các field liên quan đến PDF/Drive nếu có
+    // giữ field PDF/Drive
     googleDriveUrl: p.googleDriveUrl ?? p.GoogleDriveUrl,
     googleDriveFileId: p.googleDriveFileId ?? p.GoogleDriveFileId,
     documentUrl: p.documentUrl,
@@ -252,10 +269,13 @@ export const useProposalsStore = create((set, get) => {
     isLoading: false,
     error: null,
 
+    // ✅ ENRICH: gọi TeamsAPI để gắn members/mentor
     fetchProposals: async () => {
       set({ isLoading: true, error: null });
       try {
-        const res = await fetch(`${PROPOSAL_URL}`, { headers: authHeaders() });
+        const res = await fetchSafe(`${PROPOSAL_URL}`, {
+          headers: authHeaders(),
+        });
         const payload = await parseApiJson(res);
         if (!res.ok)
           throw new Error(
@@ -270,7 +290,30 @@ export const useProposalsStore = create((set, get) => {
           ? payload
           : [];
 
-        set({ proposals: list, isLoading: false });
+        const enriched = await Promise.all(
+          list.map(async (p) => {
+            if (!p || !(p.teamId ?? p.TeamId)) return p;
+            const teamId = p.teamId ?? p.TeamId;
+            try {
+              const tRes = await getTeamByIdAPI(teamId);
+              const tRaw = tRes?.data || tRes || {};
+              const members = extractMembers(tRaw);
+              const mentorName = extractMentorName(tRaw);
+
+              return {
+                ...p,
+                mentorName,
+                members,
+                teamMembers: members,
+                students: members,
+              };
+            } catch {
+              return { ...p, members: [], teamMembers: [], students: [] };
+            }
+          })
+        );
+
+        set({ proposals: enriched, isLoading: false });
         recompute();
       } catch (err) {
         console.error("Lỗi fetchProposals:", err);
@@ -281,20 +324,42 @@ export const useProposalsStore = create((set, get) => {
       }
     },
 
-    // 🔎 Lấy chi tiết 1 proposal & merge vào state
+    // ✅ ENRICH: khi lấy chi tiết, cũng gắn members/mentor từ TeamsAPI
     fetchProposalById: async (id) => {
       if (!id) return;
       try {
-        const res = await fetch(`${PROPOSAL_URL}/${id}`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/${id}`, {
           headers: authHeaders(),
         });
         const payload = await parseApiJson(res);
-        if (!res.ok) throw new Error(payload?.message || "Không tải được chi tiết");
+        if (!res.ok)
+          throw new Error(payload?.message || "Không tải được chi tiết");
 
-        const detail = payload?.data || payload;
+        let detail = payload?.data || payload;
+
+        // enrich nếu có teamId
+        const teamId = detail?.teamId ?? detail?.TeamId;
+        if (teamId) {
+          try {
+            const tRes = await getTeamByIdAPI(teamId);
+            const tRaw = tRes?.data || tRes || {};
+            const members = extractMembers(tRaw);
+            const mentorName = extractMentorName(tRaw);
+            detail = {
+              ...detail,
+              mentorName,
+              members,
+              teamMembers: members,
+              students: members,
+            };
+          } catch {
+            // bỏ qua nếu lỗi team
+          }
+        }
+
         const current = get().proposals || [];
         const idx = current.findIndex(
-          (p) => String(p.id ?? p.proposalId ?? p.ProposalID) === String(id)
+          (p) => String(p.id ?? p.Id ?? p.proposalId ?? p.ProposalID) === String(id)
         );
 
         let next;
@@ -313,18 +378,17 @@ export const useProposalsStore = create((set, get) => {
     },
 
     addProposal: async (formData) => {
+      set({ isLoading: true });
       try {
-        const res = await fetch(`${PROPOSAL_URL}/upload`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/upload`, {
           method: "POST",
-          headers: authHeaders({}, { isFormData: true }),
+          headers: authHeaders({}, { isFormData: true }), // KHÔNG set Content-Type cho FormData
           body: formData,
         });
         const payload = await parseApiJson(res);
         if (!res.ok) {
           const msg =
-            payload?.message ||
-            payload?.errors?.[0] ||
-            "Không thể thêm đề tài";
+            payload?.message || payload?.errors?.[0] || "Không thể thêm đề tài";
           throw new Error(msg);
         }
 
@@ -332,14 +396,17 @@ export const useProposalsStore = create((set, get) => {
         return { success: true, data: payload?.data ?? payload };
       } catch (e) {
         console.error("Lỗi khi thêm đề tài:", e);
-        // Truyền thông điệp BE (ví dụ: "Team này đã có proposal")
-        return { success: false, message: e.message || "Không thể thêm đề tài" };
+        set({ isLoading: false });
+        return {
+          success: false,
+          message: e.message || "Không thể thêm đề tài",
+        };
       }
     },
 
     approveProposal: async (id) => {
       try {
-        const res = await fetch(`${PROPOSAL_URL}/${id}/status`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/${id}/status`, {
           method: "PUT",
           headers: authHeaders(),
           body: JSON.stringify({ Status: "Approved" }),
@@ -364,7 +431,7 @@ export const useProposalsStore = create((set, get) => {
 
     rejectProposal: async (id, reason = "Không phù hợp") => {
       try {
-        const res = await fetch(`${PROPOSAL_URL}/${id}/status`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/${id}/status`, {
           method: "PUT",
           headers: authHeaders(),
           body: JSON.stringify({
@@ -391,8 +458,9 @@ export const useProposalsStore = create((set, get) => {
     },
 
     deleteProposal: async (id) => {
+      set({ isLoading: true });
       try {
-        const res = await fetch(`${PROPOSAL_URL}/${id}`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/${id}`, {
           method: "DELETE",
           headers: authHeaders(),
         });
@@ -401,7 +469,9 @@ export const useProposalsStore = create((set, get) => {
         return { success: true };
       } catch (e) {
         console.error("deleteProposal error:", e);
+        set({ isLoading: false });
         return { success: false, message: e.message || "Xóa thất bại" };
+
       }
     },
   };

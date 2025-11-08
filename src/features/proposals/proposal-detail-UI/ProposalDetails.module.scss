@@ -126,10 +126,10 @@ font-family: Arial, Helvetica, sans-serif;
 .right-content-goal-card,
 .right-content-technology-card,
 .right-content-document-card{
-background-color: #fff;
+background-color: #D8E9FB;
     padding: 32px;
-    border-radius: 8px;
-    box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.06);
+    border-radius: 14px;
+    box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.12);
     margin-bottom: 32px;
     height: fit-content;
 }
@@ -344,4 +344,46 @@ background-color: #fff;
 }
 .approvedButton-wrapper{
   background-color: #26c55e;
+}
+.loadingFullScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  font-weight: 600;
+  animation: fadeIn 0.15s ease-in;
+}
+
+.loadingFullScreen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.55);
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .loadingFullScreen::before {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ========== Modal loading lock for form ========== */
+.formFieldset:disabled {
+  cursor: progress;
+}
+
+.formFieldset:disabled * {
+  pointer-events: none !important;
 }

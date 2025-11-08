@@ -1,16 +1,11 @@
-import { useState } from 'react';
-import styles from './Proposal.module.scss';
-import ProposalSearch from './ProposalSearch';
+import { useState } from "react";
+import styles from "./Proposal.module.scss";
+import ProposalSearch from "./ProposalSearch";
 
 function Tabs({ onTabChange = () => {}, counts = {}, onSearch }) {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const tabs = [
-    "Tất cả",
-    "Đã duyệt",
-    "Chờ duyệt",
-    "Bị từ chối"
-  ];
+  const tabs = ["Tất cả", "Đã duyệt", "Chờ duyệt", "Bị từ chối"];
 
   const handleTabClick = (index, tabName) => {
     setActiveIndex(index);
@@ -18,12 +13,14 @@ function Tabs({ onTabChange = () => {}, counts = {}, onSearch }) {
   };
 
   return (
-    <div className={styles['tabs-wrapper']}>
-      <ul className={styles['tabs-list']}>
+    <div className={styles["tabs-wrapper"]}>
+      <ul className={styles["tabs-list"]}>
         {tabs.map((tab, index) => (
           <li
             key={index}
-            className={`${styles['tabs-list-item']} ${activeIndex === index ? styles.active : ''}`}
+            className={`${styles["tabs-list-item"]} ${
+              activeIndex === index ? styles.active : ""
+            }`}
             onClick={() => handleTabClick(index, tab)}
           >
             {tab} ({counts?.[tab] ?? 0})

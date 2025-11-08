@@ -2,15 +2,15 @@ import React, { useState, useEffect, useMemo } from "react";
 import { getAllLecturersAPI } from "../../../services/LecturersAPI";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteStudent, fetchStudents } from "../../../store/studentSlice";
+import { deleteLecturer, fetchLecturers } from "../../../store/lecturerSlice";
 import "./QuanLyTaiKhoan.scss";
 import RegisterStudent from "./RegisterStudent/RegisterStudent";
 import ViewStudent from "./ViewStudent/ViewStudent";
 import UpdateStudent from "./UpdateStudent/UpdateStudent";
+import UpdateLecturer from "./UpdateLecturer/UpdateLecturer";
+import ViewLecturer from "./ViewLecturer/ViewLecturer";
 
 const QuanLyTaiKhoan = () => {
-  const [lecturers, setLecturers] = useState([]);
-  const [lecturersLoading, setLecturersLoading] = useState(false);
-  const [lecturersError, setLecturersError] = useState(null);
   const [activeTab, setActiveTab] = useState("students");
   const [search, setSearch] = useState("");
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
@@ -29,25 +29,19 @@ const QuanLyTaiKhoan = () => {
   useEffect(() => {
     dispatch(fetchStudents());
   }, [dispatch]);
+  
+  // Lấy lecturers từ Redux
+  const {
+    data: lecturers,
+    loading: lecturersLoading,
+    error: lecturersError,
+  } = useSelector((state) => state.lecturers);
 
-  // Fetch lecturers trực tiếp
+  // Fetch lecturers qua Redux
   useEffect(() => {
-    const fetchLecturers = async () => {
-      setLecturersLoading(true);
-      setLecturersError(null);
-      try {
-        const res = await getAllLecturersAPI();
-        setLecturers(res.data || []);
-      } catch (err) {
-        console.error("Lỗi tải giảng viên:", err);
-        setLecturersError("Không thể tải danh sách giảng viên");
-        setLecturers([]);
-      } finally {
-        setLecturersLoading(false);
-      }
-    };
-    fetchLecturers();
-  }, []);
+    dispatch(fetchLecturers());
+  }, [dispatch]);
+
 
   // Hàm filter chung để tránh duplication
   const filterItems = useMemo(() => {
@@ -135,21 +129,32 @@ const QuanLyTaiKhoan = () => {
     }
   };
 
+  const [showViewLecturer, setShowViewLecturer] = useState(false);
+  const [showUpdateLecturer, setShowUpdateLecturer] = useState(false);
+  const [lecturerId, setLecturerId] = useState(null);
+
   // Placeholder handlers cho lecturers (gợi ý: implement modals tương tự students)
   const handleViewLecturer = (lecturerId) => {
-    alert(`Xem giảng viên: ${lecturerId}`);
-    // TODO: Tạo modal ViewLecturer
+    setLecturerId(lecturerId);
+    setShowViewLecturer(true);
   };
 
   const handleUpdateLecturer = (lecturerId) => {
-    alert(`Sửa giảng viên: ${lecturerId}`);
-    // TODO: Tạo modal UpdateLecturer
+    setLecturerId(lecturerId);
+    setShowUpdateLecturer(true);
   };
 
   const handleDeleteLecturer = (lecturerId) => {
-    if (window.confirm(`Xóa giảng viên ${lecturerId}?`)) {
-      alert("Xóa giảng viên thành công (placeholder)");
-      // TODO: Implement delete API và update lecturers state
+    if (window.confirm("Bạn có chắc chắn muốn xóa giảng viên này?")) {
+      dispatch(deleteLecturer(lecturerId))
+        .unwrap()
+        .then(() => {
+          alert("Xóa giảng viên thành công");
+        })
+        .catch((error) => {
+          console.error("Lỗi khi xóa giảng viên:", error);
+          alert(`Xóa giảng viên thất bại: ${error}`);
+        });
     }
   };
 
@@ -248,7 +253,7 @@ const QuanLyTaiKhoan = () => {
                     <td>{item.lecturerCode}</td>
                     <td>{item.fullName}</td>
                     <td>{item.email}</td>
-                    <td>{item.faculty}</td>
+                    <td>{item.department}</td>
                     <td>{item.phone}</td>
                     <td>
                       <button
@@ -355,6 +360,18 @@ const QuanLyTaiKhoan = () => {
         show={showUpdateStudent}
         setShow={setShowUpdateStudent}
         studentId={studentId}
+      />
+
+      <UpdateLecturer
+        show={showUpdateLecturer}
+        setShow={setShowUpdateLecturer}
+        lecturerId={lecturerId}
+      />
+
+      <ViewLecturer
+        show={showViewLecturer}
+        setShow={setShowViewLecturer}
+        lecturerId={lecturerId}
       />
     </div>
   );

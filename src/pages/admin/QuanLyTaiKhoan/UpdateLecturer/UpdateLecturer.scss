@@ -1,0 +1,77 @@
+.modal-dialog.qltk-update-modal {
+  font-size: 1.8rem;
+}
+
+.modal-dialog.qltk-update-modal .modal-content {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.modal-dialog.qltk-update-modal .modal-header {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem 1.25rem;
+}
+
+.modal-dialog.qltk-update-modal .modal-title {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.modal-dialog.qltk-update-modal .modal-body {
+  padding: 1.25rem;
+}
+
+.modal-dialog.qltk-update-modal .modal-footer {
+  border-top: 1px solid #e5e7eb;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.modal-dialog.qltk-update-modal .table {
+  font-size: 1.5rem;
+}
+
+.modal-dialog.qltk-update-modal .btn {
+  font-size: 1.8rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+}
+
+/* Form typography */
+.modal-dialog.qltk-update-modal .form-label {
+  font-size: 1.7rem;
+  font-weight: 600;
+}
+
+.modal-dialog.qltk-update-modal .form-control,
+.modal-dialog.qltk-update-modal .form-select {
+  font-size: 1.7rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  transition: all 0.2s ease;
+}
+
+.modal-dialog.qltk-update-modal .form-control:focus,
+.modal-dialog.qltk-update-modal .form-select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 4px rgba(13, 110, 253, 0.3);
+  outline: none;
+}
+
+/* Grid layout cho form */
+.update-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+/* Responsive cho mobile */
+@media (max-width: 768px) {
+  .update-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
