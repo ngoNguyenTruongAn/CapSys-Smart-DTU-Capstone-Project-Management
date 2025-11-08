@@ -6,6 +6,7 @@ import {
   faTrash,
   faSearch,
   faFilePdf,
+  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import { useProposalsStore } from "../../../../services/ProposalAPI";
 
@@ -149,185 +150,198 @@ export default function AddProposalModal() {
   };
 
   return (
-    <div className={styles.overlay} onClick={closeModal}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.header}>
-          <h3>Tạo đồ án mới</h3>
-          <p className={styles.subtitle}>
-            Nhập Team ID để tự động lấy thông tin nhóm
-          </p>
+    // <--- CẦN THÊM: React Fragment bao quanh
+    <>
+      {/* <--- CẦN THÊM: Overlay loading, sử dụng biến isLoading từ store */}
+      {isLoading && (
+        <div className={styles.loadingFullScreen} style={{ color: "white" }}>
+          <FontAwesomeIcon icon={faSpinner} spin size="3x" />
+          <span>Đang lưu...</span>
         </div>
+      )}
 
-        <form className={styles.body} onSubmit={submit}>
-          <div className={styles.lookupRow}>
-            <label>Team ID</label>
-            <div className={styles.lookup}>
+      <div className={styles.overlay} onClick={closeModal}>
+        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.header}>
+            <h3>Tạo đồ án mới</h3>
+            <p className={styles.subtitle}>
+              Nhập Team ID để tự động lấy thông tin nhóm
+            </p>
+          </div>
+
+          <form className={styles.body} onSubmit={submit}>
+            <div className={styles.lookupRow}>
+              <label>Team ID</label>
+              <div className={styles.lookup}>
+                <input
+                  placeholder="VD: 403"
+                  value={teamId}
+                  onChange={(e) => setTeamId(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      onLookupTeam();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className={styles.lookupBtn}
+                  onClick={onLookupTeam}
+                  disabled={isTeamLoading}
+                  title="Tra cứu nhóm"
+                >
+                  <FontAwesomeIcon icon={faSearch} />
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.teamTitle}>
+                  <span className={styles.teamCode}>
+                    {teamContext?.team?.teamCode ||
+                      teamContext?.team?.teamId ||
+                      "—"}
+                  </span>
+                  <span
+                    className={`${styles.badge} ${
+                      teamContext?.existingProposal?.title
+                        ? styles.badgeSuccess
+                        : styles.badgeWarn
+                    }`}
+                  >
+                    {teamContext?.existingProposal?.title || "Đề tài: Chưa có"}
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.cardBody}>
+                <div className={styles.meta}>
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Mentor</span>
+                    <span className={styles.metaValue}>
+                      {teamContext?.mentorName || "Chưa có"}
+                    </span>
+                  </div>
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Số thành viên</span>
+                    <span className={styles.metaValue}>
+                      {(teamContext?.members || []).length}
+                    </span>
+                  </div>
+                </div>
+
+                <div className={styles.memberList}>
+                  {(teamContext?.members || []).map((m, i) => (
+                    <div key={i} className={styles.memberChip}>
+                      <span className={styles.memberName}>{m.fullName}</span>
+                      <span className={styles.memberCode}>{m.studentCode}</span>
+                    </div>
+                  ))}
+                  {!teamContext && (
+                    <div className={styles.placeholder}>
+                      Nhập Team ID và bấm tra cứu để hiển thị thông tin nhóm
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.group}>
+              <div className={styles.groupHeader}>
+                <h4>Mục tiêu</h4>
+                <button
+                  type="button"
+                  className={styles.ghostBtn}
+                  onClick={() => addRow(setGoals, "")}
+                >
+                  <FontAwesomeIcon icon={faPlus} /> Thêm mục tiêu
+                </button>
+              </div>
+              {goals.map((g, i) => (
+                <div className={styles.lineRow} key={i}>
+                  <input
+                    placeholder={`Mục tiêu #${i + 1}`}
+                    value={g}
+                    onChange={(e) =>
+                      handleArrChange(setGoals, i, e.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    onClick={() => removeRow(setGoals, i)}
+                    title="Xóa mục tiêu"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.group}>
+              <div className={styles.groupHeader}>
+                <h4>Công nghệ</h4>
+                <button
+                  type="button"
+                  className={styles.ghostBtn}
+                  onClick={() => addRow(setTechnologies, "")}
+                >
+                  <FontAwesomeIcon icon={faPlus} /> Thêm công nghệ
+                </button>
+              </div>
+              {technologies.map((t, i) => (
+                <div className={styles.lineRow} key={i}>
+                  <input
+                    placeholder={`Công nghệ #${i + 1}`}
+                    value={t}
+                    onChange={(e) =>
+                      handleArrChange(setTechnologies, i, e.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    onClick={() => removeRow(setTechnologies, i)}
+                    title="Xóa công nghệ"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.fileRow}>
+              <label className={styles.fileLabel}>
+                <FontAwesomeIcon icon={faFilePdf} /> Tài liệu PDF
+              </label>
               <input
-                placeholder="VD: 403"
-                value={teamId}
-                onChange={(e) => setTeamId(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    onLookupTeam();
-                  }
-                }}
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
+            </div>
+
+            <div className={styles.footer}>
+              <button
+                type="submit"
+                className={styles.primaryBtn}
+                disabled={isLoading}
+              >
+                {isLoading ? "Đang lưu..." : "Tạo đồ án"}
+              </button>
               <button
                 type="button"
-                className={styles.lookupBtn}
-                onClick={onLookupTeam}
-                disabled={isTeamLoading}
-                title="Tra cứu nhóm"
+                onClick={closeModal}
+                className={styles.secondaryBtn}
               >
-                <FontAwesomeIcon icon={faSearch} />
+                Hủy
               </button>
             </div>
-          </div>
-
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <div className={styles.teamTitle}>
-                <span className={styles.teamCode}>
-                  {teamContext?.team?.teamCode ||
-                    teamContext?.team?.teamId ||
-                    "—"}
-                </span>
-                <span
-                  className={`${styles.badge} ${
-                    teamContext?.existingProposal?.title
-                      ? styles.badgeSuccess
-                      : styles.badgeWarn
-                  }`}
-                >
-                  {teamContext?.existingProposal?.title || "Đề tài: Chưa có"}
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.cardBody}>
-              <div className={styles.meta}>
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>Mentor</span>
-                  <span className={styles.metaValue}>
-                    {teamContext?.mentorName || "Chưa có"}
-                  </span>
-                </div>
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>Số thành viên</span>
-                  <span className={styles.metaValue}>
-                    {(teamContext?.members || []).length}
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.memberList}>
-                {(teamContext?.members || []).map((m, i) => (
-                  <div key={i} className={styles.memberChip}>
-                    <span className={styles.memberName}>{m.fullName}</span>
-                    <span className={styles.memberCode}>{m.studentCode}</span>
-                  </div>
-                ))}
-                {!teamContext && (
-                  <div className={styles.placeholder}>
-                    Nhập Team ID và bấm tra cứu để hiển thị thông tin nhóm
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.group}>
-            <div className={styles.groupHeader}>
-              <h4>Mục tiêu</h4>
-              <button
-                type="button"
-                className={styles.ghostBtn}
-                onClick={() => addRow(setGoals, "")}
-              >
-                <FontAwesomeIcon icon={faPlus} /> Thêm mục tiêu
-              </button>
-            </div>
-            {goals.map((g, i) => (
-              <div className={styles.lineRow} key={i}>
-                <input
-                  placeholder={`Mục tiêu #${i + 1}`}
-                  value={g}
-                  onChange={(e) => handleArrChange(setGoals, i, e.target.value)}
-                />
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={() => removeRow(setGoals, i)}
-                  title="Xóa mục tiêu"
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className={styles.group}>
-            <div className={styles.groupHeader}>
-              <h4>Công nghệ</h4>
-              <button
-                type="button"
-                className={styles.ghostBtn}
-                onClick={() => addRow(setTechnologies, "")}
-              >
-                <FontAwesomeIcon icon={faPlus} /> Thêm công nghệ
-              </button>
-            </div>
-            {technologies.map((t, i) => (
-              <div className={styles.lineRow} key={i}>
-                <input
-                  placeholder={`Công nghệ #${i + 1}`}
-                  value={t}
-                  onChange={(e) =>
-                    handleArrChange(setTechnologies, i, e.target.value)
-                  }
-                />
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={() => removeRow(setTechnologies, i)}
-                  title="Xóa công nghệ"
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className={styles.fileRow}>
-            <label className={styles.fileLabel}>
-              <FontAwesomeIcon icon={faFilePdf} /> Tài liệu PDF
-            </label>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-          </div>
-
-          <div className={styles.footer}>
-            <button
-              type="submit"
-              className={styles.primaryBtn}
-              disabled={isLoading}
-            >
-              {isLoading ? "Đang lưu..." : "Tạo đồ án"}
-            </button>
-            <button
-              type="button"
-              onClick={closeModal}
-              className={styles.secondaryBtn}
-            >
-              Hủy
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </> // <--- CẦN THÊM: Thẻ đóng React Fragment
   );
 }

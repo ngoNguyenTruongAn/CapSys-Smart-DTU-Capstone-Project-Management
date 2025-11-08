@@ -6,7 +6,7 @@ import CardDetailsList from "./Proposal-details-list";
 import { useProposalsStore } from "../../../services/ProposalAPI";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { faDownload } from "@fortawesome/free-solid-svg-icons";
+import { faDownload, faSpinner } from "@fortawesome/free-solid-svg-icons"; // <--- CẬP NHẬT: Thêm faSpinner
 
 import DeleteButton from "../layout-proposal-common/Button/DeleteButton";
 import ApprovedButton from "../layout-proposal-common/Button/ApprovedButton";
@@ -30,6 +30,7 @@ function Proposaldetail() {
     deleteProposal,
     isModalOpen,
     closeModal,
+    isLoading, // <--- CẬP NHẬT: Lấy biến isLoading từ store
   } = useProposalsStore();
 
   const [selectedId, setSelectedId] = useState(id ? Number(id) : null);
@@ -149,242 +150,268 @@ function Proposaldetail() {
   const handleDelete = () => {
     if (!confirm("Bạn có chắc chắn muốn xóa?")) return;
     if (typeof deleteProposal === "function") {
-      deleteProposal(pid).then(() => navigate("/proposals"));
+      deleteProposal(pid).then((result) => {
+        if (result.success) {
+          navigate("/proposals");
+        } else {
+           alert(result.message || "Xóa thất bại!");
+        }
+      });
     }
   };
 
   return (
-    <div style={{ backgroundColor: "#EAF2FD" }}>
-      <HeaderDetail />
-      <div className={styles["container"]}>
-        <div className={styles["left-content"]}>
-          <ProposalSearch onSearch={setSearchTerm} />
-          <div className={styles["Proposal-details-card"]}>
-            <CardDetailsList
-              proposals={proposals}
-              selectedProposalId={selectedId}
-              setSelectedProposalId={handleSetSelectedProposalId}
-            />
-          </div>
+    // <--- CẬP NHẬT: Bọc bằng React Fragment để chứa overlay loading
+    <> 
+      {/* CẬP NHẬT: Overlay loading */}
+      {isLoading && (
+        <div className={styles.loadingFullScreen} style={{ color: "white" }}>
+          <FontAwesomeIcon icon={faSpinner} spin size="3x" />
+          <span>Đang xử lý...</span>
         </div>
+      )}
+      
+      <div style={{ backgroundColor: "#EAF2FD" }}>
+        <HeaderDetail />
+        <div className={styles["container"]}>
+          <div className={styles["left-content"]}>
+            <ProposalSearch onSearch={setSearchTerm} />
+            <div className={styles["Proposal-details-card"]}>
+              <CardDetailsList
+                proposals={proposals}
+                selectedProposalId={selectedId}
+                setSelectedProposalId={handleSetSelectedProposalId}
+              />
+            </div>
+          </div>
 
-        <div className={styles["right-content"]}>
-          <div className={styles["right-content-overview-card"]}>
-            <div className={styles["right-content-overview-card-header"]}>
-              <div
-                className={styles["right-content-overview-card-header-left"]}
-              >
-                <span
-                  className={styles["DetailsCard-id"]}
-                  style={{ marginRight: "10px" }}
+          <div className={styles["right-content"]}>
+            <div className={styles["right-content-overview-card"]}>
+              <div className={styles["right-content-overview-card-header"]}>
+                <div
+                  className={styles["right-content-overview-card-header-left"]}
                 >
-                  {pid}
-                </span>
-                <span
-                  className={`${styles["DetailsCard-status"]} ${badgeClass}`}
+                  <span
+                    className={styles["DetailsCard-id"]}
+                    style={{ marginRight: "10px" }}
+                  >
+                    {pid}
+                  </span>
+                  <span
+                    className={`${styles["DetailsCard-status"]} ${badgeClass}`}
+                  >
+                    {statusLabel}
+                  </span>
+                </div>
+
+                <div
+                  className={styles["right-content-overview-card-header-right"]}
                 >
-                  {statusLabel}
-                </span>
+                  {isWaiting && (
+                    // CẬP NHẬT: Disable nút khi đang loading
+                    <ApprovedButton onClick={handleApprove} disabled={isLoading} /> 
+                  )}
+                  {isWaiting && (
+                    // CẬP NHẬT: Disable nút khi đang loading
+                    <RejectButton onClick={handleReject} disabled={isLoading} />
+                  )}
+                  {(isApproved || isRejected) && (
+                    // CẬP NHẬT: Disable nút khi đang loading
+                    <DeleteButton onClick={handleDelete} disabled={isLoading} />
+                  )}
+                </div>
               </div>
 
-              <div
-                className={styles["right-content-overview-card-header-right"]}
-              >
-                {isWaiting && <ApprovedButton onClick={handleApprove} />}
-                {isWaiting && <RejectButton onClick={handleReject} />}
-                {(isApproved || isRejected) && (
-                  <DeleteButton onClick={handleDelete} />
-                )}
+              <div className={styles["right-content-overview-card-body"]}>
+                <h3 className={styles["DetailsCard-title"]}>{title}</h3>
+                <span className={styles["overview-card-wrapper-info"]}>
+                  <img
+                    src="https://bom.edu.vn/public/upload/2024/12/avatar-vo-tri-cute-1.webp"
+                    alt="Avatar"
+                    className={styles["DetailsCard-avatar"]}
+                  />
+                  <div className={styles["overview-card-wrapper-info-text"]}>
+                    <p
+                      className={styles["DetailsCard-mentor"]}
+                      style={{ color: "#000" }}
+                    >
+                      GVHD: {mentor || "—"}
+                    </p>
+                    <p
+                      className={styles["DetailsCard-date"]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      Ngày đăng ký: {registerDate || "—"}
+                    </p>
+                  </div>
+                </span>
+
+                <h1 className={styles["overview-card-member-info-title"]}>
+                  Danh sách thành viên:
+                </h1>
+                <ul className={styles["overview-card-member-info-list"]}>
+                  {members.map((m, index) => {
+                    const name =
+                      typeof m === "string" ? m : m.fullName || m.name || "";
+                    const code =
+                      typeof m === "string" ? "" : m.studentCode || m.mssv || "";
+                    return (
+                      <li
+                        key={index}
+                        className={styles["overview-card-member-info-item"]}
+                      >
+                        <img
+                          src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${
+                            (index % 5) + 1
+                          }.png`}
+                          alt="avatar-member"
+                          className={styles["overview-card-member-info-avatar"]}
+                        />
+                        <div
+                          className={
+                            styles["overview-card-member-info-item-text"]
+                          }
+                        >
+                          <p
+                            className={styles["overview-card-member-info-name"]}
+                          >
+                            {name || "—"}
+                          </p>
+                          <p
+                            className={styles["overview-card-member-student-id"]}
+                          >
+                            {code ||
+                              `28211134${(100 + index)
+                                .toString()
+                                .padStart(3, "0")}`}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             </div>
 
-            <div className={styles["right-content-overview-card-body"]}>
-              <h3 className={styles["DetailsCard-title"]}>{title}</h3>
-              <span className={styles["overview-card-wrapper-info"]}>
-                <img
-                  src="https://bom.edu.vn/public/upload/2024/12/avatar-vo-tri-cute-1.webp"
-                  alt="Avatar"
-                  className={styles["DetailsCard-avatar"]}
-                />
-                <div className={styles["overview-card-wrapper-info-text"]}>
-                  <p
-                    className={styles["DetailsCard-mentor"]}
-                    style={{ color: "#000" }}
-                  >
-                    GVHD: {mentor || "—"}
-                  </p>
-                  <p
-                    className={styles["DetailsCard-date"]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    Ngày đăng ký: {registerDate || "—"}
-                  </p>
-                </div>
-              </span>
+            <div className={styles["right-content-discribe-card"]}>
+              <h3 className={styles["right-content-discribe-card-title"]}>
+                Mô tả đồ án
+              </h3>
+              <p className={styles["right-content-discribe-card-description"]}>
+                {summary}
+              </p>
+            </div>
 
-              <h1 className={styles["overview-card-member-info-title"]}>
-                Danh sách thành viên:
-              </h1>
-              <ul className={styles["overview-card-member-info-list"]}>
-                {members.map((m, index) => {
-                  const name =
-                    typeof m === "string" ? m : m.fullName || m.name || "";
-                  const code =
-                    typeof m === "string" ? "" : m.studentCode || m.mssv || "";
-                  return (
-                    <li
-                      key={index}
-                      className={styles["overview-card-member-info-item"]}
+            <div className={styles["right-content-goal-card"]}>
+              <h3 className={styles["right-content-goal-card-title"]}>
+                Mục tiêu đồ án
+              </h3>
+              <ol className={styles["right-content-goal-card-list"]}>
+                {goals.map((goal, index) => (
+                  <li
+                    key={index}
+                    className={styles["right-content-goal-card-item"]}
+                  >
+                    {goal}
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className={styles["right-content-technology-card"]}>
+              <h3 className={styles["right-content-technology-card-title"]}>
+                Công nghệ sử dụng
+              </h3>
+              <ul className={styles["right-content-technology-card-list"]}>
+                {technologies.map((tech, index) => (
+                  <li
+                    key={index}
+                    className={styles["right-content-technology-card-item"]}
+                  >
+                    {tech}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className={styles["right-content-document-card"]}>
+              <h3 className={styles["right-content-document-card-title"]}>
+                Tài liệu đính kèm
+              </h3>
+              <ul className={styles["right-content-document-card-list"]}>
+                {pdfUrl ? (
+                  <li className={styles["right-content-document-card-item"]}>
+                    <div
+                      className={
+                        styles["right-content-document-card-item-content"]
+                      }
                     >
-                      <img
-                        src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${
-                          (index % 5) + 1
-                        }.png`}
-                        alt="avatar-member"
-                        className={styles["overview-card-member-info-avatar"]}
-                      />
-                      <div
+                      <span
                         className={
-                          styles["overview-card-member-info-item-text"]
+                          styles["right-content-document-card-item-content-icon"]
                         }
                       >
-                        <p className={styles["overview-card-member-info-name"]}>
-                          {name || "—"}
+                        <FontAwesomeIcon icon={faFile} />
+                      </span>
+                      <span
+                        className={
+                          styles[
+                            "right-content-document-card-item-content-wrapper"
+                          ]
+                        }
+                      >
+                        <p
+                          className={
+                            styles[
+                              "right-content-document-card-item-content-text"
+                            ]
+                          }
+                        >
+                          Tài liệu đề xuất
                         </p>
                         <p
-                          className={styles["overview-card-member-student-id"]}
+                          className={
+                            styles[
+                              "right-content-document-card-item-content-number"
+                            ]
+                          }
                         >
-                          {code ||
-                            `28211134${(100 + index)
-                              .toString()
-                              .padStart(3, "0")}`}
+                          {String(pdfUrl).toLowerCase().includes("/file/d/")
+                            ? "PDF"
+                            : "File"}
                         </p>
-                      </div>
-                    </li>
-                  );
-                })}
+                      </span>
+                    </div>
+                    <a
+                      href={pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={
+                        styles["right-content-document-card-item-button"]
+                      }
+                    >
+                      <FontAwesomeIcon icon={faDownload} />
+                      <p
+                        className={
+                          styles["right-content-document-card-item-button-text"]
+                        }
+                      >
+                        Mở/Tải
+                      </p>
+                    </a>
+                  </li>
+                ) : (
+                  <p className={styles["no-document"]}>
+                    Chưa có tài liệu đính kèm.
+                  </p>
+                )}
               </ul>
             </div>
           </div>
-
-          <div className={styles["right-content-discribe-card"]}>
-            <h3 className={styles["right-content-discribe-card-title"]}>
-              Mô tả đồ án
-            </h3>
-            <p className={styles["right-content-discribe-card-description"]}>
-              {summary}
-            </p>
-          </div>
-
-          <div className={styles["right-content-goal-card"]}>
-            <h3 className={styles["right-content-goal-card-title"]}>
-              Mục tiêu đồ án
-            </h3>
-            <ol className={styles["right-content-goal-card-list"]}>
-              {goals.map((goal, index) => (
-                <li
-                  key={index}
-                  className={styles["right-content-goal-card-item"]}
-                >
-                  {goal}
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className={styles["right-content-technology-card"]}>
-            <h3 className={styles["right-content-technology-card-title"]}>
-              Công nghệ sử dụng
-            </h3>
-            <ul className={styles["right-content-technology-card-list"]}>
-              {technologies.map((tech, index) => (
-                <li
-                  key={index}
-                  className={styles["right-content-technology-card-item"]}
-                >
-                  {tech}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className={styles["right-content-document-card"]}>
-            <h3 className={styles["right-content-document-card-title"]}>
-              Tài liệu đính kèm
-            </h3>
-            <ul className={styles["right-content-document-card-list"]}>
-              {pdfUrl ? (
-                <li className={styles["right-content-document-card-item"]}>
-                  <div
-                    className={
-                      styles["right-content-document-card-item-content"]
-                    }
-                  >
-                    <span
-                      className={
-                        styles["right-content-document-card-item-content-icon"]
-                      }
-                    >
-                      <FontAwesomeIcon icon={faFile} />
-                    </span>
-                    <span
-                      className={
-                        styles[
-                          "right-content-document-card-item-content-wrapper"
-                        ]
-                      }
-                    >
-                      <p
-                        className={
-                          styles[
-                            "right-content-document-card-item-content-text"
-                          ]
-                        }
-                      >
-                        Tài liệu đề xuất
-                      </p>
-                      <p
-                        className={
-                          styles[
-                            "right-content-document-card-item-content-number"
-                          ]
-                        }
-                      >
-                        {String(pdfUrl).toLowerCase().includes("/file/d/")
-                          ? "PDF"
-                          : "File"}
-                      </p>
-                    </span>
-                  </div>
-                  <a
-                    href={pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={
-                      styles["right-content-document-card-item-button"]
-                    }
-                  >
-                    <FontAwesomeIcon icon={faDownload} />
-                    <p
-                      className={
-                        styles["right-content-document-card-item-button-text"]
-                      }
-                    >
-                      Mở/Tải
-                    </p>
-                  </a>
-                </li>
-              ) : (
-                <p className={styles["no-document"]}>
-                  Chưa có tài liệu đính kèm.
-                </p>
-              )}
-            </ul>
-          </div>
         </div>
+        <AddProposalModal isOpen={isModalOpen} onClose={closeModal} />
       </div>
-      <AddProposalModal isOpen={isModalOpen} onClose={closeModal} />
-    </div>
+    </> // <--- CẬP NHẬT: Thẻ đóng React Fragment
   );
 }
 
