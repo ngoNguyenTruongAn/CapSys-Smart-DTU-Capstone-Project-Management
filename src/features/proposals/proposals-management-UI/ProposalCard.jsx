@@ -32,6 +32,7 @@ const formatName = (fullName) => {
     return `${initials}. ${middleName} ${lastName}`;
   } else if (parts.length === 2) {
     return `${parts[0].charAt(0).toUpperCase()}. ${parts[1]}`;
+    return `${parts[0].charAt(0).toUpperCase()}. ${parts[1]}`;
   } else {
     return fullName;
   }
