@@ -385,7 +385,7 @@ import App from "./App.jsx";
 import { Provider } from "react-redux";
 import store from "./store/store.js";
 import { BrowserRouter } from "react-router-dom";
-
+import "./globalStyle/global.css";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Provider store={store}>
@@ -407,18 +407,23 @@ const instance = axios.create({
   baseURL: "http://localhost:5295/api/",
 });
 
+// **Quan trọng: Set header mặc định từ localStorage ngay khi tạo instance**
+const token = localStorage.getItem("token");
+if (token) {
+  instance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+}
+
 // Tránh gọi refresh nhiều lần cùng lúc
 let isRefreshing = false;
 let refreshSubscribers = [];
 
 function onRefreshed(newToken) {
-  refreshSubscribers.forEach((cb) => cb(newToken));
+  refreshSubscribers.forEach((cb) => cb(newToken, null)); // Pass null cho error
   refreshSubscribers = [];
 }
 
 function onRefreshFailed(error) {
-  // Clear queue và reject tất cả subscribers khi refresh fail
-  refreshSubscribers.forEach((cb) => cb(error)); // Hoặc chỉ reject mà không pass token
+  refreshSubscribers.forEach((cb) => cb(null, error)); // Pass null cho newToken
   refreshSubscribers = [];
   isRefreshing = false;
 }
@@ -447,6 +452,7 @@ async function handleRefresh() {
   }
 
   try {
+    console.log("Refreshing token..."); // Debug: Có thể remove sau
     const data = await refreshTokenAPI({ token, refreshToken });
 
     // Lưu token mới
@@ -456,15 +462,15 @@ async function handleRefresh() {
     // Cập nhật header mặc định cho instance
     instance.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
 
+    console.log("Token refreshed successfully"); // Debug
     onRefreshed(data.token);
     isRefreshing = false;
     return data.token;
   } catch (err) {
+    console.error("Refresh token failed:", err); // Debug
     // Refresh fail → logout
     localStorage.clear();
-    // Có thể dispatch event để app handle logout (ví dụ: Redux action hoặc custom event)
     window.dispatchEvent(new CustomEvent("auth:logout"));
-    // Redirect đến trang login thay vì root
     window.location.href = "/";
     onRefreshFailed(err);
     return Promise.reject(err);
@@ -476,8 +482,9 @@ instance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Chỉ handle 401 và chưa retry (giả sử 401 là token expired)
+    // Chỉ handle 401 và chưa retry
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log("401 detected, retrying..."); // Debug
       originalRequest._retry = true;
 
       try {
@@ -487,6 +494,7 @@ instance.interceptors.response.use(
         originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
         return instance(originalRequest);
       } catch (refreshError) {
+        console.error("Retry failed after refresh:", refreshError); // Debug
         // Nếu refresh fail, reject original error
         return Promise.reject(error);
       }
@@ -565,43 +573,65 @@ const Navbar = () => {
       <div className="nav-bottom">
         <ul className="navbar__menu">
           <li>
-            <NavLink to="" end className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to=""
+              end
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <MenuIcon className="menu-icon" />
               Tổng quan
             </NavLink>
           </li>
           <li>
-            <NavLink to="quan-ly-do-an" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="quan-ly-do-an"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <NotebookIcon className="menu-icon" />
               Quản lý đồ án
             </NavLink>
           </li>
           <li>
-            <NavLink to="quan-ly-tai-khoan" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="quan-ly-tai-khoan"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <ManageAcc className="menu-icon" />
               Quản lý tài khoản
             </NavLink>
           </li>
           <li>
-            <NavLink to="/proposals" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/proposals"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Proposal className="menu-icon" />
               Quản lý Proposals
             </NavLink>
           </li>
           <li>
-            <NavLink to="cham-diem" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="cham-diem"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <StarIcon className="menu-icon" />
               Chấm điểm
             </NavLink>
           </li>
           <li>
-            <NavLink to="lich-bao-ve" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="lich-bao-ve"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <CalendarIcon className="menu-icon" />
               Lịch bảo vệ
             </NavLink>
           </li>
           <li>
-            <NavLink to="phe-duyet" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="phe-duyet"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <CheckIcon className="menu-icon" />
               Phê duyệt
             </NavLink>
@@ -3213,8 +3243,7 @@ import Navbar from "../../components/common/Navbar";
 import { Outlet, useNavigate } from "react-router-dom";
 import "./AdminLayout.scss";
 import { jwtDecode } from "jwt-decode";
-import { refreshTokenAPI } from "../../services/AuthAPI"; // bạn đã có hàm này
-
+import { refreshTokenAPI } from "../../services/AuthAPI";
 const AdminLayout = () => {
   const navigate = useNavigate();
 
@@ -3443,7 +3472,7 @@ const QuanLyDoAn = () => {
         accessorKey: "teamId",
         cell: (info) => {
           const value = info.getValue();
-          const team = info.row.original; 
+          const team = info.row.original;
           return (
             <div className="qlda-actions">
               <button
@@ -3652,15 +3681,14 @@ const QuanLyDoAn = () => {
         students={selectedTeamStudents}
         teams={projects}
       />
-      
+
       <SwapStudentModal
         show={swapModal}
-        setShow={setSwapModal} 
+        setShow={setSwapModal}
         currentTeamId={teamId}
         students={selectedTeamStudents}
         teams={projects}
       />
-
     </div>
   );
 };
@@ -6672,6 +6700,7 @@ const TongQuan = () => {
     student: { index: null, selected: null },
     proposal: { index: null, selected: null },
   });
+  const [loading, setLoading] = useState(true);
 
   const chart1Ref = useRef(null);
   const chart2Ref = useRef(null);
@@ -6791,6 +6820,7 @@ const TongQuan = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const [
           lecturersRes,
           studentsRes,
@@ -6840,6 +6870,8 @@ const TongQuan = () => {
         });
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -6853,6 +6885,10 @@ const TongQuan = () => {
     () => proposalsByStatus.reduce((sum, item) => sum + item.value, 0),
     [proposalsByStatus]
   );
+
+  if (loading) {
+    return <div className="tongquan-page">Loading...</div>;
+  }
 
   return (
     <div className="tongquan-page">
@@ -8678,7 +8714,7 @@ export default GradingPage;
 
 ### src\pages\Login\Login.jsx
 ```jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Thêm useEffect để trigger animation
 import { useNavigate } from "react-router-dom";
 import "./Login.scss";
 import { useDispatch, useSelector } from "react-redux";
@@ -8693,11 +8729,18 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [isLoaded, setIsLoaded] = useState(false); // State để trigger stagger animation
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const loading = useSelector(selectAuthLoading);
   const authError = useSelector(selectAuthError);
+
+  // Trigger animation sau khi component mount
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
   const validateEmail = (val) => {
     // Regex cải thiện: cho phép ký tự đặc biệt, kiểm tra độ dài
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -8753,37 +8796,76 @@ const Login = () => {
 
   return (
     <div className="login-page">
+      {/* decorative particles */}
+      {/* <div className="particle" />
+      <div className="particle" />
+      <div className="particle" /> */}
       <div className="login-container">
-        <h2 className="login-title">CAPSY SMART DTU</h2>
+        <h2 className={`login-title ${isLoaded ? "animate" : ""}`}>
+          CAPSY SMART DTU
+        </h2>
+        <p className={`login-subtitle ${isLoaded ? "animate" : ""}`}>
+          Welcome back. Please sign in to continue.
+        </p>
 
         <form className="login-form" onSubmit={handleLoginSubmit}>
-          <div className="form-group">
+          <div className={`form-group ${isLoaded ? "animate" : ""}`}>
             <label htmlFor="email">Your Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="contact@disdtech.com"
-              className={emailError ? "error" : ""}
-            />
-            {emailError && <span className="error-message">{emailError}</span>}
+            <div className="input-wrapper">
+              <svg
+                className="input-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 4H4C2.9 4 2.01 4.9 2.01 6L2 18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 8L12 13L4 8V6L12 11L20 6V8Z"
+                  fill="#adb5bd"
+                />
+              </svg>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="contact@disdtech.com"
+                className={emailError ? "error" : ""}
+              />
+            </div>
+            {emailError && (
+              <span className="error-message animate-error">{emailError}</span>
+            )}
           </div>
 
-          <div className="form-group">
+          <div className={`form-group ${isLoaded ? "animate" : ""}`}>
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={passwordError ? "error" : ""}
-            />
+            <div className="input-wrapper">
+              <svg
+                className="input-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 8H17V6C17 3.24 14.76 1 12 1S7 3.24 7 6V8H6C4.9 8 4 8.9 4 10V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V10C20 8.9 19.1 8 18 8ZM12 17C10.9 17 10 16.1 10 15S10.9 13 12 13 14 13.9 14 15 13.1 17 12 17ZM9 8V6C9 4.34 10.34 3 12 3S15 4.34 15 6V8H9Z"
+                  fill="#adb5bd"
+                />
+              </svg>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={passwordError ? "error" : ""}
+              />
+            </div>
             {passwordError && (
-              <span className="error-message">{passwordError}</span>
+              <span className="error-message animate-error">
+                {passwordError}
+              </span>
             )}
             {!passwordError && authError && (
-              <span className="error-message">{authError}</span>
+              <span className="error-message animate-error">{authError}</span>
             )}
 
             <button
@@ -8799,8 +8881,10 @@ const Login = () => {
             type="submit"
             className={`btn-loading ${loading ? "animation" : ""}`}
             disabled={loading}
+            aria-busy={loading}
+            aria-live="polite"
           >
-            {loading ? "Đang đăng nhập..." : "Continue"}
+            <span>{loading ? "Đang đăng nhập..." : "Continue"}</span>
           </button>
         </form>
       </div>
@@ -8893,10 +8977,16 @@ const resetPasswordAPI = async (
 //refresh token
 const refreshTokenAPI = async ({ token, refreshToken }) => {
   try {
-    const response = await instance.post("Auth/refresh", {
-      token,
-      refreshToken,
-    });
+    // Nếu backend yêu cầu header Authorization với token cũ, thêm nó vào đây
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}; // Chỉ thêm nếu token tồn tại
+    const response = await instance.post(
+      "http://localhost:5295/api/Auth/refresh",
+      {
+        token,
+        refreshToken,
+      },
+      { headers }
+    ); // Thêm headers nếu cần
     return response.data;
   } catch (error) {
     throw new Error(

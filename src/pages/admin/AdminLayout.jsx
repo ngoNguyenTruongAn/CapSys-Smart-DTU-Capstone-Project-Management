@@ -3,8 +3,7 @@ import Navbar from "../../components/common/Navbar";
 import { Outlet, useNavigate } from "react-router-dom";
 import "./AdminLayout.scss";
 import { jwtDecode } from "jwt-decode";
-import { refreshTokenAPI } from "../../services/AuthAPI"; // bạn đã có hàm này
-
+import { refreshTokenAPI } from "../../services/AuthAPI";
 const AdminLayout = () => {
   const navigate = useNavigate();
 

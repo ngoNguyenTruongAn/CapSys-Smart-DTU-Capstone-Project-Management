@@ -60,43 +60,65 @@ const Navbar = () => {
       <div className="nav-bottom">
         <ul className="navbar__menu">
           <li>
-            <NavLink to="" end className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to=""
+              end
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <MenuIcon className="menu-icon" />
               Tổng quan
             </NavLink>
           </li>
           <li>
-            <NavLink to="quan-ly-do-an" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="quan-ly-do-an"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <NotebookIcon className="menu-icon" />
               Quản lý đồ án
             </NavLink>
           </li>
           <li>
-            <NavLink to="quan-ly-tai-khoan" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="quan-ly-tai-khoan"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <ManageAcc className="menu-icon" />
               Quản lý tài khoản
             </NavLink>
           </li>
           <li>
-            <NavLink to="/proposals" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/proposals"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Proposal className="menu-icon" />
               Quản lý Proposals
             </NavLink>
           </li>
           <li>
-            <NavLink to="cham-diem" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="cham-diem"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <StarIcon className="menu-icon" />
               Chấm điểm
             </NavLink>
           </li>
           <li>
-            <NavLink to="lich-bao-ve" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="lich-bao-ve"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <CalendarIcon className="menu-icon" />
               Lịch bảo vệ
             </NavLink>
           </li>
           <li>
-            <NavLink to="phe-duyet" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="phe-duyet"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <CheckIcon className="menu-icon" />
               Phê duyệt
             </NavLink>

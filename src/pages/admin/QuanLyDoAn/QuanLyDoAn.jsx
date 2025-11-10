@@ -142,7 +142,7 @@ const QuanLyDoAn = () => {
         accessorKey: "teamId",
         cell: (info) => {
           const value = info.getValue();
-          const team = info.row.original; 
+          const team = info.row.original;
           return (
             <div className="qlda-actions">
               <button
@@ -351,15 +351,14 @@ const QuanLyDoAn = () => {
         students={selectedTeamStudents}
         teams={projects}
       />
-      
+
       <SwapStudentModal
         show={swapModal}
-        setShow={setSwapModal} 
+        setShow={setSwapModal}
         currentTeamId={teamId}
         students={selectedTeamStudents}
         teams={projects}
       />
-
     </div>
   );
 };
