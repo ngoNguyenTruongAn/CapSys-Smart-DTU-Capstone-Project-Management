@@ -9,7 +9,9 @@ const PROPOSAL_URL = `${API_BASE}/Proposal`;
 
 // ====== helpers ======
 const getToken = () =>
-  localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+  localStorage.getItem("token") ||
+  sessionStorage.getItem("token") ||
+  "";
 
 const authHeaders = (extra = {}, { isFormData = false } = {}) => {
   const h = { ...extra };
@@ -42,7 +44,12 @@ const normalizeMember = (m) => {
     "";
 
   const studentCode =
-    m.studentCode || m.StudentCode || m.mssv || m.MSSV || m.student_code || "";
+    m.studentCode ||
+    m.StudentCode ||
+    m.mssv ||
+    m.MSSV ||
+    m.student_code ||
+    "";
 
   if (!fullName) return null;
   return { fullName, studentCode };
@@ -114,7 +121,8 @@ const toCardShape = (p) => {
     p.createdAt ||
     null;
 
-  const approveDate = p.approveDate || p.approvedDate || p.ApprovedDate || null;
+  const approveDate =
+    p.approveDate || p.approvedDate || p.ApprovedDate || null;
 
   const raw = String(p.status ?? p.Status ?? "").toLowerCase();
   let status = "Chờ duyệt";
@@ -152,12 +160,8 @@ export const useProposalsStore = create((set, get) => {
       ? mapped
       : mapped.filter(
           (x) =>
-            String(x.title || "")
-              .toLowerCase()
-              .includes(kw) ||
-            String(x.summary || "")
-              .toLowerCase()
-              .includes(kw)
+            String(x.title || "").toLowerCase().includes(kw) ||
+            String(x.summary || "").toLowerCase().includes(kw)
         );
 
     const filtered =
@@ -285,8 +289,7 @@ export const useProposalsStore = create((set, get) => {
           headers: authHeaders(),
         });
         const payload = await parseApiJson(res);
-        if (!res.ok)
-          throw new Error(payload?.message || "Không tải được chi tiết");
+        if (!res.ok) throw new Error(payload?.message || "Không tải được chi tiết");
 
         const detail = payload?.data || payload;
         const current = get().proposals || [];
@@ -319,7 +322,9 @@ export const useProposalsStore = create((set, get) => {
         const payload = await parseApiJson(res);
         if (!res.ok) {
           const msg =
-            payload?.message || payload?.errors?.[0] || "Không thể thêm đề tài";
+            payload?.message ||
+            payload?.errors?.[0] ||
+            "Không thể thêm đề tài";
           throw new Error(msg);
         }
 
@@ -328,10 +333,7 @@ export const useProposalsStore = create((set, get) => {
       } catch (e) {
         console.error("Lỗi khi thêm đề tài:", e);
         // Truyền thông điệp BE (ví dụ: "Team này đã có proposal")
-        return {
-          success: false,
-          message: e.message || "Không thể thêm đề tài",
-        };
+        return { success: false, message: e.message || "Không thể thêm đề tài" };
       }
     },
 
