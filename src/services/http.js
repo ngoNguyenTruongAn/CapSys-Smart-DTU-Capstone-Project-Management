@@ -9,7 +9,7 @@ const DEFAULT_BASE_URL = "https://localhost:7110/api";
 const deriveBaseUrl = () => {
   // Prefer the Vite runtime env when available (set per environment).
   const envBase =
-    typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE_URL;
+    typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL;
   const source =
     typeof envBase === "string" && envBase.trim().length > 0
       ? envBase.trim()

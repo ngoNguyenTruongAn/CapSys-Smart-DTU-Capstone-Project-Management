@@ -16,6 +16,8 @@ const GradingPage = () => {
   const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [prefillTeamId, setPrefillTeamId] = useState(null);
+  const [prefillProjectId, setPrefillProjectId] = useState(null);
+  const [prefillCommitteeId, setPrefillCommitteeId] = useState(null);
 
   /**
    * Map grading session status to UI status
@@ -31,6 +33,19 @@ const GradingPage = () => {
       return "grading";
     }
     return "not-graded";
+  };
+
+  const pickFirstValue = (...candidates) =>
+    candidates.find(
+      (value) => value !== undefined && value !== null && value !== ""
+    ) ?? null;
+
+  const toNumberOrNull = (value) => {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    const numeric = Number(value);
+    return Number.isNaN(numeric) ? null : numeric;
   };
 
   /**
@@ -79,6 +94,24 @@ const GradingPage = () => {
       session?.totalStudents || 
       0;
 
+    const derivedProjectId = pickFirstValue(
+      session?.projectId,
+      session?.ProjectId,
+      team?.projectId,
+      team?.ProjectId,
+      proposal?.projectId,
+      proposal?.ProjectId,
+      proposal?.proposalId,
+      proposal?.id
+    );
+
+    const derivedCommitteeId = pickFirstValue(
+      session?.committeeId,
+      session?.CommitteeId,
+      team?.committeeId,
+      team?.CommitteeId
+    );
+
     return {
       id: session?.sessionId 
         ? `session-${session.sessionId}` 
@@ -92,6 +125,8 @@ const GradingPage = () => {
       status: status,
       teamId: session?.teamId || proposal?.teamId,
       proposalId: proposal?.id || proposal?.proposalId,
+      projectId: toNumberOrNull(derivedProjectId),
+      committeeId: toNumberOrNull(derivedCommitteeId),
     };
   };
 
@@ -281,11 +316,20 @@ const GradingPage = () => {
     if (!group.sessionId) {
       // Mở popup tạo phiên chấm với team id được điền sẵn
       setPrefillTeamId(group.teamId || null);
+      setPrefillProjectId(group.projectId || group.proposalId || null);
+      setPrefillCommitteeId(group.committeeId || null);
       setShowCreateModal(true);
       return;
     }
     const sessionId = group.sessionId ?? group.id;
     setSelectedGroup({ ...group, sessionId });
+  };
+
+  const resetPrefillsAndCloseModal = () => {
+    setShowCreateModal(false);
+    setPrefillTeamId(null);
+    setPrefillProjectId(null);
+    setPrefillCommitteeId(null);
   };
 
   const handleBack = () => {
@@ -337,10 +381,12 @@ const GradingPage = () => {
         <CreateSessionModal
           open={showCreateModal}
           defaultTeamId={prefillTeamId}
-          onClose={() => setShowCreateModal(false)}
+          defaultProjectId={prefillProjectId}
+          defaultCommitteeId={prefillCommitteeId}
+          onClose={resetPrefillsAndCloseModal}
           onCreated={async () => {
             // Reload groups after session created
-            setShowCreateModal(false);
+            resetPrefillsAndCloseModal();
             setLoading(true);
             setError("");
             try {

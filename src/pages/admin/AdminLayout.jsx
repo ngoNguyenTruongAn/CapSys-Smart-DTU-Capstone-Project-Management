@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import Navbar from "../../components/common/Navbar";
+import Navbar from "../../components/common/Navbar.jsx";
 import { Outlet, useNavigate } from "react-router-dom";
 import "./AdminLayout.scss";
 import { jwtDecode } from "jwt-decode";

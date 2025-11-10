@@ -17,6 +17,8 @@ export default function CreateSessionModal({
   open,
   onClose,
   defaultTeamId,
+  defaultProjectId,
+  defaultCommitteeId,
   onCreated,
 }) {
   const [projectId, setProjectId] = useState("");
@@ -30,7 +32,9 @@ export default function CreateSessionModal({
 
   React.useEffect(() => {
     setTeamId(defaultTeamId ? String(defaultTeamId) : "");
-  }, [defaultTeamId]);
+    setProjectId(defaultProjectId ? String(defaultProjectId) : "");
+    setCommitteeId(defaultCommitteeId ? String(defaultCommitteeId) : "");
+  }, [defaultTeamId, defaultProjectId, defaultCommitteeId]);
 
   const disabled = useMemo(() => {
     return !teamId || !sessionType || !sessionDate;
