@@ -1,9 +1,10 @@
 @use "sass:color";
+
 $primary-color: #007bff;
 $secondary-color: #6c757d;
 $error-color: #dc3545;
 $border-radius: 8px;
-$transition: all 0.3s ease;
+$transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Mượt hơn với custom easing */
 $shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 
 /* Reset để tránh overflow */
@@ -19,9 +20,20 @@ body {
   overflow-x: hidden;
 }
 
+/* Hỗ trợ prefers-reduced-motion để tắt animation nếu user yêu cầu */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ====== SCOPED STYLE ====== */
 .login-page {
-  /* nền cho riêng page login */
+  /* Nền cho riêng page login */
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -30,6 +42,65 @@ body {
   padding: 20px;
   box-sizing: border-box;
   overflow-x: hidden;
+  position: relative;
+
+  /* Decorative animated blobs */
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.45;
+    z-index: 0;
+    animation: floatBlob 14s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite; /* Mượt hơn với duration dài và easing */
+  }
+
+  &::before {
+    top: -80px;
+    left: -60px;
+    background: radial-gradient(circle at 30% 30%, #7aa5ff, transparent 60%),
+      radial-gradient(circle at 70% 70%, #9ad1ff, transparent 60%);
+  }
+
+  &::after {
+    bottom: -100px;
+    right: -60px;
+    background: radial-gradient(circle at 40% 40%, #ffd6e7, transparent 60%),
+      radial-gradient(circle at 70% 70%, #ffc2a1, transparent 60%);
+    animation-delay: 1.5s;
+  }
+
+  /* Particles nhẹ cho background sống động */
+  .particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    animation: floatParticle 10s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite; /* Mượt hơn */
+    z-index: 0;
+  }
+
+  .particle:nth-child(1) {
+    top: 20%;
+    left: 10%;
+    animation-delay: 0s;
+  }
+
+  .particle:nth-child(2) {
+    top: 50%;
+    left: 80%;
+    animation-delay: 2s;
+  }
+
+  .particle:nth-child(3) {
+    top: 80%;
+    left: 30%;
+    animation-delay: 4s;
+  }
 
   .login-container {
     background: rgba(255, 255, 255, 0.95);
@@ -41,7 +112,9 @@ body {
     max-width: 400px;
     text-align: center;
     position: relative;
-    animation: fadeInUp 0.6s ease-out;
+    animation: scaleIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 1;
+    will-change: transform, opacity; /* Tối ưu GPU */
 
     &::before {
       content: "";
@@ -58,11 +131,42 @@ body {
     }
 
     .login-title {
-      font-size: 2rem;
+      font-size: 2.4rem;
       font-weight: 700;
       color: $primary-color;
       margin-bottom: 20px;
       text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(12px) scale(0.98) rotate(-0.5deg);
+      filter: blur(2px);
+      transition: opacity 0.7s cubic-bezier(0.22, 0.61, 0.36, 1),
+        transform 0.7s cubic-bezier(0.22, 0.61, 0.36, 1), filter 0.6s ease-out;
+      will-change: transform, opacity, filter;
+
+      &.animate {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotate(0);
+        filter: blur(0);
+      }
+    }
+
+    .login-subtitle {
+      margin: -8px 0 24px 0;
+      color: #6b7280;
+      font-size: 1.05rem;
+      opacity: 0;
+      transform: translateY(12px) scale(0.985) rotate(-0.25deg);
+      filter: blur(1.5px);
+      transition: opacity 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) 0.06s,
+        transform 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) 0.06s,
+        filter 0.6s ease-out 0.06s;
+      will-change: transform, opacity, filter;
+
+      &.animate {
+        opacity: 1;
+        transform: translateY(0) scale(1) rotate(0);
+        filter: blur(0);
+      }
     }
 
     .login-form {
@@ -75,35 +179,80 @@ body {
         flex-direction: column;
         text-align: left;
         gap: 8px;
+        opacity: 0;
+        transform: translateY(12px) scale(0.985) skewY(0.4deg);
+        filter: blur(1.5px);
+        transition: opacity 0.75s cubic-bezier(0.22, 0.61, 0.36, 1),
+          transform 0.75s cubic-bezier(0.22, 0.61, 0.36, 1),
+          filter 0.6s ease-out;
+        will-change: transform, opacity, filter;
+
+        &.animate {
+          opacity: 1;
+          transform: translateY(0) scale(1) skewY(0);
+          filter: blur(0);
+
+          /* stagger within the form for smoother sequence */
+          &:nth-of-type(1) {
+            transition-delay: 0.18s;
+          }
+          &:nth-of-type(2) {
+            transition-delay: 0.32s;
+          }
+        }
 
         label {
-          font-size: 0.95rem;
+          font-size: 1rem;
           font-weight: 600;
           color: $secondary-color;
         }
 
-        input {
-          padding: 12px 16px;
-          border: 2px solid #e9ecef;
-          border-radius: $border-radius;
-          font-size: 1rem;
-          transition: $transition;
+        .input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
 
-          &::placeholder {
-            color: #adb5bd;
-            font-style: italic;
+          .input-icon {
+            position: absolute;
+            left: 12px;
+            width: 20px;
+            height: 20px;
+            opacity: 0.6;
+            transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Mượt hơn */
+            z-index: 1;
           }
 
-          &:focus {
-            outline: none;
-            border-color: $primary-color;
-            box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
-            transform: translateY(-1px);
-          }
+          input {
+            padding: 12px 16px 12px 40px; /* Padding trái để tránh chồng icon */
+            border: 2px solid #e9ecef;
+            border-radius: $border-radius;
+            font-size: 1.05rem;
+            transition: $transition; /* Mượt hơn */
+            width: 100%;
+            will-change: transform, box-shadow;
 
-          &.error {
-            border-color: $error-color;
-            background-color: rgba($error-color, 0.05);
+            &::placeholder {
+              color: #adb5bd;
+              font-style: italic;
+            }
+
+            &:focus {
+              outline: none;
+              border-color: $primary-color;
+              box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+              animation: bounceFocus 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+            }
+
+            &:focus + .input-icon {
+              opacity: 1;
+              transform: scale(1.1);
+            }
+
+            &.error {
+              border-color: $error-color;
+              background-color: rgba($error-color, 0.05);
+            }
           }
         }
       }
@@ -112,6 +261,19 @@ body {
         color: $error-color;
         font-size: 0.85rem;
         margin-top: 4px;
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+        filter: blur(1px);
+        transition: opacity 0.5s cubic-bezier(0.22, 0.61, 0.36, 1),
+          transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1), filter 0.4s ease-out;
+        will-change: transform, opacity, filter;
+
+        &.animate-error {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          filter: blur(0);
+        }
+
         &::before {
           content: "⚠️";
           margin-right: 4px;
@@ -126,7 +288,7 @@ body {
         cursor: pointer;
         text-decoration: none;
         align-self: flex-start;
-        transition: $transition;
+        transition: $transition; /* Mượt hơn */
 
         &:hover {
           color: color.scale($primary-color, $lightness: -30%);
@@ -135,93 +297,92 @@ body {
         }
       }
 
-      .continue-button {
-        background: linear-gradient(
-          135deg,
-          $primary-color,
-          color.scale($primary-color, $lightness: 10%)
-        );
-        color: white;
-        border: none;
-        padding: 14px 24px;
-        border-radius: $border-radius;
-        font-size: 1.1rem;
-        font-weight: 600;
+      .btn-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #1d62ed;
+        width: 100%;
+        height: 48px;
+        padding: 1em;
+        border: 0;
+        font-weight: bold;
+        border-radius: 10px;
+        color: #fff;
         cursor: pointer;
-        transition: $transition;
-        text-transform: uppercase;
+        overflow: hidden;
+        position: relative;
+        transition: all 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
+        font-size: 1.6rem;
+        will-change: background, box-shadow;
 
         &:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 25px rgba($primary-color, 0.3);
+          background: #3978ff;
+          box-shadow: 0 6px 18px rgba(29, 98, 237, 0.35);
         }
 
         &:disabled {
-          opacity: 0.7;
+          opacity: 0.8;
           cursor: not-allowed;
         }
-      }
-    }
-    .btn-loading {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #1d62ed; // giữ màu xanh thương hiệu
-      width: 100%;
-      height: 48px;
-      padding: 1em;
-      border: 0;
-      font-weight: bold;
-      border-radius: 10px;
-      color: #fff;
-      cursor: pointer;
-      overflow: hidden;
-      position: relative;
-      transition: all 0.3s ease;
-      font-size: 1.5rem;
 
-      &:hover:not(:disabled) {
-        background: #3978ff;
-        box-shadow: 0 4px 12px rgba(29, 98, 237, 0.3);
-      }
+        /* Ripple effect khi click */
+        &::after {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.5);
+          transform: translate(-50%, -50%);
+          transition: width 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+            height 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Mượt hơn */
+        }
 
-      &:disabled {
-        opacity: 0.8;
-        cursor: not-allowed;
-      }
+        &:active::after {
+          width: 300px;
+          height: 300px;
+        }
 
-      &.animation::before {
-        content: "";
-        display: inline-block;
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        border: 2px solid #fff;
-        border-top-color: transparent;
-        animation: spin 1s ease-in-out infinite;
-        vertical-align: middle;
-      }
+        /* spinner base (hidden) for smooth fade-in */
+        &::before {
+          content: "";
+          display: inline-block;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          border: 2px solid #fff;
+          border-top-color: transparent;
+          opacity: 0;
+          transform: scale(0.8);
+          transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        &.animation::before {
+          animation: spin 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+          opacity: 1;
+          transform: scale(1);
+          vertical-align: middle;
+        }
 
-      span {
-        position: absolute;
-        left: 0;
-        right: 0;
-        transition: top 0.4s ease-out;
-      }
+        span {
+          position: absolute;
+          left: 0;
+          right: 0;
+          transition: top 0.6s cubic-bezier(0.22, 0.61, 0.36, 1),
+            opacity 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
 
-      &.animation span {
-        top: -100%;
-        opacity: 0.6;
-      }
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
+        &.animation span {
+          top: -100%;
+          opacity: 0.6;
+        }
       }
     }
   }
 
+  /* Keyframes */
   @keyframes fadeInUp {
     from {
       opacity: 0;
@@ -230,6 +391,49 @@ body {
     to {
       opacity: 1;
       transform: translateY(0);
+    }
+  }
+
+  @keyframes floatBlob {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(12px) scale(1.05);
+    }
+  }
+
+  @keyframes floatParticle {
+    0% {
+      transform: translateY(0) rotate(0deg);
+      opacity: 0.6;
+    }
+    50% {
+      transform: translateY(-20px) rotate(180deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(0) rotate(360deg);
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes bounceFocus {
+    0% {
+      transform: translateY(0) scale(0.995) skewX(0deg);
+    }
+    50% {
+      transform: translateY(-1px) scale(1.01) skewX(0.4deg);
+    }
+    100% {
+      transform: translateY(0) scale(1) skewX(0deg);
+    }
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
     }
   }
 

@@ -51,6 +51,7 @@ CapSys-Smart-DTU-Capstone-Project-Management-main/
 │   │       └── pngwing 2.png
 │   ├── components/
 │   │   ├── common/
+│   │   │   ├── Navbar.js
 │   │   │   ├── Navbar.jsx
 │   │   │   └── Navbar.scss
 │   │   ├── data/
@@ -318,13 +319,20 @@ print("Bạn có thể mở file này trực tiếp bằng Excel.")
 ### vite.config.js
 ```js
 import { defineConfig } from "vite";
+import svgr from "vite-plugin-svgr";
 import react from "@vitejs/plugin-react";
-import svgr from "@svgr/rollup";
 
 export default defineConfig({
-  plugins: [react(), svgr()],
+  plugins: [
+    // SVGR phải đứng trước để chặn *.svg?react
+    svgr({
+      include: "**/*.svg?react",
+      svgrOptions: { icon: true },
+      exportAsDefault: true, // xuất default để dùng import X from "...?react"
+    }),
+    react(),
+  ],
 });
-
 ```
 
 ### src\App.jsx
@@ -374,7 +382,6 @@ function App() {
 }
 
 export default App;
-
 ```
 
 ### src\main.jsx
@@ -385,7 +392,7 @@ import App from "./App.jsx";
 import { Provider } from "react-redux";
 import store from "./store/store.js";
 import { BrowserRouter } from "react-router-dom";
-
+import "./globalStyle/global.css";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <Provider store={store}>
@@ -407,18 +414,23 @@ const instance = axios.create({
   baseURL: "http://localhost:5295/api/",
 });
 
+// **Quan trọng: Set header mặc định từ localStorage ngay khi tạo instance**
+const token = localStorage.getItem("token");
+if (token) {
+  instance.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+}
+
 // Tránh gọi refresh nhiều lần cùng lúc
 let isRefreshing = false;
 let refreshSubscribers = [];
 
 function onRefreshed(newToken) {
-  refreshSubscribers.forEach((cb) => cb(newToken));
+  refreshSubscribers.forEach((cb) => cb(newToken, null)); // Pass null cho error
   refreshSubscribers = [];
 }
 
 function onRefreshFailed(error) {
-  // Clear queue và reject tất cả subscribers khi refresh fail
-  refreshSubscribers.forEach((cb) => cb(error)); // Hoặc chỉ reject mà không pass token
+  refreshSubscribers.forEach((cb) => cb(null, error)); // Pass null cho newToken
   refreshSubscribers = [];
   isRefreshing = false;
 }
@@ -447,6 +459,7 @@ async function handleRefresh() {
   }
 
   try {
+    console.log("Refreshing token..."); // Debug: Có thể remove sau
     const data = await refreshTokenAPI({ token, refreshToken });
 
     // Lưu token mới
@@ -456,15 +469,15 @@ async function handleRefresh() {
     // Cập nhật header mặc định cho instance
     instance.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
 
+    console.log("Token refreshed successfully"); // Debug
     onRefreshed(data.token);
     isRefreshing = false;
     return data.token;
   } catch (err) {
+    console.error("Refresh token failed:", err); // Debug
     // Refresh fail → logout
     localStorage.clear();
-    // Có thể dispatch event để app handle logout (ví dụ: Redux action hoặc custom event)
     window.dispatchEvent(new CustomEvent("auth:logout"));
-    // Redirect đến trang login thay vì root
     window.location.href = "/";
     onRefreshFailed(err);
     return Promise.reject(err);
@@ -476,8 +489,9 @@ instance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Chỉ handle 401 và chưa retry (giả sử 401 là token expired)
+    // Chỉ handle 401 và chưa retry
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.log("401 detected, retrying..."); // Debug
       originalRequest._retry = true;
 
       try {
@@ -487,6 +501,7 @@ instance.interceptors.response.use(
         originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
         return instance(originalRequest);
       } catch (refreshError) {
+        console.error("Retry failed after refresh:", refreshError); // Debug
         // Nếu refresh fail, reject original error
         return Promise.reject(error);
       }
@@ -501,21 +516,26 @@ export default instance;
 
 ```
 
+### src\components\common\Navbar.js
+```js
+
+```
+
 ### src\components\common\Navbar.jsx
 ```jsx
 import React from "react";
 import "./Navbar.scss";
 import logoCap from "../../assets/logo/Frame41.png";
 import anh from "../../assets/image/hue.jpg";
-import { ReactComponent as Bell } from "../../assets/icon/Bell.svg";
-import { ReactComponent as MenuIcon } from "../../assets/icon/Menu_Alt_01.svg";
-import { ReactComponent as NotebookIcon } from "../../assets/icon/Notebook.svg";
-import { ReactComponent as StarIcon } from "../../assets/icon/Star.svg";
-import { ReactComponent as CalendarIcon } from "../../assets/icon/Calendar.svg";
-import { ReactComponent as CheckIcon } from "../../assets/icon/Check_All.svg";
-import { ReactComponent as LogoutIcon } from "../../assets/icon/log-out.svg";
-import { ReactComponent as ManageAcc } from "../../assets/icon/users.svg";
-import { ReactComponent as Proposal } from "../../assets/icon/check-square.svg";
+import Bell from "/src/assets/icon/Bell.svg?react";
+import MenuIcon from "/src/assets/icon/Menu_Alt_01.svg?react";
+import NotebookIcon from "/src/assets/icon/Notebook.svg?react";
+import StarIcon from "/src/assets/icon/Star.svg?react";
+import CalendarIcon from "/src/assets/icon/Calendar.svg?react";
+import CheckIcon from "/src/assets/icon/Check_All.svg?react";
+import LogoutIcon from "/src/assets/icon/log-out.svg?react";
+import ManageAcc from "/src/assets/icon/users.svg?react";
+import Proposal from "/src/assets/icon/check-square.svg?react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { LogoutAPI } from "../../services/AuthAPI";
 
@@ -565,43 +585,65 @@ const Navbar = () => {
       <div className="nav-bottom">
         <ul className="navbar__menu">
           <li>
-            <NavLink to="" end className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to=""
+              end
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <MenuIcon className="menu-icon" />
               Tổng quan
             </NavLink>
           </li>
           <li>
-            <NavLink to="quan-ly-do-an" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="quan-ly-do-an"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <NotebookIcon className="menu-icon" />
               Quản lý đồ án
             </NavLink>
           </li>
           <li>
-            <NavLink to="quan-ly-tai-khoan" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="quan-ly-tai-khoan"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <ManageAcc className="menu-icon" />
               Quản lý tài khoản
             </NavLink>
           </li>
           <li>
-            <NavLink to="/proposals" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="/proposals"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <Proposal className="menu-icon" />
               Quản lý Proposals
             </NavLink>
           </li>
           <li>
-            <NavLink to="cham-diem" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="cham-diem"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <StarIcon className="menu-icon" />
               Chấm điểm
             </NavLink>
           </li>
           <li>
-            <NavLink to="lich-bao-ve" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="lich-bao-ve"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <CalendarIcon className="menu-icon" />
               Lịch bảo vệ
             </NavLink>
           </li>
           <li>
-            <NavLink to="phe-duyet" className={({ isActive }) => (isActive ? "active" : "")}>
+            <NavLink
+              to="phe-duyet"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
               <CheckIcon className="menu-icon" />
               Phê duyệt
             </NavLink>
@@ -1748,43 +1790,37 @@ export default function Toasts({
 
 ### src\features\proposals\layout-proposal-common\Header.jsx
 ```jsx
-
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import styles from '../proposals-management-UI/Proposal.module.scss'
+import styles from "../proposals-management-UI/Proposal.module.scss";
 import useGoBack from "../proposals-logic/useGoBack";
 
-function Header({ heading, subheading, rightContent}) {
+function Header({ heading, subheading, rightContent }) {
   const goBack = useGoBack();
-    return (
-    <div className={styles['header-wrapper']}>
-    <div className={styles['header-left-content']}>
-      <div className={styles['header-icon']}
-       onClick={goBack} 
-       role="button" 
-       tabIndex={0} 
-       aria-label="Quay lại trang trước" 
-      
-      >
-   
-    <FontAwesomeIcon icon ={faArrowLeft} />
+  return (
+    <div className={styles["header-wrapper"]}>
+      <div className={styles["header-left-content"]}>
+        <div
+          className={styles["header-icon"]}
+          onClick={goBack}
+          role="button"
+          tabIndex={0}
+          aria-label="Quay lại trang trước"
+        >
+          <FontAwesomeIcon icon={faArrowLeft} />
+        </div>
+        <div className={styles["header-content"]}>
+          <h1 className={styles["header-head-text"]}>{heading}</h1>
+          <p className={styles["header-text"]}>{subheading}</p>
+        </div>
+      </div>
+      <div className={styles["header-right-content"]}>{rightContent}</div>
     </div>
-    <div className={styles['header-content']}>
-   
-    <h1 className={styles['header-head-text']}>{heading}</h1>
-    <p className={styles['header-text']}>{subheading}</p>
-    </div>
-    </div>
-    <div className={styles['header-right-content']}>
-    
-    {rightContent}
-    </div>
-    
-    </div>
-      );
+  );
 }
 
 export default Header;
+
 ```
 
 ### src\features\proposals\layout-proposal-common\Button\Addbutton.jsx
@@ -1824,21 +1860,22 @@ import { faCheckCircle } from "@fortawesome/free-solid-svg-icons";
  * @param {boolean} disabled - Trạng thái disabled
  */
 function ProposalActionButton({ onClick, disabled = false }) {
-    return (
-        <button 
-            className={styles['approvedButton-wrapper']}
-            onClick={onClick}
-            disabled={disabled}
-        >
-            <span className={styles['approvedButton-icon']}>
-                <FontAwesomeIcon icon={faCheckCircle} />
-            </span>
-            <p className={styles['approvedButton-text']}>Duyệt</p>
-        </button>
-    );
+  return (
+    <button
+      className={styles["approvedButton-wrapper"]}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <span className={styles["approvedButton-icon"]}>
+        <FontAwesomeIcon icon={faCheckCircle} />
+      </span>
+      <p className={styles["approvedButton-text"]}>Duyệt</p>
+    </button>
+  );
 }
 
 export default ProposalActionButton;
+
 ```
 
 ### src\features\proposals\layout-proposal-common\Button\DeleteButton.jsx
@@ -1849,21 +1886,22 @@ import { faTrash } from "@fortawesome/free-solid-svg-icons";
 
 // Bổ sung props onClick, disabled
 function DeleteButton({ onClick, disabled }) {
-    return ( 
-        <button 
-            className={styles['deleteButton-wrapper']}
-            onClick={onClick}
-            disabled={disabled}
-        >
-         <span className={styles['deleteButton-icon']}>
+  return (
+    <button
+      className={styles["deleteButton-wrapper"]}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <span className={styles["deleteButton-icon"]}>
         <FontAwesomeIcon icon={faTrash} />
-        </span>
-        <p className={styles['deleteButton-text']}>Xóa</p>
-        </button>
-     );
+      </span>
+      <p className={styles["deleteButton-text"]}>Xóa</p>
+    </button>
+  );
 }
 
 export default DeleteButton;
+
 ```
 
 ### src\features\proposals\layout-proposal-common\Button\EditButton.jsx
@@ -1874,21 +1912,22 @@ import { faPen } from "@fortawesome/free-solid-svg-icons";
 
 // Bổ sung props onClick, disabled, text
 function EditButton({ onClick, disabled, text }) {
-    return (
-        <button 
-            className={styles['editButton-wrapper']}
-            onClick={onClick}
-            disabled={disabled}
-        >
-        <span className={styles['editButton-icon']}>
+  return (
+    <button
+      className={styles["editButton-wrapper"]}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <span className={styles["editButton-icon"]}>
         <FontAwesomeIcon icon={faPen} />
-        </span>
-        <p className={styles['editButton-text']}>{text || "Chỉnh sửa"}</p>
-        </button>
-    );
+      </span>
+      <p className={styles["editButton-text"]}>{text || "Chỉnh sửa"}</p>
+    </button>
+  );
 }
 
 export default EditButton;
+
 ```
 
 ### src\features\proposals\layout-proposal-common\Button\RejectButton.jsx
@@ -1899,31 +1938,30 @@ import { faTrash } from "@fortawesome/free-solid-svg-icons";
 
 // Bổ sung props onClick, disabled (giống DeleteButton)
 function RejectButton({ onClick, disabled }) {
-    return ( 
-        <button 
-            className={styles['deleteButton-wrapper']}  // Giữ nguyên class để giống giao diện nút Xóa
-            onClick={onClick}
-            disabled={disabled}
-        >
-         <span className={styles['deleteButton-icon']}>
-        <FontAwesomeIcon icon={faTrash} />  
-        </span>
-        <p className={styles['deleteButton-text']}>Từ chối</p> 
-        </button>
-     );
+  return (
+    <button
+      className={styles["deleteButton-wrapper"]} // Giữ nguyên class để giống giao diện nút Xóa
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <span className={styles["deleteButton-icon"]}>
+        <FontAwesomeIcon icon={faTrash} />
+      </span>
+      <p className={styles["deleteButton-text"]}>Từ chối</p>
+    </button>
+  );
 }
 
 export default RejectButton;
+
 ```
 
 ### src\features\proposals\layout-proposal-common\Button\ViewDetailButton.jsx
 ```jsx
-
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { Link } from "react-router-dom"; // Import Link từ react-router-dom
-import styles from '../../proposals-management-UI/Proposal.module.scss'
-
+import styles from "../../proposals-management-UI/Proposal.module.scss";
 
 function ViewDetailButton({ id }) {
   return (
@@ -1937,6 +1975,7 @@ function ViewDetailButton({ id }) {
 }
 
 export default ViewDetailButton;
+
 ```
 
 ### src\features\proposals\layout-proposal-common\Modal\AddProposalModal.jsx
@@ -1949,6 +1988,7 @@ import {
   faTrash,
   faSearch,
   faFilePdf,
+  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 import { useProposalsStore } from "../../../../services/ProposalAPI";
 
@@ -2092,186 +2132,199 @@ export default function AddProposalModal() {
   };
 
   return (
-    <div className={styles.overlay} onClick={closeModal}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.header}>
-          <h3>Tạo đồ án mới</h3>
-          <p className={styles.subtitle}>
-            Nhập Team ID để tự động lấy thông tin nhóm
-          </p>
+    // <--- CẦN THÊM: React Fragment bao quanh
+    <>
+      {/* <--- CẦN THÊM: Overlay loading, sử dụng biến isLoading từ store */}
+      {isLoading && (
+        <div className={styles.loadingFullScreen} style={{ color: "white" }}>
+          <FontAwesomeIcon icon={faSpinner} spin size="3x" />
+          <span>Đang lưu...</span>
         </div>
+      )}
 
-        <form className={styles.body} onSubmit={submit}>
-          <div className={styles.lookupRow}>
-            <label>Team ID</label>
-            <div className={styles.lookup}>
+      <div className={styles.overlay} onClick={closeModal}>
+        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.header}>
+            <h3>Tạo đồ án mới</h3>
+            <p className={styles.subtitle}>
+              Nhập Team ID để tự động lấy thông tin nhóm
+            </p>
+          </div>
+
+          <form className={styles.body} onSubmit={submit}>
+            <div className={styles.lookupRow}>
+              <label>Team ID</label>
+              <div className={styles.lookup}>
+                <input
+                  placeholder="VD: 403"
+                  value={teamId}
+                  onChange={(e) => setTeamId(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      onLookupTeam();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  className={styles.lookupBtn}
+                  onClick={onLookupTeam}
+                  disabled={isTeamLoading}
+                  title="Tra cứu nhóm"
+                >
+                  <FontAwesomeIcon icon={faSearch} />
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.teamTitle}>
+                  <span className={styles.teamCode}>
+                    {teamContext?.team?.teamCode ||
+                      teamContext?.team?.teamId ||
+                      "—"}
+                  </span>
+                  <span
+                    className={`${styles.badge} ${
+                      teamContext?.existingProposal?.title
+                        ? styles.badgeSuccess
+                        : styles.badgeWarn
+                    }`}
+                  >
+                    {teamContext?.existingProposal?.title || "Đề tài: Chưa có"}
+                  </span>
+                </div>
+              </div>
+
+              <div className={styles.cardBody}>
+                <div className={styles.meta}>
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Mentor</span>
+                    <span className={styles.metaValue}>
+                      {teamContext?.mentorName || "Chưa có"}
+                    </span>
+                  </div>
+                  <div className={styles.metaItem}>
+                    <span className={styles.metaLabel}>Số thành viên</span>
+                    <span className={styles.metaValue}>
+                      {(teamContext?.members || []).length}
+                    </span>
+                  </div>
+                </div>
+
+                <div className={styles.memberList}>
+                  {(teamContext?.members || []).map((m, i) => (
+                    <div key={i} className={styles.memberChip}>
+                      <span className={styles.memberName}>{m.fullName}</span>
+                      <span className={styles.memberCode}>{m.studentCode}</span>
+                    </div>
+                  ))}
+                  {!teamContext && (
+                    <div className={styles.placeholder}>
+                      Nhập Team ID và bấm tra cứu để hiển thị thông tin nhóm
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.group}>
+              <div className={styles.groupHeader}>
+                <h4>Mục tiêu</h4>
+                <button
+                  type="button"
+                  className={styles.ghostBtn}
+                  onClick={() => addRow(setGoals, "")}
+                >
+                  <FontAwesomeIcon icon={faPlus} /> Thêm mục tiêu
+                </button>
+              </div>
+              {goals.map((g, i) => (
+                <div className={styles.lineRow} key={i}>
+                  <input
+                    placeholder={`Mục tiêu #${i + 1}`}
+                    value={g}
+                    onChange={(e) =>
+                      handleArrChange(setGoals, i, e.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    onClick={() => removeRow(setGoals, i)}
+                    title="Xóa mục tiêu"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.group}>
+              <div className={styles.groupHeader}>
+                <h4>Công nghệ</h4>
+                <button
+                  type="button"
+                  className={styles.ghostBtn}
+                  onClick={() => addRow(setTechnologies, "")}
+                >
+                  <FontAwesomeIcon icon={faPlus} /> Thêm công nghệ
+                </button>
+              </div>
+              {technologies.map((t, i) => (
+                <div className={styles.lineRow} key={i}>
+                  <input
+                    placeholder={`Công nghệ #${i + 1}`}
+                    value={t}
+                    onChange={(e) =>
+                      handleArrChange(setTechnologies, i, e.target.value)
+                    }
+                  />
+                  <button
+                    type="button"
+                    className={styles.iconBtn}
+                    onClick={() => removeRow(setTechnologies, i)}
+                    title="Xóa công nghệ"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.fileRow}>
+              <label className={styles.fileLabel}>
+                <FontAwesomeIcon icon={faFilePdf} /> Tài liệu PDF
+              </label>
               <input
-                placeholder="VD: 403"
-                value={teamId}
-                onChange={(e) => setTeamId(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    onLookupTeam();
-                  }
-                }}
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
+            </div>
+
+            <div className={styles.footer}>
+              <button
+                type="submit"
+                className={styles.primaryBtn}
+                disabled={isLoading}
+              >
+                {isLoading ? "Đang lưu..." : "Tạo đồ án"}
+              </button>
               <button
                 type="button"
-                className={styles.lookupBtn}
-                onClick={onLookupTeam}
-                disabled={isTeamLoading}
-                title="Tra cứu nhóm"
+                onClick={closeModal}
+                className={styles.secondaryBtn}
               >
-                <FontAwesomeIcon icon={faSearch} />
+                Hủy
               </button>
             </div>
-          </div>
-
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <div className={styles.teamTitle}>
-                <span className={styles.teamCode}>
-                  {teamContext?.team?.teamCode ||
-                    teamContext?.team?.teamId ||
-                    "—"}
-                </span>
-                <span
-                  className={`${styles.badge} ${
-                    teamContext?.existingProposal?.title
-                      ? styles.badgeSuccess
-                      : styles.badgeWarn
-                  }`}
-                >
-                  {teamContext?.existingProposal?.title || "Đề tài: Chưa có"}
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.cardBody}>
-              <div className={styles.meta}>
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>Mentor</span>
-                  <span className={styles.metaValue}>
-                    {teamContext?.mentorName || "Chưa có"}
-                  </span>
-                </div>
-                <div className={styles.metaItem}>
-                  <span className={styles.metaLabel}>Số thành viên</span>
-                  <span className={styles.metaValue}>
-                    {(teamContext?.members || []).length}
-                  </span>
-                </div>
-              </div>
-
-              <div className={styles.memberList}>
-                {(teamContext?.members || []).map((m, i) => (
-                  <div key={i} className={styles.memberChip}>
-                    <span className={styles.memberName}>{m.fullName}</span>
-                    <span className={styles.memberCode}>{m.studentCode}</span>
-                  </div>
-                ))}
-                {!teamContext && (
-                  <div className={styles.placeholder}>
-                    Nhập Team ID và bấm tra cứu để hiển thị thông tin nhóm
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.group}>
-            <div className={styles.groupHeader}>
-              <h4>Mục tiêu</h4>
-              <button
-                type="button"
-                className={styles.ghostBtn}
-                onClick={() => addRow(setGoals, "")}
-              >
-                <FontAwesomeIcon icon={faPlus} /> Thêm mục tiêu
-              </button>
-            </div>
-            {goals.map((g, i) => (
-              <div className={styles.lineRow} key={i}>
-                <input
-                  placeholder={`Mục tiêu #${i + 1}`}
-                  value={g}
-                  onChange={(e) => handleArrChange(setGoals, i, e.target.value)}
-                />
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={() => removeRow(setGoals, i)}
-                  title="Xóa mục tiêu"
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className={styles.group}>
-            <div className={styles.groupHeader}>
-              <h4>Công nghệ</h4>
-              <button
-                type="button"
-                className={styles.ghostBtn}
-                onClick={() => addRow(setTechnologies, "")}
-              >
-                <FontAwesomeIcon icon={faPlus} /> Thêm công nghệ
-              </button>
-            </div>
-            {technologies.map((t, i) => (
-              <div className={styles.lineRow} key={i}>
-                <input
-                  placeholder={`Công nghệ #${i + 1}`}
-                  value={t}
-                  onChange={(e) =>
-                    handleArrChange(setTechnologies, i, e.target.value)
-                  }
-                />
-                <button
-                  type="button"
-                  className={styles.iconBtn}
-                  onClick={() => removeRow(setTechnologies, i)}
-                  title="Xóa công nghệ"
-                >
-                  <FontAwesomeIcon icon={faTrash} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className={styles.fileRow}>
-            <label className={styles.fileLabel}>
-              <FontAwesomeIcon icon={faFilePdf} /> Tài liệu PDF
-            </label>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-          </div>
-
-          <div className={styles.footer}>
-            <button
-              type="submit"
-              className={styles.primaryBtn}
-              disabled={isLoading}
-            >
-              {isLoading ? "Đang lưu..." : "Tạo đồ án"}
-            </button>
-            <button
-              type="button"
-              onClick={closeModal}
-              className={styles.secondaryBtn}
-            >
-              Hủy
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
+    </> // <--- CẦN THÊM: Thẻ đóng React Fragment
   );
 }
 
@@ -2292,23 +2345,23 @@ function CardDetails({ proposal, selectedProposalId, setSelectedProposalId }) {
 
   // Logic: Kiểm tra nếu ID hiện tại khớp với ID đang được chọn thì set active
   const isActive = id === selectedProposalId;
-  
+
   const handleClick = () => {
     // 1. Cập nhật ID được chọn khi click
-    setSelectedProposalId(id); 
+    setSelectedProposalId(id);
 
     // 2. THÊM LOGIC CUỘN VỀ ĐẦU TRANG
-    if (typeof window !== 'undefined') {
-        window.scrollTo({ 
-            top: 0, // Cuộn về vị trí 0 (đầu trang)
-            behavior: 'smooth' // Tạo hiệu ứng cuộn mượt
-        });
-        
-        // Hoặc, nếu bạn chỉ muốn cuộn về đầu phần nội dung chính bên phải:
-        // Bạn cần đặt một ref (tham chiếu) vào phần nội dung bên phải trong Proposal-detail.jsx 
-        // và truyền nó xuống, hoặc sử dụng ID của phần tử đó (ít được khuyến khích hơn).
-        
-        // Giữ lại cách cuộn toàn bộ window là đơn giản và hiệu quả nhất trong trường hợp này.
+    if (typeof window !== "undefined") {
+      window.scrollTo({
+        top: 0, // Cuộn về vị trí 0 (đầu trang)
+        behavior: "smooth", // Tạo hiệu ứng cuộn mượt
+      });
+
+      // Hoặc, nếu bạn chỉ muốn cuộn về đầu phần nội dung chính bên phải:
+      // Bạn cần đặt một ref (tham chiếu) vào phần nội dung bên phải trong Proposal-detail.jsx
+      // và truyền nó xuống, hoặc sử dụng ID của phần tử đó (ít được khuyến khích hơn).
+
+      // Giữ lại cách cuộn toàn bộ window là đơn giản và hiệu quả nhất trong trường hợp này.
     }
   };
 
@@ -2335,6 +2388,7 @@ function CardDetails({ proposal, selectedProposalId, setSelectedProposalId }) {
 }
 
 export default CardDetails;
+
 ```
 
 ### src\features\proposals\proposal-detail-UI\Header-Detail.jsx
@@ -2342,18 +2396,18 @@ export default CardDetails;
 import Header from "../layout-proposal-common/Header";
 
 function HeaderDetail() {
-    return ( 
-      <div>
-        <Header  
+  return (
+    <div>
+      <Header
         heading="Chi tiết đồ án"
-        subheading="Xem chi tiết và quản lí đồ án">
-
-        </Header>
-      </div>
-     );
+        subheading="Xem chi tiết và quản lí đồ án"
+      ></Header>
+    </div>
+  );
 }
 
 export default HeaderDetail;
+
 ```
 
 ### src\features\proposals\proposal-detail-UI\Proposal-detail.jsx
@@ -2366,7 +2420,7 @@ import CardDetailsList from "./Proposal-details-list";
 import { useProposalsStore } from "../../../services/ProposalAPI";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
-import { faDownload } from "@fortawesome/free-solid-svg-icons";
+import { faDownload, faSpinner } from "@fortawesome/free-solid-svg-icons"; // <--- CẬP NHẬT: Thêm faSpinner
 
 import DeleteButton from "../layout-proposal-common/Button/DeleteButton";
 import ApprovedButton from "../layout-proposal-common/Button/ApprovedButton";
@@ -2390,6 +2444,7 @@ function Proposaldetail() {
     deleteProposal,
     isModalOpen,
     closeModal,
+    isLoading, // <--- CẬP NHẬT: Lấy biến isLoading từ store
   } = useProposalsStore();
 
   const [selectedId, setSelectedId] = useState(id ? Number(id) : null);
@@ -2509,242 +2564,277 @@ function Proposaldetail() {
   const handleDelete = () => {
     if (!confirm("Bạn có chắc chắn muốn xóa?")) return;
     if (typeof deleteProposal === "function") {
-      deleteProposal(pid).then(() => navigate("/proposals"));
+      deleteProposal(pid).then((result) => {
+        if (result.success) {
+          navigate("/proposals");
+        } else {
+          alert(result.message || "Xóa thất bại!");
+        }
+      });
     }
   };
 
   return (
-    <div style={{ backgroundColor: "#EAF2FD" }}>
-      <HeaderDetail />
-      <div className={styles["container"]}>
-        <div className={styles["left-content"]}>
-          <ProposalSearch onSearch={setSearchTerm} />
-          <div className={styles["Proposal-details-card"]}>
-            <CardDetailsList
-              proposals={proposals}
-              selectedProposalId={selectedId}
-              setSelectedProposalId={handleSetSelectedProposalId}
-            />
-          </div>
+    // <--- CẬP NHẬT: Bọc bằng React Fragment để chứa overlay loading
+    <>
+      {/* CẬP NHẬT: Overlay loading */}
+      {isLoading && (
+        <div className={styles.loadingFullScreen} style={{ color: "white" }}>
+          <FontAwesomeIcon icon={faSpinner} spin size="3x" />
+          <span>Đang xử lý...</span>
         </div>
+      )}
 
-        <div className={styles["right-content"]}>
-          <div className={styles["right-content-overview-card"]}>
-            <div className={styles["right-content-overview-card-header"]}>
-              <div
-                className={styles["right-content-overview-card-header-left"]}
-              >
-                <span
-                  className={styles["DetailsCard-id"]}
-                  style={{ marginRight: "10px" }}
+      <div style={{ backgroundColor: "#EAF2FD" }}>
+        <HeaderDetail />
+        <div className={styles["container"]}>
+          <div className={styles["left-content"]}>
+            <ProposalSearch onSearch={setSearchTerm} />
+            <div className={styles["Proposal-details-card"]}>
+              <CardDetailsList
+                proposals={proposals}
+                selectedProposalId={selectedId}
+                setSelectedProposalId={handleSetSelectedProposalId}
+              />
+            </div>
+          </div>
+
+          <div className={styles["right-content"]}>
+            <div className={styles["right-content-overview-card"]}>
+              <div className={styles["right-content-overview-card-header"]}>
+                <div
+                  className={styles["right-content-overview-card-header-left"]}
                 >
-                  {pid}
-                </span>
-                <span
-                  className={`${styles["DetailsCard-status"]} ${badgeClass}`}
+                  <span
+                    className={styles["DetailsCard-id"]}
+                    style={{ marginRight: "10px" }}
+                  >
+                    {pid}
+                  </span>
+                  <span
+                    className={`${styles["DetailsCard-status"]} ${badgeClass}`}
+                  >
+                    {statusLabel}
+                  </span>
+                </div>
+
+                <div
+                  className={styles["right-content-overview-card-header-right"]}
                 >
-                  {statusLabel}
-                </span>
+                  {isWaiting && (
+                    // CẬP NHẬT: Disable nút khi đang loading
+                    <ApprovedButton
+                      onClick={handleApprove}
+                      disabled={isLoading}
+                    />
+                  )}
+                  {isWaiting && (
+                    // CẬP NHẬT: Disable nút khi đang loading
+                    <RejectButton onClick={handleReject} disabled={isLoading} />
+                  )}
+                  {(isApproved || isRejected) && (
+                    // CẬP NHẬT: Disable nút khi đang loading
+                    <DeleteButton onClick={handleDelete} disabled={isLoading} />
+                  )}
+                </div>
               </div>
 
-              <div
-                className={styles["right-content-overview-card-header-right"]}
-              >
-                {isWaiting && <ApprovedButton onClick={handleApprove} />}
-                {isWaiting && <RejectButton onClick={handleReject} />}
-                {(isApproved || isRejected) && (
-                  <DeleteButton onClick={handleDelete} />
-                )}
+              <div className={styles["right-content-overview-card-body"]}>
+                <h3 className={styles["DetailsCard-title"]}>{title}</h3>
+                <span className={styles["overview-card-wrapper-info"]}>
+                  <img
+                    src="https://bom.edu.vn/public/upload/2024/12/avatar-vo-tri-cute-1.webp"
+                    alt="Avatar"
+                    className={styles["DetailsCard-avatar"]}
+                  />
+                  <div className={styles["overview-card-wrapper-info-text"]}>
+                    <p
+                      className={styles["DetailsCard-mentor"]}
+                      style={{ color: "#000" }}
+                    >
+                      GVHD: {mentor || "—"}
+                    </p>
+                    <p
+                      className={styles["DetailsCard-date"]}
+                      style={{ marginBottom: 0 }}
+                    >
+                      Ngày đăng ký: {registerDate || "—"}
+                    </p>
+                  </div>
+                </span>
+
+                <h1 className={styles["overview-card-member-info-title"]}>
+                  Danh sách thành viên:
+                </h1>
+                <ul className={styles["overview-card-member-info-list"]}>
+                  {members.map((m, index) => {
+                    const name =
+                      typeof m === "string" ? m : m.fullName || m.name || "";
+                    const code =
+                      typeof m === "string"
+                        ? ""
+                        : m.studentCode || m.mssv || "";
+                    return (
+                      <li
+                        key={index}
+                        className={styles["overview-card-member-info-item"]}
+                      >
+                        <img
+                          src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${
+                            (index % 5) + 1
+                          }.png`}
+                          alt="avatar-member"
+                          className={styles["overview-card-member-info-avatar"]}
+                        />
+                        <div
+                          className={
+                            styles["overview-card-member-info-item-text"]
+                          }
+                        >
+                          <p
+                            className={styles["overview-card-member-info-name"]}
+                          >
+                            {name || "—"}
+                          </p>
+                          <p
+                            className={
+                              styles["overview-card-member-student-id"]
+                            }
+                          >
+                            {code ||
+                              `28211134${(100 + index)
+                                .toString()
+                                .padStart(3, "0")}`}
+                          </p>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             </div>
 
-            <div className={styles["right-content-overview-card-body"]}>
-              <h3 className={styles["DetailsCard-title"]}>{title}</h3>
-              <span className={styles["overview-card-wrapper-info"]}>
-                <img
-                  src="https://bom.edu.vn/public/upload/2024/12/avatar-vo-tri-cute-1.webp"
-                  alt="Avatar"
-                  className={styles["DetailsCard-avatar"]}
-                />
-                <div className={styles["overview-card-wrapper-info-text"]}>
-                  <p
-                    className={styles["DetailsCard-mentor"]}
-                    style={{ color: "#000" }}
-                  >
-                    GVHD: {mentor || "—"}
-                  </p>
-                  <p
-                    className={styles["DetailsCard-date"]}
-                    style={{ marginBottom: 0 }}
-                  >
-                    Ngày đăng ký: {registerDate || "—"}
-                  </p>
-                </div>
-              </span>
+            <div className={styles["right-content-discribe-card"]}>
+              <h3 className={styles["right-content-discribe-card-title"]}>
+                Mô tả đồ án
+              </h3>
+              <p className={styles["right-content-discribe-card-description"]}>
+                {summary}
+              </p>
+            </div>
 
-              <h1 className={styles["overview-card-member-info-title"]}>
-                Danh sách thành viên:
-              </h1>
-              <ul className={styles["overview-card-member-info-list"]}>
-                {members.map((m, index) => {
-                  const name =
-                    typeof m === "string" ? m : m.fullName || m.name || "";
-                  const code =
-                    typeof m === "string" ? "" : m.studentCode || m.mssv || "";
-                  return (
-                    <li
-                      key={index}
-                      className={styles["overview-card-member-info-item"]}
+            <div className={styles["right-content-goal-card"]}>
+              <h3 className={styles["right-content-goal-card-title"]}>
+                Mục tiêu đồ án
+              </h3>
+              <ol className={styles["right-content-goal-card-list"]}>
+                {goals.map((goal, index) => (
+                  <li
+                    key={index}
+                    className={styles["right-content-goal-card-item"]}
+                  >
+                    {goal}
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className={styles["right-content-technology-card"]}>
+              <h3 className={styles["right-content-technology-card-title"]}>
+                Công nghệ sử dụng
+              </h3>
+              <ul className={styles["right-content-technology-card-list"]}>
+                {technologies.map((tech, index) => (
+                  <li
+                    key={index}
+                    className={styles["right-content-technology-card-item"]}
+                  >
+                    {tech}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className={styles["right-content-document-card"]}>
+              <h3 className={styles["right-content-document-card-title"]}>
+                Tài liệu đính kèm
+              </h3>
+              <ul className={styles["right-content-document-card-list"]}>
+                {pdfUrl ? (
+                  <li className={styles["right-content-document-card-item"]}>
+                    <div
+                      className={
+                        styles["right-content-document-card-item-content"]
+                      }
                     >
-                      <img
-                        src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${
-                          (index % 5) + 1
-                        }.png`}
-                        alt="avatar-member"
-                        className={styles["overview-card-member-info-avatar"]}
-                      />
-                      <div
+                      <span
                         className={
-                          styles["overview-card-member-info-item-text"]
+                          styles[
+                            "right-content-document-card-item-content-icon"
+                          ]
                         }
                       >
-                        <p className={styles["overview-card-member-info-name"]}>
-                          {name || "—"}
+                        <FontAwesomeIcon icon={faFile} />
+                      </span>
+                      <span
+                        className={
+                          styles[
+                            "right-content-document-card-item-content-wrapper"
+                          ]
+                        }
+                      >
+                        <p
+                          className={
+                            styles[
+                              "right-content-document-card-item-content-text"
+                            ]
+                          }
+                        >
+                          Tài liệu đề xuất
                         </p>
                         <p
-                          className={styles["overview-card-member-student-id"]}
+                          className={
+                            styles[
+                              "right-content-document-card-item-content-number"
+                            ]
+                          }
                         >
-                          {code ||
-                            `28211134${(100 + index)
-                              .toString()
-                              .padStart(3, "0")}`}
+                          {String(pdfUrl).toLowerCase().includes("/file/d/")
+                            ? "PDF"
+                            : "File"}
                         </p>
-                      </div>
-                    </li>
-                  );
-                })}
+                      </span>
+                    </div>
+                    <a
+                      href={pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={
+                        styles["right-content-document-card-item-button"]
+                      }
+                    >
+                      <FontAwesomeIcon icon={faDownload} />
+                      <p
+                        className={
+                          styles["right-content-document-card-item-button-text"]
+                        }
+                      >
+                        Mở/Tải
+                      </p>
+                    </a>
+                  </li>
+                ) : (
+                  <p className={styles["no-document"]}>
+                    Chưa có tài liệu đính kèm.
+                  </p>
+                )}
               </ul>
             </div>
           </div>
-
-          <div className={styles["right-content-discribe-card"]}>
-            <h3 className={styles["right-content-discribe-card-title"]}>
-              Mô tả đồ án
-            </h3>
-            <p className={styles["right-content-discribe-card-description"]}>
-              {summary}
-            </p>
-          </div>
-
-          <div className={styles["right-content-goal-card"]}>
-            <h3 className={styles["right-content-goal-card-title"]}>
-              Mục tiêu đồ án
-            </h3>
-            <ol className={styles["right-content-goal-card-list"]}>
-              {goals.map((goal, index) => (
-                <li
-                  key={index}
-                  className={styles["right-content-goal-card-item"]}
-                >
-                  {goal}
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className={styles["right-content-technology-card"]}>
-            <h3 className={styles["right-content-technology-card-title"]}>
-              Công nghệ sử dụng
-            </h3>
-            <ul className={styles["right-content-technology-card-list"]}>
-              {technologies.map((tech, index) => (
-                <li
-                  key={index}
-                  className={styles["right-content-technology-card-item"]}
-                >
-                  {tech}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className={styles["right-content-document-card"]}>
-            <h3 className={styles["right-content-document-card-title"]}>
-              Tài liệu đính kèm
-            </h3>
-            <ul className={styles["right-content-document-card-list"]}>
-              {pdfUrl ? (
-                <li className={styles["right-content-document-card-item"]}>
-                  <div
-                    className={
-                      styles["right-content-document-card-item-content"]
-                    }
-                  >
-                    <span
-                      className={
-                        styles["right-content-document-card-item-content-icon"]
-                      }
-                    >
-                      <FontAwesomeIcon icon={faFile} />
-                    </span>
-                    <span
-                      className={
-                        styles[
-                          "right-content-document-card-item-content-wrapper"
-                        ]
-                      }
-                    >
-                      <p
-                        className={
-                          styles[
-                            "right-content-document-card-item-content-text"
-                          ]
-                        }
-                      >
-                        Tài liệu đề xuất
-                      </p>
-                      <p
-                        className={
-                          styles[
-                            "right-content-document-card-item-content-number"
-                          ]
-                        }
-                      >
-                        {String(pdfUrl).toLowerCase().includes("/file/d/")
-                          ? "PDF"
-                          : "File"}
-                      </p>
-                    </span>
-                  </div>
-                  <a
-                    href={pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={
-                      styles["right-content-document-card-item-button"]
-                    }
-                  >
-                    <FontAwesomeIcon icon={faDownload} />
-                    <p
-                      className={
-                        styles["right-content-document-card-item-button-text"]
-                      }
-                    >
-                      Mở/Tải
-                    </p>
-                  </a>
-                </li>
-              ) : (
-                <p className={styles["no-document"]}>
-                  Chưa có tài liệu đính kèm.
-                </p>
-              )}
-            </ul>
-          </div>
         </div>
+        <AddProposalModal isOpen={isModalOpen} onClose={closeModal} />
       </div>
-      <AddProposalModal isOpen={isModalOpen} onClose={closeModal} />
-    </div>
+    </> // <--- CẬP NHẬT: Thẻ đóng React Fragment
   );
 }
 
@@ -2757,10 +2847,14 @@ export default Proposaldetail;
 import styles from "./ProposalDetails.module.scss";
 import CardDetails from "./CardDetails";
 // XÓA: Không import data cứng nữa, nhận qua props
-// import proposals from "../proposals-data";   
+// import proposals from "../proposals-data";
 
 // Cập nhật props để nhận proposals, selectedProposalId, setSelectedProposalId
-function CardDetailsList({ proposals, selectedProposalId, setSelectedProposalId }) {
+function CardDetailsList({
+  proposals,
+  selectedProposalId,
+  setSelectedProposalId,
+}) {
   if (!proposals || proposals.length === 0) {
     return <p>Không có đề tài nào</p>;
   }
@@ -2768,9 +2862,9 @@ function CardDetailsList({ proposals, selectedProposalId, setSelectedProposalId 
   return (
     <div className={styles["DetailsList-wrapper"]}>
       {proposals.map((p) => (
-        <CardDetails 
-          key={p.id} 
-          proposal={p} 
+        <CardDetails
+          key={p.id}
+          proposal={p}
           selectedProposalId={selectedProposalId} // Truyền state
           setSelectedProposalId={setSelectedProposalId} // Truyền setter
         />
@@ -2780,6 +2874,7 @@ function CardDetailsList({ proposals, selectedProposalId, setSelectedProposalId 
 }
 
 export default CardDetailsList;
+
 ```
 
 ### src\features\proposals\proposals-logic\ProposalSearch-logic.jsx
@@ -2946,6 +3041,7 @@ const formatName = (fullName) => {
       .join(".");
     return `${initials}. ${middleName} ${lastName}`;
   } else if (parts.length === 2) {
+    return `${parts[0].charAt(0).toUpperCase()}. ${parts[1]}`;
     return `${parts[0].charAt(0).toUpperCase()}. ${parts[1]}`;
   } else {
     return fullName;
@@ -3209,12 +3305,10 @@ export default Tabs;
 ### src\pages\admin\AdminLayout.jsx
 ```jsx
 import React, { useEffect } from "react";
-import Navbar from "../../components/common/Navbar";
+import Navbar from "../../components/common/Navbar.jsx";
 import { Outlet, useNavigate } from "react-router-dom";
 import "./AdminLayout.scss";
 import { jwtDecode } from "jwt-decode";
-import { refreshTokenAPI } from "../../services/AuthAPI"; // bạn đã có hàm này
-
 const AdminLayout = () => {
   const navigate = useNavigate();
 
@@ -3222,39 +3316,29 @@ const AdminLayout = () => {
     const token = localStorage.getItem("token");
     const refreshToken = localStorage.getItem("refreshToken");
 
+    // 1. Kiểm tra xem có token không (đã đăng nhập chưa)
     if (!token || !refreshToken) {
+      localStorage.clear(); // Dọn dẹp nếu thiếu
       navigate("/", { replace: true });
       return;
     }
 
     try {
+      // 2. Chỉ decode token để kiểm tra vai trò (Role)
       const decoded = jwtDecode(token);
-      const now = Date.now() / 1000;
 
-      // Nếu token hết hạn → thử refresh
-      if (!decoded.exp || decoded.exp < now) {
-        refreshTokenAPI({ token, refreshToken })
-          .then((data) => {
-            localStorage.setItem("token", data.token);
-          })
-          .catch(() => {
-            localStorage.clear();
-            navigate("/", { replace: true });
-          });
-        return;
-      }
-
-      // Check role
       const role =
         decoded.AccountType ||
         decoded.accountType ||
         decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
 
+      // 3. Kiểm tra vai trò
       if (role !== "Admin") {
+        localStorage.clear();
         navigate("/", { replace: true });
       }
     } catch (error) {
-      console.error("Error decoding token:", error);
+      console.error("Error decoding token in AdminLayout:", error);
       localStorage.clear();
       navigate("/", { replace: true });
     }
@@ -3283,6 +3367,9 @@ export default AdminLayout;
 
 ### src\pages\admin\Proposals.jsx
 ```jsx
+
+
+
 import HeaderManagement from "../../features/proposals/proposals-management-UI/HeaderManagement";
 import ProposalList from "../../features/proposals/proposals-management-UI/ProposalList";
 export default function Proposals() {
@@ -3294,7 +3381,6 @@ export default function Proposals() {
     </div>
   );
 }
-
 ```
 
 ### src\pages\admin\QuanLyDoAn\QuanLyDoAn.jsx
@@ -3443,7 +3529,7 @@ const QuanLyDoAn = () => {
         accessorKey: "teamId",
         cell: (info) => {
           const value = info.getValue();
-          const team = info.row.original; 
+          const team = info.row.original;
           return (
             <div className="qlda-actions">
               <button
@@ -3652,15 +3738,14 @@ const QuanLyDoAn = () => {
         students={selectedTeamStudents}
         teams={projects}
       />
-      
+
       <SwapStudentModal
         show={swapModal}
-        setShow={setSwapModal} 
+        setShow={setSwapModal}
         currentTeamId={teamId}
         students={selectedTeamStudents}
         teams={projects}
       />
-
     </div>
   );
 };
@@ -6672,6 +6757,7 @@ const TongQuan = () => {
     student: { index: null, selected: null },
     proposal: { index: null, selected: null },
   });
+  const [loading, setLoading] = useState(true);
 
   const chart1Ref = useRef(null);
   const chart2Ref = useRef(null);
@@ -6791,6 +6877,7 @@ const TongQuan = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const [
           lecturersRes,
           studentsRes,
@@ -6840,6 +6927,8 @@ const TongQuan = () => {
         });
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -6853,6 +6942,10 @@ const TongQuan = () => {
     () => proposalsByStatus.reduce((sum, item) => sum + item.value, 0),
     [proposalsByStatus]
   );
+
+  if (loading) {
+    return <div className="tongquan-page">Loading...</div>;
+  }
 
   return (
     <div className="tongquan-page">
@@ -8678,7 +8771,7 @@ export default GradingPage;
 
 ### src\pages\Login\Login.jsx
 ```jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Thêm useEffect để trigger animation
 import { useNavigate } from "react-router-dom";
 import "./Login.scss";
 import { useDispatch, useSelector } from "react-redux";
@@ -8693,11 +8786,18 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [isLoaded, setIsLoaded] = useState(false); // State để trigger stagger animation
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const loading = useSelector(selectAuthLoading);
   const authError = useSelector(selectAuthError);
+
+  // Trigger animation sau khi component mount
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
   const validateEmail = (val) => {
     // Regex cải thiện: cho phép ký tự đặc biệt, kiểm tra độ dài
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -8753,37 +8853,76 @@ const Login = () => {
 
   return (
     <div className="login-page">
+      {/* decorative particles */}
+      {/* <div className="particle" />
+      <div className="particle" />
+      <div className="particle" /> */}
       <div className="login-container">
-        <h2 className="login-title">CAPSY SMART DTU</h2>
+        <h2 className={`login-title ${isLoaded ? "animate" : ""}`}>
+          CAPSY SMART DTU
+        </h2>
+        <p className={`login-subtitle ${isLoaded ? "animate" : ""}`}>
+          Welcome back. Please sign in to continue.
+        </p>
 
         <form className="login-form" onSubmit={handleLoginSubmit}>
-          <div className="form-group">
+          <div className={`form-group ${isLoaded ? "animate" : ""}`}>
             <label htmlFor="email">Your Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="contact@disdtech.com"
-              className={emailError ? "error" : ""}
-            />
-            {emailError && <span className="error-message">{emailError}</span>}
+            <div className="input-wrapper">
+              <svg
+                className="input-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M20 4H4C2.9 4 2.01 4.9 2.01 6L2 18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 8L12 13L4 8V6L12 11L20 6V8Z"
+                  fill="#adb5bd"
+                />
+              </svg>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="contact@disdtech.com"
+                className={emailError ? "error" : ""}
+              />
+            </div>
+            {emailError && (
+              <span className="error-message animate-error">{emailError}</span>
+            )}
           </div>
 
-          <div className="form-group">
+          <div className={`form-group ${isLoaded ? "animate" : ""}`}>
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={passwordError ? "error" : ""}
-            />
+            <div className="input-wrapper">
+              <svg
+                className="input-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 8H17V6C17 3.24 14.76 1 12 1S7 3.24 7 6V8H6C4.9 8 4 8.9 4 10V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V10C20 8.9 19.1 8 18 8ZM12 17C10.9 17 10 16.1 10 15S10.9 13 12 13 14 13.9 14 15 13.1 17 12 17ZM9 8V6C9 4.34 10.34 3 12 3S15 4.34 15 6V8H9Z"
+                  fill="#adb5bd"
+                />
+              </svg>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={passwordError ? "error" : ""}
+              />
+            </div>
             {passwordError && (
-              <span className="error-message">{passwordError}</span>
+              <span className="error-message animate-error">
+                {passwordError}
+              </span>
             )}
             {!passwordError && authError && (
-              <span className="error-message">{authError}</span>
+              <span className="error-message animate-error">{authError}</span>
             )}
 
             <button
@@ -8799,8 +8938,10 @@ const Login = () => {
             type="submit"
             className={`btn-loading ${loading ? "animation" : ""}`}
             disabled={loading}
+            aria-busy={loading}
+            aria-live="polite"
           >
-            {loading ? "Đang đăng nhập..." : "Continue"}
+            <span>{loading ? "Đang đăng nhập..." : "Continue"}</span>
           </button>
         </form>
       </div>
@@ -8893,10 +9034,16 @@ const resetPasswordAPI = async (
 //refresh token
 const refreshTokenAPI = async ({ token, refreshToken }) => {
   try {
-    const response = await instance.post("Auth/refresh", {
-      token,
-      refreshToken,
-    });
+    // Nếu backend yêu cầu header Authorization với token cũ, thêm nó vào đây
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}; // Chỉ thêm nếu token tồn tại
+    const response = await instance.post(
+      "http://localhost:5295/api/Auth/refresh",
+      {
+        token,
+        refreshToken,
+      },
+      { headers }
+    ); // Thêm headers nếu cần
     return response.data;
   } catch (error) {
     throw new Error(
@@ -9248,10 +9395,33 @@ const ENV_BASE = import.meta?.env?.VITE_API_URL?.replace(/\/$/, "");
 const API_BASE = ENV_BASE || "http://localhost:5295/api";
 const PROPOSAL_URL = `${API_BASE}/Proposal`;
 
-// ====== helpers ======
+// ====== auth + fetch wrappers ======
+const LOGIN_URL = "http://localhost:5173/";
+
 const getToken = () =>
   localStorage.getItem("token") || sessionStorage.getItem("token") || "";
 
+const handleUnauthorized = () => {
+  try {
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+  } catch {}
+  // dùng replace để không quay lại được trang lỗi bằng Back
+  window.location.replace(LOGIN_URL);
+};
+
+// KHÔNG tự chèn header ở đây, để nguyên options.headers từ caller.
+// Mục tiêu chỉ bắt 401 và redirect.
+const fetchSafe = async (url, options = {}) => {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("Unauthorized");
+  }
+  return res;
+};
+
+// ====== helpers ======
 const authHeaders = (extra = {}, { isFormData = false } = {}) => {
   const h = { ...extra };
   const token = getToken();
@@ -9341,10 +9511,15 @@ const extractMentorName = (obj) => {
 const toCardShape = (p) => {
   if (!p) return null;
 
-  const id = p.id ?? p.proposalId ?? p.ProposalID;
+  // hỗ trợ cả Id/Title/Description từ BE
+  const id = p.id ?? p.Id ?? p.proposalId ?? p.ProposalID;
   const title =
-    p.title ?? p.proposalTitle ?? p.ProposalTitle ?? "(Không có tiêu đề)";
-  const summary = p.summary ?? p.abstract ?? "";
+    p.title ??
+    p.Title ??
+    p.proposalTitle ??
+    p.ProposalTitle ??
+    "(Không có tiêu đề)";
+  const summary = p.summary ?? p.abstract ?? p.Description ?? "";
 
   const registerDate =
     p.registerDate ||
@@ -9369,12 +9544,13 @@ const toCardShape = (p) => {
     title,
     summary,
     mentor: p.mentorName || p.mentor || "",
+    // các component đang đọc members/teamMembers/students
     members: Array.isArray(p.members) ? p.members : [],
     registerDate,
     approveDate,
     status,
     teamId: p.teamId ?? p.TeamId,
-    // Giữ nguyên các field liên quan đến PDF/Drive nếu có
+    // giữ field PDF/Drive
     googleDriveUrl: p.googleDriveUrl ?? p.GoogleDriveUrl,
     googleDriveFileId: p.googleDriveFileId ?? p.GoogleDriveFileId,
     documentUrl: p.documentUrl,
@@ -9489,10 +9665,13 @@ export const useProposalsStore = create((set, get) => {
     isLoading: false,
     error: null,
 
+    // ✅ ENRICH: gọi TeamsAPI để gắn members/mentor
     fetchProposals: async () => {
       set({ isLoading: true, error: null });
       try {
-        const res = await fetch(`${PROPOSAL_URL}`, { headers: authHeaders() });
+        const res = await fetchSafe(`${PROPOSAL_URL}`, {
+          headers: authHeaders(),
+        });
         const payload = await parseApiJson(res);
         if (!res.ok)
           throw new Error(
@@ -9507,7 +9686,30 @@ export const useProposalsStore = create((set, get) => {
           ? payload
           : [];
 
-        set({ proposals: list, isLoading: false });
+        const enriched = await Promise.all(
+          list.map(async (p) => {
+            if (!p || !(p.teamId ?? p.TeamId)) return p;
+            const teamId = p.teamId ?? p.TeamId;
+            try {
+              const tRes = await getTeamByIdAPI(teamId);
+              const tRaw = tRes?.data || tRes || {};
+              const members = extractMembers(tRaw);
+              const mentorName = extractMentorName(tRaw);
+
+              return {
+                ...p,
+                mentorName,
+                members,
+                teamMembers: members,
+                students: members,
+              };
+            } catch {
+              return { ...p, members: [], teamMembers: [], students: [] };
+            }
+          })
+        );
+
+        set({ proposals: enriched, isLoading: false });
         recompute();
       } catch (err) {
         console.error("Lỗi fetchProposals:", err);
@@ -9518,21 +9720,43 @@ export const useProposalsStore = create((set, get) => {
       }
     },
 
-    // 🔎 Lấy chi tiết 1 proposal & merge vào state
+    // ✅ ENRICH: khi lấy chi tiết, cũng gắn members/mentor từ TeamsAPI
     fetchProposalById: async (id) => {
       if (!id) return;
       try {
-        const res = await fetch(`${PROPOSAL_URL}/${id}`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/${id}`, {
           headers: authHeaders(),
         });
         const payload = await parseApiJson(res);
         if (!res.ok)
           throw new Error(payload?.message || "Không tải được chi tiết");
 
-        const detail = payload?.data || payload;
+        let detail = payload?.data || payload;
+
+        // enrich nếu có teamId
+        const teamId = detail?.teamId ?? detail?.TeamId;
+        if (teamId) {
+          try {
+            const tRes = await getTeamByIdAPI(teamId);
+            const tRaw = tRes?.data || tRes || {};
+            const members = extractMembers(tRaw);
+            const mentorName = extractMentorName(tRaw);
+            detail = {
+              ...detail,
+              mentorName,
+              members,
+              teamMembers: members,
+              students: members,
+            };
+          } catch {
+            // bỏ qua nếu lỗi team
+          }
+        }
+
         const current = get().proposals || [];
         const idx = current.findIndex(
-          (p) => String(p.id ?? p.proposalId ?? p.ProposalID) === String(id)
+          (p) =>
+            String(p.id ?? p.Id ?? p.proposalId ?? p.ProposalID) === String(id)
         );
 
         let next;
@@ -9551,10 +9775,11 @@ export const useProposalsStore = create((set, get) => {
     },
 
     addProposal: async (formData) => {
+      set({ isLoading: true });
       try {
-        const res = await fetch(`${PROPOSAL_URL}/upload`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/upload`, {
           method: "POST",
-          headers: authHeaders({}, { isFormData: true }),
+          headers: authHeaders({}, { isFormData: true }), // KHÔNG set Content-Type cho FormData
           body: formData,
         });
         const payload = await parseApiJson(res);
@@ -9568,7 +9793,7 @@ export const useProposalsStore = create((set, get) => {
         return { success: true, data: payload?.data ?? payload };
       } catch (e) {
         console.error("Lỗi khi thêm đề tài:", e);
-        // Truyền thông điệp BE (ví dụ: "Team này đã có proposal")
+        set({ isLoading: false });
         return {
           success: false,
           message: e.message || "Không thể thêm đề tài",
@@ -9578,7 +9803,7 @@ export const useProposalsStore = create((set, get) => {
 
     approveProposal: async (id) => {
       try {
-        const res = await fetch(`${PROPOSAL_URL}/${id}/status`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/${id}/status`, {
           method: "PUT",
           headers: authHeaders(),
           body: JSON.stringify({ Status: "Approved" }),
@@ -9603,7 +9828,7 @@ export const useProposalsStore = create((set, get) => {
 
     rejectProposal: async (id, reason = "Không phù hợp") => {
       try {
-        const res = await fetch(`${PROPOSAL_URL}/${id}/status`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/${id}/status`, {
           method: "PUT",
           headers: authHeaders(),
           body: JSON.stringify({
@@ -9630,8 +9855,9 @@ export const useProposalsStore = create((set, get) => {
     },
 
     deleteProposal: async (id) => {
+      set({ isLoading: true });
       try {
-        const res = await fetch(`${PROPOSAL_URL}/${id}`, {
+        const res = await fetchSafe(`${PROPOSAL_URL}/${id}`, {
           method: "DELETE",
           headers: authHeaders(),
         });
@@ -9640,6 +9866,7 @@ export const useProposalsStore = create((set, get) => {
         return { success: true };
       } catch (e) {
         console.error("deleteProposal error:", e);
+        set({ isLoading: false });
         return { success: false, message: e.message || "Xóa thất bại" };
       }
     },

@@ -77,10 +77,16 @@ const resetPasswordAPI = async (
 //refresh token
 const refreshTokenAPI = async ({ token, refreshToken }) => {
   try {
-    const response = await instance.post("Auth/refresh", {
-      token,
-      refreshToken,
-    });
+    // Nếu backend yêu cầu header Authorization với token cũ, thêm nó vào đây
+    const headers = token ? { Authorization: `Bearer ${token}` } : {}; // Chỉ thêm nếu token tồn tại
+    const response = await instance.post(
+      "http://localhost:5295/api/Auth/refresh",
+      {
+        token,
+        refreshToken,
+      },
+      { headers }
+    ); // Thêm headers nếu cần
     return response.data;
   } catch (error) {
     throw new Error(

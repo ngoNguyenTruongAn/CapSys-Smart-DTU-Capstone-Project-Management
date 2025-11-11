@@ -154,7 +154,7 @@ function Proposaldetail() {
         if (result.success) {
           navigate("/proposals");
         } else {
-           alert(result.message || "Xóa thất bại!");
+          alert(result.message || "Xóa thất bại!");
         }
       });
     }
@@ -162,7 +162,7 @@ function Proposaldetail() {
 
   return (
     // <--- CẬP NHẬT: Bọc bằng React Fragment để chứa overlay loading
-    <> 
+    <>
       {/* CẬP NHẬT: Overlay loading */}
       {isLoading && (
         <div className={styles.loadingFullScreen} style={{ color: "white" }}>
@@ -170,7 +170,7 @@ function Proposaldetail() {
           <span>Đang xử lý...</span>
         </div>
       )}
-      
+
       <div style={{ backgroundColor: "#EAF2FD" }}>
         <HeaderDetail />
         <div className={styles["container"]}>
@@ -254,7 +254,9 @@ function Proposaldetail() {
                     const name =
                       typeof m === "string" ? m : m.fullName || m.name || "";
                     const code =
-                      typeof m === "string" ? "" : m.studentCode || m.mssv || "";
+                      typeof m === "string"
+                        ? ""
+                        : m.studentCode || m.mssv || "";
                     return (
                       <li
                         key={index}
@@ -278,7 +280,9 @@ function Proposaldetail() {
                             {name || "—"}
                           </p>
                           <p
-                            className={styles["overview-card-member-student-id"]}
+                            className={
+                              styles["overview-card-member-student-id"]
+                            }
                           >
                             {code ||
                               `28211134${(100 + index)
@@ -348,7 +352,9 @@ function Proposaldetail() {
                     >
                       <span
                         className={
-                          styles["right-content-document-card-item-content-icon"]
+                          styles[
+                            "right-content-document-card-item-content-icon"
+                          ]
                         }
                       >
                         <FontAwesomeIcon icon={faFile} />

@@ -34,6 +34,7 @@ const TongQuan = () => {
     student: { index: null, selected: null },
     proposal: { index: null, selected: null },
   });
+  const [loading, setLoading] = useState(true);
 
   const chart1Ref = useRef(null);
   const chart2Ref = useRef(null);
@@ -153,6 +154,7 @@ const TongQuan = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const [
           lecturersRes,
           studentsRes,
@@ -202,6 +204,8 @@ const TongQuan = () => {
         });
       } catch (error) {
         console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -215,6 +219,10 @@ const TongQuan = () => {
     () => proposalsByStatus.reduce((sum, item) => sum + item.value, 0),
     [proposalsByStatus]
   );
+
+  if (loading) {
+    return <div className="tongquan-page">Loading...</div>;
+  }
 
   return (
     <div className="tongquan-page">

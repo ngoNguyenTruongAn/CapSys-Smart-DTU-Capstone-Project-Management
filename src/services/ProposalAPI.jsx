@@ -126,7 +126,11 @@ const toCardShape = (p) => {
   // hỗ trợ cả Id/Title/Description từ BE
   const id = p.id ?? p.Id ?? p.proposalId ?? p.ProposalID;
   const title =
-    p.title ?? p.Title ?? p.proposalTitle ?? p.ProposalTitle ?? "(Không có tiêu đề)";
+    p.title ??
+    p.Title ??
+    p.proposalTitle ??
+    p.ProposalTitle ??
+    "(Không có tiêu đề)";
   const summary = p.summary ?? p.abstract ?? p.Description ?? "";
 
   const registerDate =

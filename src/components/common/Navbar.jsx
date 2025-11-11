@@ -2,16 +2,16 @@ import React from "react";
 import "./Navbar.scss";
 import logoCap from "../../assets/logo/Frame41.png";
 import anh from "../../assets/image/hue.jpg";
-
-// ⬇️ Dùng default import + ?react
-import Bell from "../../assets/icon/Bell.svg?react";
-import MenuIcon from "../../assets/icon/Menu_Alt_01.svg?react";
-import NotebookIcon from "../../assets/icon/Notebook.svg?react";
-import StarIcon from "../../assets/icon/Star.svg?react";
-import CheckIcon from "../../assets/icon/Check_All.svg?react";
-import CalendarIcon from "../../assets/icon/Calendar.svg?react";
-
-import { Link, useNavigate } from "react-router-dom";
+import Bell from "/src/assets/icon/Bell.svg?react";
+import MenuIcon from "/src/assets/icon/Menu_Alt_01.svg?react";
+import NotebookIcon from "/src/assets/icon/Notebook.svg?react";
+import StarIcon from "/src/assets/icon/Star.svg?react";
+import CalendarIcon from "/src/assets/icon/Calendar.svg?react";
+import CheckIcon from "/src/assets/icon/Check_All.svg?react";
+import LogoutIcon from "/src/assets/icon/log-out.svg?react";
+import ManageAcc from "/src/assets/icon/users.svg?react";
+import Proposal from "/src/assets/icon/check-square.svg?react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { LogoutAPI } from "../../services/AuthAPI";
 
 const Navbar = () => {
@@ -47,25 +47,69 @@ const Navbar = () => {
 
       <div className="nav-bottom">
         <ul className="navbar__menu">
-          <li onClick={() => navigate("")}>
-            <MenuIcon className="menu-icon" />
-            Tổng quan
-          </li>
-          <li onClick={() => navigate("/admin/quan-ly-do-an")}>
-            <NotebookIcon className="menu-icon" />
-            Quản lý đồ án
+          <li>
+            <NavLink
+              to=""
+              end
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <MenuIcon className="menu-icon" />
+              Tổng quan
+            </NavLink>
           </li>
           <li>
-            <StarIcon className="menu-icon" />
-            Chấm điểm
+            <NavLink
+              to="quan-ly-do-an"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <NotebookIcon className="menu-icon" />
+              Quản lý đồ án
+            </NavLink>
           </li>
           <li>
-            <CalendarIcon className="menu-icon" />
-            Lịch bảo vệ
+            <NavLink
+              to="quan-ly-tai-khoan"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <ManageAcc className="menu-icon" />
+              Quản lý tài khoản
+            </NavLink>
           </li>
           <li>
-            <CheckIcon className="menu-icon" />
-            Phê duyệt
+            <NavLink
+              to="/proposals"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <Proposal className="menu-icon" />
+              Quản lý Proposals
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="cham-diem"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <StarIcon className="menu-icon" />
+              Chấm điểm
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="lich-bao-ve"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <CalendarIcon className="menu-icon" />
+              Lịch bảo vệ
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="phe-duyet"
+              className={({ isActive }) => (isActive ? "active" : "")}
+            >
+              <CheckIcon className="menu-icon" />
+              Phê duyệt
+            </NavLink>
           </li>
           <li onClick={handleLogout}>Đăng xuất</li>
         </ul>

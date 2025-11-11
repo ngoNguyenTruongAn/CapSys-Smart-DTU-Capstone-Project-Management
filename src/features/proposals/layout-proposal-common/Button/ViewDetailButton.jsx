@@ -1,9 +1,7 @@
-
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye } from "@fortawesome/free-regular-svg-icons";
 import { Link } from "react-router-dom"; // Import Link từ react-router-dom
-import styles from '../../proposals-management-UI/Proposal.module.scss'
-
+import styles from "../../proposals-management-UI/Proposal.module.scss";
 
 function ViewDetailButton({ id }) {
   return (

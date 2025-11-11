@@ -9,18 +9,18 @@ import { faCheckCircle } from "@fortawesome/free-solid-svg-icons";
  * @param {boolean} disabled - Trạng thái disabled
  */
 function ProposalActionButton({ onClick, disabled = false }) {
-    return (
-        <button 
-            className={styles['approvedButton-wrapper']}
-            onClick={onClick}
-            disabled={disabled}
-        >
-            <span className={styles['approvedButton-icon']}>
-                <FontAwesomeIcon icon={faCheckCircle} />
-            </span>
-            <p className={styles['approvedButton-text']}>Duyệt</p>
-        </button>
-    );
+  return (
+    <button
+      className={styles["approvedButton-wrapper"]}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <span className={styles["approvedButton-icon"]}>
+        <FontAwesomeIcon icon={faCheckCircle} />
+      </span>
+      <p className={styles["approvedButton-text"]}>Duyệt</p>
+    </button>
+  );
 }
 
 export default ProposalActionButton;
