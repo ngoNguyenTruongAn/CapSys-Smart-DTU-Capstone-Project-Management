@@ -203,7 +203,9 @@ CapSys-Smart-DTU-Capstone-Project-Management-main/
 ├── .gitignore
 ├── eslint.config.js
 ├── excel.py
+├── fe.txt
 ├── index.html
+├── mq.txt
 ├── package-lock.json
 ├── package.json
 └── vite.config.js

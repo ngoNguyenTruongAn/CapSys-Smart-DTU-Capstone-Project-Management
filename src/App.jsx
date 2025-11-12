@@ -14,6 +14,7 @@ import MentorContent from "./pages/admin/QuanLyDoAn/QuanLyNhomDeTai/MentorConten
 import Proposals from "./pages/admin/Proposals";
 import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-detail";
 import GradingPage from "./pages/grading/GradingPage";
+import QuanLyHoiDong from "./pages/admin/QuanLyHoiDong/QuanLyHoiDong";
 function App() {
   return (
     <Routes>
@@ -25,6 +26,7 @@ function App() {
         <Route path="quan-ly-do-an" element={<QuanLyDoAn />} />
         <Route path="quan-ly-tai-khoan" element={<QuanLyTaiKhoan />} />
         <Route path="cham-diem" element={<GradingPage />} />
+        <Route path="quan-ly-hoi-dong" element={<QuanLyHoiDong />} />
       </Route>
       <Route
         path="/admin/quan-ly-do-an/quan-ly-nhom-do-an"

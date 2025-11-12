@@ -107,11 +107,11 @@ const Navbar = () => {
           </li>
           <li>
             <NavLink
-              to="lich-bao-ve"
+              to="quan-ly-hoi-dong"
               className={({ isActive }) => (isActive ? "active" : "")}
             >
               <CalendarIcon className="menu-icon" />
-              Lịch bảo vệ
+              Quản lý hội đồng
             </NavLink>
           </li>
           <li>
