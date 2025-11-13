@@ -1,7 +1,86 @@
 import React from 'react';
 import styles from './GroupCard.module.css';
 
+const DEFAULT_MENTOR_PLACEHOLDER = 'Chua co mentor';
+
+const normalizeString = (value) => {
+  if (typeof value !== 'string') return '';
+  if (typeof value.normalize === 'function') {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+  return value.toLowerCase();
+};
+
+const shouldPreservePlaceholder = (value) => {
+  if (!value) return false;
+  const normalized = normalizeString(value);
+  return (
+    normalized.includes('mentor') &&
+    (normalized.includes('chua co') ||
+      normalized.includes('khong co') ||
+      normalized.includes('dang cap nhat') ||
+      normalized.includes('chua phan cong'))
+  );
+};
+
+const getMentorDisplayName = (mentorValue) => {
+  const fromString = (text) => {
+    if (!text) return '';
+    const trimmed = text.trim();
+    if (!trimmed) return '';
+    if (shouldPreservePlaceholder(trimmed)) {
+      return trimmed;
+    }
+    const parts = trimmed.split(/\s+/);
+    return parts[parts.length - 1] || trimmed;
+  };
+
+  if (!mentorValue) {
+    return DEFAULT_MENTOR_PLACEHOLDER;
+  }
+
+  if (typeof mentorValue === 'string') {
+    return fromString(mentorValue) || DEFAULT_MENTOR_PLACEHOLDER;
+  }
+
+  if (typeof mentorValue === 'object') {
+    const firstNameCandidate =
+      mentorValue.firstName ||
+      mentorValue.FirstName ||
+      mentorValue.givenName ||
+      mentorValue.GivenName ||
+      mentorValue.mentorFirstName ||
+      mentorValue.MentorFirstName ||
+      mentorValue.name?.first ||
+      mentorValue.name?.First ||
+      mentorValue.name?.firstName ||
+      mentorValue.name?.FirstName;
+
+    if (firstNameCandidate) {
+      return fromString(firstNameCandidate) || DEFAULT_MENTOR_PLACEHOLDER;
+    }
+
+    const fallbackFullName =
+      mentorValue.fullName ||
+      mentorValue.FullName ||
+      mentorValue.name ||
+      mentorValue.Name ||
+      mentorValue.mentorName ||
+      mentorValue.MentorName;
+
+    if (fallbackFullName) {
+      if (typeof fallbackFullName === 'string') {
+        return fromString(fallbackFullName) || DEFAULT_MENTOR_PLACEHOLDER;
+      }
+      return getMentorDisplayName(fallbackFullName);
+    }
+  }
+
+  return DEFAULT_MENTOR_PLACEHOLDER;
+};
+
 const GroupCard = ({ group, team, project, members, score, mentor, status, onStartGrading }) => {
+  const mentorDisplayName = getMentorDisplayName(mentor);
   const getStatusConfig = (status) => {
     switch (status) {
       case 'graded':
@@ -74,7 +153,7 @@ const GroupCard = ({ group, team, project, members, score, mentor, status, onSta
             </svg>
           </span>
           <span className={styles.groupCard__detailLabel}>Mentor</span>
-          <span className={styles.groupCard__detailValue}>{mentor}</span>
+          <span className={styles.groupCard__detailValue}>{mentorDisplayName}</span>
         </div>
       </div>
       
