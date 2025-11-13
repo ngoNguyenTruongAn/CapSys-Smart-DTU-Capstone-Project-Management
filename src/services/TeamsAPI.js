@@ -7,7 +7,9 @@ const getAllTeamsAPI = async (capstoneType) => {
     );
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
   }
 };
 
@@ -17,7 +19,40 @@ const getTeamByIdAPI = async (teamId) => {
     const response = await instance.get(`Teams/${teamId}`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
+  }
+};
+// Lấy tất cả TeamCode (BE: GET /api/Teams/getAllTeamCodes)
+const getAllTeamCodesAPI = async () => {
+  try {
+    const response = await instance.get("Teams/getAllTeamCodes");
+    // BE trả: { success, message, data: [ "TEAM_CAP1_001", ... ] }
+    return response.data;
+  } catch (error) {
+    console.error("Error getAllTeamCodes:", error);
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
+  }
+};
+
+const getTeamByCodeAPI = async (teamCode) => {
+  try {
+    // Dùng đúng endpoint BE: GET /api/Teams/getDataByTeamCode/{teamCode}
+    const response = await instance.get(
+      `Teams/getDataByTeamCode/${encodeURIComponent(teamCode)}`
+    );
+
+    // BE trả về dạng: { success, message, data }
+    return response.data; // để ProposalAPI xử lý tiếp
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Không tìm thấy nhóm này."
+    );
   }
 };
 
@@ -61,7 +96,9 @@ const deleteTeamAPI = async (teamId) => {
     const response = await instance.delete(`Teams/delete/${teamId}`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
   }
 };
 
@@ -78,7 +115,9 @@ const createTeamAPI = async (teamData) => {
     const response = await instance.post("Teams/create", data);
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
   }
 };
 
@@ -90,7 +129,9 @@ const getStudentsNotInTeamAPI = async (capstoneType) => {
     );
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
   }
 };
 
@@ -102,24 +143,37 @@ const autoArrangeTeamAPI = async (capstoneType) => {
     });
     return response.data;
   } catch (error) {
-    throw new Error(error.response.message || error.message);
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Lỗi khi tự động xếp nhóm."
+    );
   }
 };
 
-//Chuyển SV sang team khác
+//Chuyển SV sang team khác (TỐI ƯU HÓA)
 const postMoveStudentAPI = async (studentIds, targetTeamId) => {
   try {
-    for (const studentId of studentIds) {
-      await instance.post("Teams/move-student", {
+    // Thực hiện song song các yêu cầu di chuyển
+    const movePromises = studentIds.map((studentId) =>
+      instance.post("Teams/move-student", {
         studentId,
-        targetTeamId
-      });
-    }
+        targetTeamId,
+      })
+    );
+
+    // Chờ tất cả các yêu cầu hoàn thành
+    await Promise.all(movePromises);
 
     return { success: true, message: "Di chuyển sinh viên thành công!" };
   } catch (error) {
     console.error("Error moving student:", error);
-    throw new Error(error.response?.data?.message || "Lỗi server");
+    // Nếu một yêu cầu thất bại, Promise.all sẽ reject
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Lỗi khi di chuyển sinh viên."
+    );
   }
 };
 
@@ -132,7 +186,11 @@ const postSwapStudentAPI = async (studentId1, studentId2) => {
     });
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || "Lỗi khi đổi sinh viên");
+    throw new Error(
+      error.response?.data?.message ||
+        error.message ||
+        "Lỗi khi đổi sinh viên"
+    );
   }
 };
 
@@ -142,7 +200,9 @@ const postRemoveStudentAPI = async (studentId) => {
     const response = await instance.post(`Teams/remove-student/${studentId}`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
   }
 };
 
@@ -154,7 +214,9 @@ const postAssignMentorAPI = async (teamId, mentorId) => {
     );
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
   }
 };
 
@@ -166,7 +228,9 @@ const postRemoveMentorAPI = async (teamId) => {
     });
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
   }
 };
 
@@ -176,7 +240,9 @@ const getMentorWorkloadAPI = async () => {
     const response = await instance.get(`Teams/mentor-workload`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
   }
 };
 
@@ -188,7 +254,9 @@ const getTeamsWithoutMentorAPI = async (capstoneType) => {
     );
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
   }
 };
 
@@ -199,6 +267,8 @@ export {
   deleteTeamAPI,
   createTeamAPI,
   getStudentsNotInTeamAPI,
+  getAllTeamCodesAPI,
+  getTeamByCodeAPI,
   autoArrangeTeamAPI,
   postMoveStudentAPI,
   postSwapStudentAPI,

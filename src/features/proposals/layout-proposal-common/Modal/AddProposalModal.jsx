@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import styles from "./AddProposalModal.module.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faPlus,
-  faTrash,
   faSearch,
   faFilePdf,
   faSpinner,
+  faUpload,
+  faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 import { useProposalsStore } from "../../../../services/ProposalAPI";
+import { getAllTeamCodesAPI } from "../../../../services/TeamsAPI";
 
 export default function AddProposalModal() {
   const {
@@ -23,10 +24,16 @@ export default function AddProposalModal() {
 
   const [teamId, setTeamId] = useState("");
   const [members, setMembers] = useState([{ name: "", mssv: "" }]);
-  const [goals, setGoals] = useState([""]);
-  const [technologies, setTechnologies] = useState([""]);
   const [file, setFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
 
+  // ==== autocomplete state ====
+  const [allTeamCodes, setAllTeamCodes] = useState([]);
+  const [filteredTeamCodes, setFilteredTeamCodes] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingTeamCodes, setIsLoadingTeamCodes] = useState(false);
+
+  // Map teamContext -> members
   useEffect(() => {
     if (!teamContext) return;
     if (Array.isArray(teamContext.members) && teamContext.members.length) {
@@ -41,11 +48,35 @@ export default function AddProposalModal() {
     }
   }, [teamContext]);
 
-  if (!isModalOpen) return null;
+  // Khi mở modal lần đầu -> load tất cả team code
+  useEffect(() => {
+    if (!isModalOpen) return;
 
-  const addRow = (setter, empty) => setter((p) => [...p, empty]);
-  const removeRow = (setter, i) =>
-    setter((p) => (p.length > 1 ? p.filter((_, idx) => idx !== i) : p));
+    let cancelled = false;
+
+    const fetchCodes = async () => {
+      try {
+        setIsLoadingTeamCodes(true);
+        const res = await getAllTeamCodesAPI();
+        const raw = res?.data || res || [];
+        if (!cancelled && Array.isArray(raw)) {
+          setAllTeamCodes(raw);
+        }
+      } catch (err) {
+        console.error("getAllTeamCodes error:", err);
+      } finally {
+        if (!cancelled) setIsLoadingTeamCodes(false);
+      }
+    };
+
+    fetchCodes();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isModalOpen]);
+
+  if (!isModalOpen) return null;
 
   const handleArrChange = (setter, i, v) =>
     setter((p) => {
@@ -57,30 +88,60 @@ export default function AddProposalModal() {
   const reset = () => {
     setTeamId("");
     setMembers([{ name: "", mssv: "" }]);
-    setGoals([""]);
-    setTechnologies([""]);
     setFile(null);
+    setFilteredTeamCodes([]);
+    setShowSuggestions(false);
   };
 
   const onLookupTeam = async () => {
     const id = teamId.trim();
     if (!id) {
-      alert("Vui lòng nhập Team ID!");
+      alert("Vui lòng nhập Tên Nhóm!");
       return;
     }
+    setShowSuggestions(false);
+    setFilteredTeamCodes([]);
     await fetchTeamContext(id);
+  };
+
+  // Khi gõ vào ô Tên Nhóm -> lọc gợi ý
+  const handleTeamIdChange = (e) => {
+    const value = e.target.value;
+    setTeamId(value);
+
+    const query = value.trim().toLowerCase();
+    if (!query) {
+      setFilteredTeamCodes([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const matches = allTeamCodes
+      .filter(
+        (code) => code && code.toLowerCase().includes(query)
+      )
+      .slice(0, 8); // giới hạn 8 gợi ý
+
+    setFilteredTeamCodes(matches);
+    setShowSuggestions(matches.length > 0);
+  };
+
+  const handleSelectSuggestion = (code) => {
+    setTeamId(code);
+    setShowSuggestions(false);
+    setFilteredTeamCodes([]);
+    // tự động lookup team luôn cho tiện
+    fetchTeamContext(code);
   };
 
   const submit = async (e) => {
     e.preventDefault();
 
-    // ⛔ Guard: team đã có proposal thì chặn trên UI
     if (teamContext?.existingProposal?.title) {
       alert("Team này đã có proposal");
       return;
     }
 
-    // Dùng tiêu đề từ context nếu có, không thì fallback
     const titleFromContext = teamContext?.existingProposal?.title || "";
     const fallbackTitle =
       (teamContext?.team?.teamCode &&
@@ -90,7 +151,7 @@ export default function AddProposalModal() {
     const titleToSend = (titleFromContext || fallbackTitle).trim();
 
     if (!String(teamId).trim()) {
-      alert("Vui lòng nhập/tra cứu Team ID.");
+      alert("Vui lòng nhập/tra cứu Tên Nhóm.");
       return;
     }
     if (!file) {
@@ -116,9 +177,28 @@ export default function AddProposalModal() {
     const fd = new FormData();
     fd.append("ProposalTitle", titleToSend);
     fd.append("Title", titleToSend);
-    fd.append("TeamId", teamId.trim());
+
+    const teamIdFromContext =
+      teamContext?.team?.teamId ??
+      teamContext?.team?.TeamId ??
+      teamContext?.teamId ??
+      teamContext?.TeamId ??
+      null;
+
+    const teamCodeToSend =
+      (teamContext?.team?.teamCode ||
+        teamContext?.team?.TeamCode ||
+        teamId ||
+        "").trim();
+
+    if (teamIdFromContext != null) {
+      fd.append("TeamId", String(teamIdFromContext));
+    }
+    if (teamCodeToSend) {
+      fd.append("TeamCode", teamCodeToSend);
+    }
+
     fd.append("MentorName", (teamContext?.mentorName || "").trim());
-    // gửi kèm Description rỗng cho khớp BE
     fd.append("Description", "");
 
     trimmedMembers.forEach((m, idx) => {
@@ -126,17 +206,6 @@ export default function AddProposalModal() {
       if (m.mssv) fd.append(`TeamMembers[${idx}].StudentCode`, m.mssv);
     });
 
-    goals
-      .map((g) => g.trim())
-      .filter(Boolean)
-      .forEach((g, i) => fd.append(`Goals[${i}]`, g));
-
-    technologies
-      .map((t) => t.trim())
-      .filter(Boolean)
-      .forEach((t, i) => fd.append(`Technologies[${i}]`, t));
-
-    // Tên field file đúng theo BE
     fd.append("PdfFile", file);
 
     const ok = await addProposal(fd);
@@ -144,15 +213,12 @@ export default function AddProposalModal() {
       reset();
       closeModal();
     } else {
-      // hiện đúng message từ store/BE
       alert(`Lỗi khi thêm đề tài: ${ok?.message || "Không thể thêm đề tài"}`);
     }
   };
 
   return (
-    // <--- CẦN THÊM: React Fragment bao quanh
     <>
-      {/* <--- CẦN THÊM: Overlay loading, sử dụng biến isLoading từ store */}
       {isLoading && (
         <div className={styles.loadingFullScreen} style={{ color: "white" }}>
           <FontAwesomeIcon icon={faSpinner} spin size="3x" />
@@ -165,25 +231,62 @@ export default function AddProposalModal() {
           <div className={styles.header}>
             <h3>Tạo đồ án mới</h3>
             <p className={styles.subtitle}>
-              Nhập Team ID để tự động lấy thông tin nhóm
+              Nhập Tên Nhóm để tự động lấy thông tin nhóm
             </p>
           </div>
 
           <form className={styles.body} onSubmit={submit}>
             <div className={styles.lookupRow}>
-              <label>Team ID</label>
+              <label>Tên Nhóm</label>
               <div className={styles.lookup}>
-                <input
-                  placeholder="VD: 403"
-                  value={teamId}
-                  onChange={(e) => setTeamId(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      onLookupTeam();
-                    }
-                  }}
-                />
+                <div className={styles.lookupInputWrapper}>
+                  <input
+                    placeholder="VD: TEAM_CAP1_001"
+                    value={teamId}
+                    onChange={handleTeamIdChange}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        onLookupTeam();
+                      }
+                    }}
+                    onFocus={() => {
+                      if (teamId && filteredTeamCodes.length > 0) {
+                        setShowSuggestions(true);
+                      }
+                    }}
+                    onBlur={() => {
+                      // delay 1 chút để onMouseDown ở item chạy trước
+                      setTimeout(() => setShowSuggestions(false), 150);
+                    }}
+                  />
+
+                  {/* dropdown gợi ý */}
+                  {showSuggestions &&
+                    filteredTeamCodes.length > 0 && (
+                      <ul className={styles.suggestionList}>
+                        {filteredTeamCodes.map((code) => (
+                          <li
+                            key={code}
+                            className={styles.suggestionItem}
+                            onMouseDown={() =>
+                              handleSelectSuggestion(code)
+                            }
+                          >
+                            {code}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                  {/* hint loading nhỏ (optional) */}
+                  {isLoadingTeamCodes && (
+                    <span className={styles.suggestionLoading}>
+                      Đang tải danh sách nhóm...
+                    </span>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   className={styles.lookupBtn}
@@ -211,7 +314,8 @@ export default function AddProposalModal() {
                         : styles.badgeWarn
                     }`}
                   >
-                    {teamContext?.existingProposal?.title || "Đề tài: Chưa có"}
+                    {teamContext?.existingProposal?.title ||
+                      "Đề tài: Chưa có"}
                   </span>
                 </div>
               </div>
@@ -236,12 +340,14 @@ export default function AddProposalModal() {
                   {(teamContext?.members || []).map((m, i) => (
                     <div key={i} className={styles.memberChip}>
                       <span className={styles.memberName}>{m.fullName}</span>
-                      <span className={styles.memberCode}>{m.studentCode}</span>
+                      <span className={styles.memberCode}>
+                        {m.studentCode}
+                      </span>
                     </div>
                   ))}
                   {!teamContext && (
                     <div className={styles.placeholder}>
-                      Nhập Team ID và bấm tra cứu để hiển thị thông tin nhóm
+                      Nhập Tên Nhóm và bấm tra cứu để hiển thị thông tin nhóm
                     </div>
                   )}
                 </div>
@@ -249,78 +355,93 @@ export default function AddProposalModal() {
             </div>
 
             <div className={styles.group}>
-              <div className={styles.groupHeader}>
-                <h4>Mục tiêu</h4>
-                <button
-                  type="button"
-                  className={styles.ghostBtn}
-                  onClick={() => addRow(setGoals, "")}
-                >
-                  <FontAwesomeIcon icon={faPlus} /> Thêm mục tiêu
-                </button>
-              </div>
-              {goals.map((g, i) => (
-                <div className={styles.lineRow} key={i}>
-                  <input
-                    placeholder={`Mục tiêu #${i + 1}`}
-                    value={g}
-                    onChange={(e) =>
-                      handleArrChange(setGoals, i, e.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className={styles.iconBtn}
-                    onClick={() => removeRow(setGoals, i)}
-                    title="Xóa mục tiêu"
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.group}>
-              <div className={styles.groupHeader}>
-                <h4>Công nghệ</h4>
-                <button
-                  type="button"
-                  className={styles.ghostBtn}
-                  onClick={() => addRow(setTechnologies, "")}
-                >
-                  <FontAwesomeIcon icon={faPlus} /> Thêm công nghệ
-                </button>
-              </div>
-              {technologies.map((t, i) => (
-                <div className={styles.lineRow} key={i}>
-                  <input
-                    placeholder={`Công nghệ #${i + 1}`}
-                    value={t}
-                    onChange={(e) =>
-                      handleArrChange(setTechnologies, i, e.target.value)
-                    }
-                  />
-                  <button
-                    type="button"
-                    className={styles.iconBtn}
-                    onClick={() => removeRow(setTechnologies, i)}
-                    title="Xóa công nghệ"
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.fileRow}>
-              <label className={styles.fileLabel}>
-                <FontAwesomeIcon icon={faFilePdf} /> Tài liệu PDF
+              <label className={styles.label} style={{ marginBottom: "8px" }}>
+                Tài liệu đính kèm
               </label>
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-              />
+
+              {file ? (
+                <div className={styles.filePreview}>
+                  <div className={styles.fileInfo}>
+                    <div className={styles.fileIconWrapper}>
+                      <FontAwesomeIcon
+                        icon={faFilePdf}
+                        className={styles.fileIcon}
+                      />
+                    </div>
+                    <div className={styles.fileDetails}>
+                      <p className={styles.fileName}>{file.name}</p>
+                      <p className={styles.fileSize}>
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.removeFileBtn}
+                    onClick={() => setFile(null)}
+                    title="Xóa tệp"
+                  >
+                    <FontAwesomeIcon icon={faTimes} />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={`${styles.uploadBox} ${
+                    isDragging ? styles.uploadBoxDragging : ""
+                  }`}
+                  onClick={() =>
+                    document.getElementById("pdf-upload-input")?.click()
+                  }
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const droppedFile = e.dataTransfer.files?.[0];
+                    if (
+                      droppedFile &&
+                      droppedFile.type === "application/pdf"
+                    ) {
+                      setFile(droppedFile);
+                    } else {
+                      alert("Chỉ chấp nhận file PDF.");
+                    }
+                  }}
+                >
+                  <input
+                    type="file"
+                    id="pdf-upload-input"
+                    className={styles.hiddenInput}
+                    accept="application/pdf"
+                    onChange={(e) => {
+                      const selectedFile = e.target.files?.[0];
+                      if (selectedFile) {
+                        setFile(selectedFile);
+                      }
+                    }}
+                  />
+                  <div className={styles.uploadContent}>
+                    <div className={styles.uploadIconWrapper}>
+                      <FontAwesomeIcon
+                        icon={faUpload}
+                        className={styles.uploadIcon}
+                      />
+                    </div>
+                    <p>
+                      Kéo thả tệp vào đây hoặc{" "}
+                      <span className={styles.browseText}>
+                        bấm để chọn tệp
+                      </span>
+                    </p>
+                    <span className={styles.uploadHint}>
+                      Hỗ trợ PDF (Tối đa 10MB)
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className={styles.footer}>
@@ -342,6 +463,6 @@ export default function AddProposalModal() {
           </form>
         </div>
       </div>
-    </> // <--- CẦN THÊM: Thẻ đóng React Fragment
+    </>
   );
 }
