@@ -166,7 +166,11 @@ const QuanLyHoiDong = () => {
                   <tr key={committee.committeeId}>
                     <td>{committee.committeeId}</td>
                     <td>{committee.committeeName || "N/A"}</td>
-                    <td>{committee.chairman?.fullName || "Chưa có"}</td>
+                    <td>
+                      {committee.chairmanName ||
+                        committee.chairman?.fullName ||
+                        "Chưa có"}
+                    </td>
                     <td>{committee.members?.length || 0} thành viên</td>
                     <td>
                       <span
