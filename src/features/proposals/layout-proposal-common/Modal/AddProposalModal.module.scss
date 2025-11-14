@@ -1,3 +1,9 @@
+// Định nghĩa màu chủ đạo
+$color-primary: #d82c2c;
+$color-primary-dark: #b22424;
+$color-primary-light: #fef2f2;
+$color-primary-border: #fecaca;
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -18,7 +24,7 @@
 
 .modal {
   width: fit-content;
-  padding: 20px;
+  padding: 10px;
   max-height: 90vh;
   overflow: auto;
   background: #fff;
@@ -85,8 +91,8 @@
 .rowCol textarea:focus,
 .memberRow input:focus,
 .lineRow input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: $color-primary;
+  box-shadow: 0 0 0 3px rgba(216, 44, 44, 0.1);
 }
 
 .group {
@@ -214,6 +220,7 @@
 }
 
 .lookup {
+  position: relative;
   display: flex;
   gap: 8px;
 }
@@ -225,17 +232,19 @@
   border-radius: 8px;
   outline: none;
   background: #f9fafb;
+  font-size: 1.4rem;
+  width: 100% ;
 }
 
 .lookup input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: $color-primary;
+  box-shadow: 0 0 0 3px rgba(216, 44, 44, 0.1);
   background: white;
 }
 
 .lookupBtn {
   padding: 10px 16px;
-  background: #3b82f6;
+  background: $color-primary;
   color: white;
   border: none;
   border-radius: 8px;
@@ -244,17 +253,55 @@
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
+  font-size: 1.2rem;
 }
 
 .lookupBtn:hover:not(:disabled) {
-  background: #2563eb;
+  background: $color-primary-dark;
 }
 
 .lookupBtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.lookupInputWrapper {
+  position: relative;
+  flex: 1;
+}
 
+.suggestionList {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  margin: 4px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.suggestionItem {
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.suggestionItem:hover {
+  background: #f5f5f5;
+}
+
+.suggestionLoading {
+  position: absolute;
+  top: 100%;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #888;
+}
 /* Card */
 .card {
   border: 1px solid #e5e7eb;
@@ -361,12 +408,12 @@
 }
 
 .ghostBtn {
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
+  background: $color-primary-light;
+  border: 1px solid $color-primary-border;
   border-radius: 8px;
   padding: 6px 10px;
   cursor: pointer;
-  color: #4f46e5;
+  color: $color-primary;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -374,7 +421,7 @@
 }
 
 .ghostBtn:hover {
-  background: #dbeafe;
+  background: #fee2e2; // red-100
 }
 
 .iconBtn {
@@ -420,13 +467,13 @@
 }
 
 .uploadBox:hover {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: $color-primary;
+  background: $color-primary-light;
 }
 
 .uploadBoxDragging {
-  border-color: #3b82f6;
-  background: #dbeafe;
+  border-color: $color-primary;
+  background: #fee2e2; // red-100
   border-width: 2px;
   border-style: solid;
 }
@@ -463,8 +510,14 @@
   color: #6b7280;
 }
 
+// Thêm style cho uploadHint (nếu chưa có)
+.uploadHint {
+  font-size: 1.2rem;
+  color: #6b7280;
+}
+
 .browseText {
-  color: #3b82f6;
+  color: $color-primary;
   font-weight: 600;
 }
 
@@ -474,13 +527,14 @@
   justify-content: center;
   width: 56px;
   height: 56px;
-  background: #dbeafe;
+  background: #fee2e2; // red-100
   border-radius: 50%;
   margin: 0 auto;
 }
 
 .uploadIcon {
-  color: #3b82f6;
+  color: $color-primary;
+  font-size: 2.4rem;
 }
 
 /* File Preview */
@@ -491,8 +545,8 @@
   gap: 12px;
   width: 100%;
   padding: 12px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  background: $color-primary-light;
+  border: 1px solid $color-primary-border;
   border-radius: 8px;
 }
 
@@ -510,13 +564,13 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #d1fae5;
+  background: #fee2e2; // red-100
   border-radius: 6px;
   flex-shrink: 0;
 }
 
 .fileIcon {
-  color: #059669;
+  color: $color-primary;
 }
 
 .fileDetails {
@@ -562,7 +616,7 @@
 }
 
 .primaryBtn {
-  background: #2563eb;
+  background: $color-primary;
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -574,7 +628,7 @@
 }
 
 .primaryBtn:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: $color-primary-dark;
 }
 
 .primaryBtn:disabled {
@@ -583,9 +637,9 @@
 }
 
 .secondaryBtn {
-  background: #eef2ff;
-  color: #4f46e5;
-  border: 1px solid #c7d2fe;
+  background: $color-primary-light;
+  color: $color-primary;
+  border: 1px solid $color-primary-border;
   border-radius: 10px;
   padding: 10px 20px;
   cursor: pointer;
@@ -595,7 +649,7 @@
 }
 
 .secondaryBtn:hover {
-  background: #dbeafe;
+  background: #fee2e2; // red-100
 }
 
 /* File Preview */
@@ -606,8 +660,8 @@
   gap: 12px;
   width: 100%;
   padding: 12px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
+  background: $color-primary-light;
+  border: 1px solid $color-primary-border;
   border-radius: 8px;
 }
 
@@ -625,13 +679,13 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #d1fae5;
+  background: #fee2e2; // red-100
   border-radius: 6px;
   flex-shrink: 0;
 }
 
 .fileIcon {
-  color: #059669;
+  color: $color-primary;
 }
 
 .fileDetails {
@@ -677,7 +731,7 @@
 }
 
 .primaryBtn {
-  background: #2563eb;
+  background: $color-primary;
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -689,7 +743,7 @@
 }
 
 .primaryBtn:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: $color-primary-dark;
 }
 
 .primaryBtn:disabled {
@@ -698,9 +752,9 @@
 }
 
 .secondaryBtn {
-  background: #eef2ff;
-  color: #4f46e5;
-  border: 1px solid #c7d2fe;
+  background: $color-primary-light;
+  color: $color-primary;
+  border: 1px solid $color-primary-border;
   border-radius: 10px;
   padding: 10px 20px;
   cursor: pointer;
@@ -710,7 +764,169 @@
 }
 
 .secondaryBtn:hover {
-  background: #dbeafe;
+  background: #fee2e2; // red-100
+}
+
+/* File Preview */
+.filePreview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  background: $color-primary-light;
+  border: 1px solid $color-primary-border;
+  border-radius: 8px;
+}
+
+.fileInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fileIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #fee2e2; // red-100
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.fileIcon {
+  color: $color-primary;
+}
+
+.fileDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.fileName {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileSize {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #6b7280;
+}
+
+.removeFileBtn {
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.removeFileBtn:hover {
+  background: #fee2e2;
+}
+
+.primaryBtn {
+  background: $color-primary;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 1.4rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.primaryBtn:hover:not(:disabled) {
+  background: $color-primary-dark;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondaryBtn {
+  background: $color-primary-light;
+  color: $color-primary;
+  border: 1px solid $color-primary-border;
+  border-radius: 10px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 1.4rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.secondaryBtn:hover {
+  background: #fee2e2; // red-100
+}
+
+.loadingFullScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  font-weight: 600;
+  animation: fadeIn 0.15s ease-in;
+}
+
+.loadingFullScreen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.55);
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .loadingFullScreen::before {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ========== Modal loading lock for form ========== */
+.formFieldset:disabled {
+  cursor: progress;
+}
+
+.formFieldset:disabled * {
+  pointer-events: none !important;
 }
 
 .loadingFullScreen {

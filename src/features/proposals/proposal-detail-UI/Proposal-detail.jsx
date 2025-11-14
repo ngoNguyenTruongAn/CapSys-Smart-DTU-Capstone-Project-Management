@@ -209,10 +209,7 @@ function Proposaldetail() {
                 >
                   {isWaiting && (
                     // CẬP NHẬT: Disable nút khi đang loading
-                    <ApprovedButton
-                      onClick={handleApprove}
-                      disabled={isLoading}
-                    />
+                    <ApprovedButton onClick={handleApprove} disabled={isLoading} /> 
                   )}
                   {isWaiting && (
                     // CẬP NHẬT: Disable nút khi đang loading

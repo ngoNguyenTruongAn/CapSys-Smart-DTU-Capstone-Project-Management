@@ -11,9 +11,7 @@ const formatName = (fullName) => {
   if (!fullName) return "";
   if (typeof fullName !== "string") {
     try {
-      fullName = String(
-        fullName.fullName || fullName.name || fullName.StudentName || ""
-      );
+      fullName = String(fullName.fullName || fullName.name || fullName.StudentName || "");
     } catch {
       return "";
     }
@@ -26,9 +24,7 @@ const formatName = (fullName) => {
     const lastName = parts[parts.length - 1];
     const middleName = parts[parts.length - 2];
     const firstNames = parts.slice(0, parts.length - 2);
-    const initials = firstNames
-      .map((part) => part.charAt(0).toUpperCase())
-      .join(".");
+    const initials = firstNames.map((part) => part.charAt(0).toUpperCase()).join(".");
     return `${initials}. ${middleName} ${lastName}`;
   } else if (parts.length === 2) {
     return `${parts[0].charAt(0).toUpperCase()}. ${parts[1]}`;
@@ -37,6 +33,7 @@ const formatName = (fullName) => {
     return fullName;
   }
 };
+
 
 function ProposalCard({ proposal }) {
   const {

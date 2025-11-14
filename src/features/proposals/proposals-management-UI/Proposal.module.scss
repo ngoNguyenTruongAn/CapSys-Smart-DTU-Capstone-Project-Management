@@ -1,7 +1,7 @@
 @use "sass:color";
 
 :root {
-  --primary-color: #1d62ed;
+  --primary-color: #d82c2c;
   --second-color: #f4f3f8;
   --text-color: #808291;
   font-size: 62.5%;
@@ -158,15 +158,15 @@
   gap: 16px; // Giữ nguyên khoảng cách 2% giữa các thẻ
 }
 // Card
-.Card-wrapper {
-  width: 28.3333%;
-  height: fit-content;
-  background-color: #fff;
-  padding: 10px 30px;
-  border-radius: 16px;
-  margin-bottom: 20px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+.Card-wrapper{
+ width: 28.3333%;
+ height:fit-content;
+ background-color: #fff;
+ padding: 10px 30px;
+ border-radius: 16px;
+ margin-bottom: 20px;
+ transition: all 0.3s ease; 
+ box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 
   &:hover {
     transform: translateY(-6px);
@@ -272,19 +272,20 @@
   width: fit-content;
   height: fit-content;
   padding: 10px;
-
+  
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+  
 }
 .Card-member-info-content-text {
   font-size: 1.4rem;
-  color: var(--text-color);
-  font-weight: 600;
-  background-color: var(--second-color);
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+   color: var(--text-color);
+   font-weight: 600;
+   background-color: var(--second-color);
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #E2E8F0;
 }
 .Card-date {
   height: fit-content;

@@ -20,12 +20,10 @@ const Navbar = () => {
   const handleLogout = async () => {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
-
     try {
-      const response = await LogoutAPI();
-      console.log("Logout successful:", response);
-    } catch (error) {
-      console.error("Logout failed:", error);
+      await LogoutAPI();
+    } catch (e) {
+      console.error(e);
     } finally {
       navigate("/");
     }
@@ -33,7 +31,6 @@ const Navbar = () => {
 
   return (
     <nav className="navbar">
-      {/* Logo + Tên hệ thống */}
       <div className="nav-top">
         <div className="navbar__logo">
           <img src={logoCap} alt="logo" />
@@ -45,7 +42,6 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* User info */}
         <div className="navbar__user">
           <Bell className="notification" />
           <img className="avatar" src={anh} alt="avatar" />
@@ -56,7 +52,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Menu */}
       <div className="nav-bottom">
         <ul className="navbar__menu">
           <li>

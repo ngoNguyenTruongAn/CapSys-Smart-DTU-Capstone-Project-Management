@@ -1,6 +1,6 @@
 // useProposalsStore.jsx
 import { create } from "zustand";
-import { getTeamByIdAPI } from "./TeamsAPI";
+import { getTeamByIdAPI,getTeamByCodeAPI } from "./TeamsAPI";
 
 // ====== API base ======
 const ENV_BASE = import.meta?.env?.VITE_API_URL?.replace(/\/$/, "");
@@ -181,12 +181,8 @@ export const useProposalsStore = create((set, get) => {
       ? mapped
       : mapped.filter(
           (x) =>
-            String(x.title || "")
-              .toLowerCase()
-              .includes(kw) ||
-            String(x.summary || "")
-              .toLowerCase()
-              .includes(kw)
+            String(x.title || "").toLowerCase().includes(kw) ||
+            String(x.summary || "").toLowerCase().includes(kw)
         );
 
     const filtered =
@@ -229,49 +225,60 @@ export const useProposalsStore = create((set, get) => {
     /* --------- Team lookup để điền form --------- */
     teamContext: null,
     isTeamLoading: false,
-    fetchTeamContext: async (teamId) => {
-      if (!teamId) return;
-      set({ isTeamLoading: true });
-      try {
-        const res = await getTeamByIdAPI(teamId);
-        const raw = res?.data || res || {};
+    fetchTeamContext: async (teamCode) => { // Tham số là teamCode (VD: "Team1")
+      if (!teamCode) return;
+      set({ isTeamLoading: true });
+      try {
+        const res = await getTeamByCodeAPI(teamCode); // <--- Gọi hàm đã import
+        const raw = res?.data || res || {};
 
-        const teamCode =
-          raw.teamCode ||
-          raw.TeamCode ||
-          raw.data?.teamCode ||
-          raw.data?.TeamCode ||
-          raw.team?.teamCode ||
-          raw.team?.TeamCode ||
-          String(teamId);
+        // Lấy TeamID từ response
+        const teamId = 
+          raw.id || 
+          raw.Id || 
+          raw.teamId || 
+          raw.TeamId || 
+          raw.data?.teamId || 
+          raw.team?.teamId;
+      
+        // Lấy teamCode CHUẨN từ response (phòng trường hợp "team1" -> "Team1")
+        const codeFromResponse =
+          raw.teamCode ||
+          raw.TeamCode ||
+          raw.data?.teamCode ||
+          raw.data?.TeamCode ||
+          raw.team?.teamCode ||
+          raw.team?.TeamCode ||
+          String(teamCode); // <-- Dùng teamCode từ tham số làm fallback
 
-        const existingTitle =
-          raw.proposalTitle ||
-          raw.ProposalTitle ||
-          raw.title ||
-          raw.data?.proposalTitle ||
-          raw.data?.title ||
-          raw.team?.proposalTitle ||
-          raw.team?.title ||
-          "";
+        const existingTitle =
+          raw.proposalTitle ||
+          raw.ProposalTitle ||
+          raw.title ||
+          raw.data?.proposalTitle ||
+          raw.data?.title ||
+          raw.team?.proposalTitle ||
+          raw.team?.title ||
+          "";
 
-        const members = extractMembers(raw);
-        const mentorName = extractMentorName(raw);
+        const members = extractMembers(raw);
+        const mentorName = extractMentorName(raw);
 
-        set({
-          teamContext: {
-            team: { teamId, teamCode },
-            mentorName,
-            members,
-            existingProposal: existingTitle ? { title: existingTitle } : null,
-          },
-          isTeamLoading: false,
-        });
-      } catch (e) {
-        console.error("fetchTeamContext error:", e);
-        set({ isTeamLoading: false, teamContext: null });
-      }
-    },
+        set({
+          teamContext: {
+            // Gán các biến đã được định nghĩa chính xác
+            team: { teamId: teamId, teamCode: codeFromResponse }, 
+            mentorName,
+            members,
+            existingProposal: existingTitle ? { title: existingTitle } : null,
+          },
+          isTeamLoading: false,
+        });
+      } catch (e) {
+        console.error("fetchTeamContext error:", e);
+        set({ isTeamLoading: false, teamContext: null });
+      }
+    },
 
     /* --------- Proposals --------- */
     isLoading: false,
@@ -367,8 +374,7 @@ export const useProposalsStore = create((set, get) => {
 
         const current = get().proposals || [];
         const idx = current.findIndex(
-          (p) =>
-            String(p.id ?? p.Id ?? p.proposalId ?? p.ProposalID) === String(id)
+          (p) => String(p.id ?? p.Id ?? p.proposalId ?? p.ProposalID) === String(id)
         );
 
         let next;
@@ -480,6 +486,7 @@ export const useProposalsStore = create((set, get) => {
         console.error("deleteProposal error:", e);
         set({ isLoading: false });
         return { success: false, message: e.message || "Xóa thất bại" };
+
       }
     },
   };
