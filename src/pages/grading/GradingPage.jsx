@@ -57,41 +57,63 @@ const GradingPage = () => {
    */
   const transformToGroup = (session, proposal, team) => {
     const status = mapSessionStatus(session?.status, session?.isCompleted);
-    
-    // Calculate average score from grades if available
+
+    const sessionIdentifier = pickFirstValue(
+      session?.sessionId,
+      session?.SessionId,
+      session?.gradingSessionId,
+      session?.GradingSessionId
+    );
+
+    const baseTeamId = pickFirstValue(
+      session?.teamId,
+      session?.TeamId,
+      team?.teamId,
+      team?.TeamId,
+      proposal?.teamId,
+      proposal?.TeamId
+    );
+
     let avgScore = null;
     if (session?.gradedStudents > 0 && session?.totalStudents > 0) {
-      // If we have summary data, use it; otherwise null
       avgScore = session?.averageScore || null;
+    } else if (Array.isArray(session?.students) && session.students.length > 0) {
+      const scores = session.students
+        .map((student) => Number(student?.finalScore))
+        .filter((score) => !Number.isNaN(score));
+      if (scores.length > 0) {
+        avgScore = scores.reduce((sum, value) => sum + value, 0) / scores.length;
+      }
     }
 
-    // Get team code from team data or session
-    const teamCode = 
-      team?.teamCode || 
-      team?.teamName || 
-      session?.teamName || 
-      `TEAM_${session?.teamId || proposal?.teamId || ""}`;
+    const teamCode =
+      team?.teamCode ||
+      team?.teamName ||
+      session?.teamCode ||
+      session?.TeamCode ||
+      session?.teamName ||
+      `TEAM_${baseTeamId || ""}`;
 
-    // Get project title from proposal or session
-    const projectTitle = 
-      proposal?.title || 
-      proposal?.proposalTitle || 
-      session?.sessionName || 
-      session?.description || 
-      "Chưa có đề tài";
+    const projectTitle =
+      proposal?.title ||
+      proposal?.proposalTitle ||
+      session?.sessionName ||
+      session?.description ||
+      "Chua co de tai";
 
-    // Get mentor name from team or session
-    const mentorName = 
-      team?.mentorName || 
-      session?.graderName || 
-      team?.mentor?.fullName || 
-      "Chưa có mentor";
+    const mentorName =
+      team?.mentorName ||
+      session?.mentorName ||
+      session?.graderName ||
+      session?.MentorName ||
+      team?.mentor?.fullName ||
+      "Chua co mentor";
 
-    // Get member count from team or session
-    const memberCount = 
-      team?.students?.length || 
-      team?.studentCount || 
-      session?.totalStudents || 
+    const memberCount =
+      team?.students?.length ||
+      team?.studentCount ||
+      session?.totalStudents ||
+      session?.students?.length ||
       0;
 
     const derivedProjectId = pickFirstValue(
@@ -108,160 +130,143 @@ const GradingPage = () => {
     const derivedCommitteeId = pickFirstValue(
       session?.committeeId,
       session?.CommitteeId,
+      session?.committee?.committeeId,
       team?.committeeId,
       team?.CommitteeId
     );
 
     return {
-      id: session?.sessionId 
-        ? `session-${session.sessionId}` 
-        : `team-${proposal?.teamId || session?.teamId}`,
-      sessionId: session?.sessionId || null,
+      id: sessionIdentifier ? `session-${sessionIdentifier}` : `team-${baseTeamId || ""}`,
+      sessionId: sessionIdentifier || null,
       team: teamCode,
       project: projectTitle,
       members: memberCount,
       score: avgScore,
       mentor: mentorName,
       status: status,
-      teamId: session?.teamId || proposal?.teamId,
+      teamId: baseTeamId,
       proposalId: proposal?.id || proposal?.proposalId,
       projectId: toNumberOrNull(derivedProjectId),
       committeeId: toNumberOrNull(derivedCommitteeId),
     };
   };
 
-  /**
-   * Load grading groups from backend
-   */
-  useEffect(() => {
-    const loadGroups = async () => {
-      setLoading(true);
-      setError("");
-      
-      try {
-        // Step 1: Get all proposals
-        const proposalsResponse = await GradingAPI.getProposals();
-        
-        // Handle different response formats from API
-        // Format from ProposalAPI.jsx: payload.data or payload (array)
-        // Format could be: { data: [...] } or { success: true, data: [...] } or [...]
-        let proposals = [];
-        
-        if (proposalsResponse) {
-          if (Array.isArray(proposalsResponse)) {
-            // Direct array response
-            proposals = proposalsResponse;
-          } else if (proposalsResponse.data) {
-            // Has data wrapper
-            if (Array.isArray(proposalsResponse.data)) {
-              proposals = proposalsResponse.data;
-            } else if (proposalsResponse.data.proposals && Array.isArray(proposalsResponse.data.proposals)) {
-              // Nested: { data: { proposals: [...] } }
-              proposals = proposalsResponse.data.proposals;
-            } else if (proposalsResponse.data.data && Array.isArray(proposalsResponse.data.data)) {
-              // Double nested: { data: { data: [...] } }
-              proposals = proposalsResponse.data.data;
-            }
-          } else if (proposalsResponse.proposals && Array.isArray(proposalsResponse.proposals)) {
-            // Wrapped in { proposals: [...] }
-            proposals = proposalsResponse.proposals;
-          }
-        }
+  const unwrapResponseArray = (source, nestedKeys = []) => {
+    if (!source) return [];
+    if (Array.isArray(source)) return source;
+    if (Array.isArray(source?.data)) return source.data;
+    for (const key of nestedKeys) {
+      if (Array.isArray(source?.[key])) return source[key];
+      if (Array.isArray(source?.data?.[key])) return source.data[key];
+    }
+    return [];
+  };
 
-        if (proposals.length === 0) {
-          setGroups([]);
-          setLoading(false);
-          return;
-        }
-
-        // Step 2: For each proposal with teamId, get team sessions and team details
-        const groupPromises = proposals
-          .filter((p) => p.teamId || p.TeamId)
-          .map(async (proposal) => {
-            const teamId = proposal.teamId || proposal.TeamId;
-            
-            try {
-              // Get grading sessions for this team
-              const sessionsResponse = await GradingAPI.getTeamSessions(teamId);
-              const sessions = Array.isArray(sessionsResponse?.data)
-                ? sessionsResponse.data
-                : Array.isArray(sessionsResponse)
-                ? sessionsResponse
-                : [];
-
-              // Get team details
-              let teamData = null;
-              try {
-                const teamResponse = await GradingAPI.getTeam(teamId);
-                teamData = teamResponse?.data || teamResponse;
-              } catch (teamError) {
-                console.warn(`Could not load team ${teamId}:`, teamError);
-              }
-
-              // If no sessions, create a group without sessionId (not-graded status)
-              if (sessions.length === 0) {
-                return transformToGroup(null, proposal, teamData);
-              }
-
-              // Create a group for each session
-              // Optionally, you can filter to show only active/latest session per team
-              // For now, we'll show all sessions
-              // Note: We don't fetch summary here to avoid performance issues
-              // Score will be displayed in the detail page
-              return sessions.map((session) => 
-                transformToGroup(session, proposal, teamData)
-              );
-            } catch (sessionError) {
-              console.warn(`Error loading sessions for team ${teamId}:`, sessionError);
-              // Still create a group without session
-              return transformToGroup(null, proposal, null);
-            }
-          });
-
-        const groupResults = await Promise.all(groupPromises);
-        // Flatten the array (since each proposal might have multiple sessions)
-        // Each result can be a single group or an array of groups
-        const flattenedGroups = groupResults
-          .flat()
-          .filter(Boolean)
-          .filter((group) => group !== null && group !== undefined);
-        
-        setGroups(flattenedGroups);
-      } catch (err) {
-        console.error("Error loading grading groups:", err);
-        
-        // Provide more specific error messages
-        let errorMessage = "Không thể tải danh sách nhóm chấm điểm. Vui lòng thử lại.";
-        
-        // Handle network errors (connection refused, timeout, etc.)
-        const errMessage = err?.message || "";
-        const errName = err?.name || "";
-        
-        if (
-          errName === "TypeError" && 
-          (errMessage.includes("Failed to fetch") || 
-           errMessage.includes("network") ||
-           errMessage.includes("ERR_CONNECTION_REFUSED") ||
-           errMessage.includes("ERR_NETWORK"))
-        ) {
-          errorMessage = "Không thể kết nối đến server. Vui lòng kiểm tra:\n- Backend server đang chạy\n- Kết nối mạng\n- URL và port của API";
-        } else if (err?.status === 401 || errMessage.includes("401") || errMessage.includes("Unauthorized")) {
-          errorMessage = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
-        } else if (err?.status === 403 || errMessage.includes("403") || errMessage.includes("Forbidden")) {
-          errorMessage = "Bạn không có quyền truy cập vào tài nguyên này.";
-        } else if (err?.status === 404 || errMessage.includes("404") || errMessage.includes("Not Found")) {
-          errorMessage = "Không tìm thấy dữ liệu. Vui lòng kiểm tra lại.";
-        } else if (errMessage) {
-          errorMessage = errMessage;
-        }
-        
-        setError(errorMessage);
-        setGroups([]);
-      } finally {
-        setLoading(false);
+  const sessionsByTeamId = (sessions) => {
+    return sessions.reduce((acc, session) => {
+      const teamKey = pickFirstValue(
+        session?.teamId,
+        session?.TeamId,
+        session?.team?.teamId,
+        session?.team?.TeamId
+      );
+      if (!teamKey) {
+        return acc;
       }
-    };
+      if (!acc[teamKey]) {
+        acc[teamKey] = [];
+      }
+      acc[teamKey].push(session);
+      return acc;
+    }, {});
+  };
 
+  const resolveTeamContext = (session, fallbackTeam) => {
+    if (fallbackTeam) {
+      return fallbackTeam;
+    }
+    if (session?.team && typeof session.team === "object") {
+      return session.team;
+    }
+    const teamId = pickFirstValue(session?.teamId, session?.TeamId);
+    return {
+      teamId,
+      teamCode: pickFirstValue(
+        session?.teamCode,
+        session?.TeamCode,
+        session?.teamCodeShort
+      ),
+      teamName: pickFirstValue(session?.teamName, session?.TeamName),
+      mentorName: pickFirstValue(
+        session?.mentorName,
+        session?.MentorName,
+        session?.graderName
+      ),
+    };
+  };
+
+  const loadGroups = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [proposalsResponse, sessionsResponse] = await Promise.all([
+        GradingAPI.getProposals(),
+        GradingAPI.getSessions(),
+      ]);
+
+      const proposals = unwrapResponseArray(proposalsResponse, ["proposals"]);
+      const sessions = unwrapResponseArray(sessionsResponse, ["sessions"]);
+      const sessionsIndex = sessionsByTeamId(sessions);
+
+      if (proposals.length === 0 && sessions.length === 0) {
+        setGroups([]);
+        return;
+      }
+
+      const groupPromises = proposals
+        .filter((proposal) => proposal?.teamId || proposal?.TeamId)
+        .map(async (proposal) => {
+          const teamId = pickFirstValue(proposal?.teamId, proposal?.TeamId);
+          if (!teamId) {
+            return null;
+          }
+
+          const teamSessions = sessionsIndex[teamId] || [];
+          let teamData = null;
+
+          if (teamSessions.length === 0) {
+            try {
+              const teamResponse = await GradingAPI.getTeam(teamId);
+              teamData = teamResponse?.data || teamResponse;
+            } catch (teamError) {
+              console.warn(`Could not load team ${teamId}:`, teamError);
+            }
+          } else {
+            teamData = resolveTeamContext(teamSessions[0], teamSessions[0]?.team);
+          }
+
+          if (teamSessions.length === 0) {
+            return transformToGroup(null, proposal, teamData);
+          }
+
+          return teamSessions.map((session) =>
+            transformToGroup(session, proposal, resolveTeamContext(session, teamData))
+          );
+        });
+
+      const groupResults = await Promise.all(groupPromises);
+      const flattenedGroups = groupResults.flat().filter(Boolean);
+
+      setGroups(flattenedGroups);
+    } catch (err) {
+      console.error("Error loading grading groups:", err);
+      setError(err?.message || "Khong the tai danh sach nhom cham diem.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadGroups();
   }, []);
 
@@ -385,65 +390,8 @@ const GradingPage = () => {
           defaultCommitteeId={prefillCommitteeId}
           onClose={resetPrefillsAndCloseModal}
           onCreated={async () => {
-            // Reload groups after session created
             resetPrefillsAndCloseModal();
-            setLoading(true);
-            setError("");
-            try {
-              // Trigger the same loader by re-running effect body
-              // Easiest: call the loader function inline
-              const proposalsResponse = await GradingAPI.getProposals();
-              let proposals = [];
-              if (proposalsResponse) {
-                if (Array.isArray(proposalsResponse)) {
-                  proposals = proposalsResponse;
-                } else if (proposalsResponse.proposals && Array.isArray(proposalsResponse.proposals)) {
-                  proposals = proposalsResponse.proposals;
-                } else if (proposalsResponse.data) {
-                  if (Array.isArray(proposalsResponse.data)) {
-                    proposals = proposalsResponse.data;
-                  } else if (proposalsResponse.data.proposals && Array.isArray(proposalsResponse.data.proposals)) {
-                    proposals = proposalsResponse.data.proposals;
-                  }
-                }
-              }
-              const groupPromises = proposals
-                .filter((p) => p.teamId || p.TeamId)
-                .map(async (proposal) => {
-                  const teamId = proposal.teamId || proposal.TeamId;
-                  try {
-                    const sessionsResponse = await GradingAPI.getTeamSessions(teamId);
-                    const sessions = Array.isArray(sessionsResponse?.data)
-                      ? sessionsResponse.data
-                      : Array.isArray(sessionsResponse)
-                      ? sessionsResponse
-                      : [];
-                    let teamData = null;
-                    try {
-                      const teamResponse = await GradingAPI.getTeam(teamId);
-                      teamData = teamResponse?.data || teamResponse;
-                    } catch {}
-                    if (sessions.length === 0) {
-                      return transformToGroup(null, proposal, teamData);
-                    }
-                    return sessions.map((session) =>
-                      transformToGroup(session, proposal, teamData)
-                    );
-                  } catch {
-                    return transformToGroup(null, proposal, null);
-                  }
-                });
-              const groupResults = await Promise.all(groupPromises);
-              const flattenedGroups = groupResults
-                .flat()
-                .filter(Boolean)
-                .filter((group) => group !== null && group !== undefined);
-              setGroups(flattenedGroups);
-            } catch (err) {
-              setError(err?.message || "Không thể tải danh sách nhóm chấm điểm sau khi tạo phiên.");
-            } finally {
-              setLoading(false);
-            }
+            await loadGroups();
           }}
         />
         {error && (
@@ -463,3 +411,4 @@ const GradingPage = () => {
 };
 
 export default GradingPage;
+

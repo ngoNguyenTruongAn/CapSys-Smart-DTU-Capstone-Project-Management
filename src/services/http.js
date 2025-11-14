@@ -4,7 +4,7 @@
  */
 
 // Fallback when no runtime configuration is provided.
-const DEFAULT_BASE_URL = "https://localhost:7110/api";
+const DEFAULT_BASE_URL = "https://localhost:5295/api";
 
 const deriveBaseUrl = () => {
   // Prefer the Vite runtime env when available (set per environment).
@@ -21,6 +21,45 @@ const deriveBaseUrl = () => {
 export const API_BASE_URL = deriveBaseUrl();
 
 const isAbsoluteUrl = (path) => /^https?:\/\//i.test(path);
+
+const knownTokenKeys = [
+  "accessToken",
+  "token",
+  "authToken",
+  "Authorization",
+];
+
+const normalizeBearerToken = (raw) => {
+  if (!raw) {
+    return "";
+  }
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return "";
+  }
+  return /^Bearer\s+/i.test(trimmed) ? trimmed : `Bearer ${trimmed}`;
+};
+
+const getStoredToken = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  const stores = [window.localStorage, window.sessionStorage].filter(Boolean);
+  for (const store of stores) {
+    for (const key of knownTokenKeys) {
+      try {
+        const value = store.getItem(key);
+        if (value) {
+          return normalizeBearerToken(value);
+        }
+      } catch {
+        // Access might throw in private mode; ignore and continue.
+      }
+    }
+  }
+  return "";
+};
 
 export const resolveUrl = (path) => {
   if (!path) {
@@ -108,11 +147,9 @@ export async function apiFetch(path, options = {}) {
 
   if (!skipAuth && !finalHeaders.has("Authorization")) {
     // Reuse the access token stored during login flows when available.
-    if (typeof window !== "undefined" && window.localStorage) {
-      const token = window.localStorage.getItem("accessToken");
-      if (token) {
-        finalHeaders.set("Authorization", `Bearer ${token}`);
-      }
+    const token = getStoredToken();
+    if (token) {
+      finalHeaders.set("Authorization", token);
     }
   }
 

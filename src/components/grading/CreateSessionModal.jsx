@@ -97,6 +97,96 @@ const buildCalendarDays = (monthDate) => {
   });
 };
 
+const DEFAULT_COMMITTEE_ID = 1;
+
+const base64Decode = (value) => {
+  if (!value) return "";
+  if (typeof window !== "undefined" && typeof window.atob === "function") {
+    return window.atob(value);
+  }
+  if (typeof globalThis !== "undefined" && typeof globalThis.atob === "function") {
+    return globalThis.atob(value);
+  }
+  try {
+    if (typeof Buffer !== "undefined") {
+      return Buffer.from(value, "base64").toString("binary");
+    }
+  } catch {}
+  return "";
+};
+
+const decodeJwtPayload = (token) => {
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const base64 = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(parts[1].length + ((4 - (parts[1].length % 4)) % 4), "=");
+    const decoded = base64Decode(base64);
+    return JSON.parse(
+      decodeURIComponent(
+        decoded
+          .split("")
+          .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
+          .join("")
+      )
+    );
+  } catch {
+    return null;
+  }
+};
+
+const deriveCreatedByFromToken = () => {
+  if (typeof window === "undefined") return null;
+  const token =
+    window.localStorage?.getItem("token") ||
+    window.localStorage?.getItem("accessToken") ||
+    window.sessionStorage?.getItem("token");
+  if (!token) return null;
+  const payload = decodeJwtPayload(token);
+  if (!payload || typeof payload !== "object") return null;
+  const lecturerKeys = [
+    "LecturerId",
+    "lecturerId",
+    "LecturerID",
+    "lecturerID",
+  ];
+  const fallbackKeys = ["AccountId", "accountId", "UserId", "userId", "sub"];
+  const accountTypeFromStorage =
+    window.localStorage?.getItem("accountType") ||
+    window.sessionStorage?.getItem("accountType") ||
+    payload?.AccountType ||
+    payload?.accountType;
+  const isLecturerAccount = typeof accountTypeFromStorage === "string"
+    ? /lecturer/i.test(accountTypeFromStorage)
+    : false;
+
+  const tryParseNumeric = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+  };
+
+  for (const key of lecturerKeys) {
+    const parsed = tryParseNumeric(payload[key]);
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  if (isLecturerAccount) {
+    for (const key of fallbackKeys) {
+      const parsed = tryParseNumeric(payload[key]);
+      if (parsed) {
+        return parsed;
+      }
+    }
+  }
+
+  return null;
+};
+
 const padZero = (value) => String(value).padStart(2, "0");
 
 const formatInputValue = (day, timeValue) => {
@@ -166,6 +256,7 @@ export default function CreateSessionModal({
   const [selectedTime, setSelectedTime] = useState(null);
   const [currentMonth, setCurrentMonth] = useState(() => getMonthStart(new Date()));
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [createdBy] = useState(() => deriveCreatedByFromToken());
   const [sessionType, setSessionType] = useState("Mid-term Evaluation");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
@@ -299,16 +390,20 @@ export default function CreateSessionModal({
     setSaving(true);
     setError("");
     try {
+      const resolvedCommitteeId = committeeId
+        ? Number(committeeId)
+        : DEFAULT_COMMITTEE_ID;
       const payload = {
-        sessionName: sessionType,
-        description: notes || "",
+        committeeId: resolvedCommitteeId,
         teamId: Number(teamId),
-        // Optional: backend will resolve grader from auth if designed so; otherwise leave null
+        createdBy: createdBy || 0,
         sessionDate: toIsoOrNull(sessionDate),
-        // Optional fields if BE supports: projectId, committeeId
-        projectId: projectId ? Number(projectId) : undefined,
-        committeeId: committeeId ? Number(committeeId) : undefined,
+        sessionType: sessionType?.trim(),
+        notes: notes?.trim() || null,
       };
+      if (projectId) {
+        payload.projectId = Number(projectId);
+      }
       await GradingAPI.createSession(payload);
       if (typeof onCreated === "function") onCreated();
       handleClose();
@@ -514,5 +609,3 @@ export default function CreateSessionModal({
     </div>
   );
 }
-
-
