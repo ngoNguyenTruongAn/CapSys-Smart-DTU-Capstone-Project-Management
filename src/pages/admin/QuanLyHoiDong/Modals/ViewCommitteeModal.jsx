@@ -106,10 +106,6 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
               <h5 className="mb-3 border-bottom pb-2">Thông tin hội đồng</h5>
               <div className="row mb-2">
                 <div className="col-md-6">
-                  <strong>ID Hội đồng:</strong>{" "}
-                  <span className="text-muted">{committee.committeeId}</span>
-                </div>
-                <div className="col-md-6">
                   <strong>Tên hội đồng:</strong>{" "}
                   <span className="text-primary fw-bold">
                     {committee.committeeName}
@@ -148,10 +144,7 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
                             "N/A"}
                         </strong>
                       </div>
-                      <div className="text-muted small">
-                        ID:{" "}
-                        {chairman?.lecturerId || committee.chairmanId || "N/A"}
-                      </div>
+
                       {chairman?.joinedDate && (
                         <div className="text-muted small mt-1">
                           Ngày tham gia: {formatDate(chairman.joinedDate)}
@@ -196,9 +189,6 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
                                   {member.lecturerName ||
                                     `ID: ${member.lecturerId}`}
                                 </strong>
-                              </div>
-                              <div className="text-muted small">
-                                ID: {member.lecturerId}
                               </div>
                               {member.joinedDate && (
                                 <div className="text-muted small mt-1">
