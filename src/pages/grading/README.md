@@ -1,9 +1,7 @@
 # Hướng dẫn Layout Trang Chấm Điểm
 
 ## Tổng quan
-
 Layout này được thiết kế dựa trên ảnh mẫu, bao gồm:
-
 - 4 thẻ thống kê tổng quan
 - Phần tìm kiếm và lọc
 - Grid các thẻ nhóm dự án
@@ -32,16 +30,14 @@ src/
 ## Các bước tích hợp
 
 ### 1. Import CSS Base
-
 ```jsx
 // Trong main.js hoặc App.js
-import "./globalStyle/base.css";
+import './globalStyle/base.css';
 ```
 
 ### 2. Sử dụng GradingPage
-
 ```jsx
-import GradingPage from "./pages/grading/GradingPage";
+import GradingPage from './pages/grading/GradingPage';
 
 function App() {
   return (
@@ -54,9 +50,7 @@ function App() {
 ```
 
 ### 3. Customize Data
-
 Thay đổi dữ liệu mock trong `GradingPage.js`:
-
 ```jsx
 // Thay thế allGroups array bằng data từ API
 const [groups, setGroups] = useState([]);
@@ -68,14 +62,12 @@ useEffect(() => {
 ```
 
 ### 4. Xử lý Navigation
-
 Trong `handleStartGrading` function:
-
 ```jsx
 const handleStartGrading = (teamId) => {
   // Sử dụng React Router
   navigate(`/grading/${teamId}`);
-
+  
   // Hoặc chuyển state
   setCurrentTeam(teamId);
   setShowGradingModal(true);
@@ -85,19 +77,16 @@ const handleStartGrading = (teamId) => {
 ## CSS Variables
 
 ### Màu sắc chính
-
 - `--primary-blue`: #3B82F6 (xanh chính)
 - `--success-green`: #10B981 (xanh lá)
 - `--warning-yellow`: #F59E0B (vàng)
 - `--error-red`: #EF4444 (đỏ)
 
 ### Background colors
-
 - `--bg-primary`: #F8FAFC (nền chính)
 - `--bg-white`: #FFFFFF (nền trắng)
 
 ### Spacing
-
 - `--spacing-xs`: 0.4rem
 - `--spacing-sm`: 0.8rem
 - `--spacing-md`: 1.6rem
@@ -107,7 +96,6 @@ const handleStartGrading = (teamId) => {
 ## Responsive Design
 
 Layout tự động responsive:
-
 - **Desktop**: 3 cột grid
 - **Tablet**: 2 cột grid
 - **Mobile**: 1 cột grid
@@ -115,17 +103,14 @@ Layout tự động responsive:
 ## Customization
 
 ### Thay đổi màu sắc
-
 Chỉnh sửa CSS variables trong `base.css`
 
 ### Thay đổi layout
-
 - Grid columns: `GroupGrid.css`
 - Card spacing: `SummaryCards.css`, `GroupCard.css`
 - Typography: CSS variables trong `base.css`
 
 ### Thêm animations
-
 ```css
 .group-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -141,11 +126,11 @@ Chỉnh sửa CSS variables trong `base.css`
 ```jsx
 // services/grading.api.js
 export const gradingAPI = {
-  getGroups: () => fetch("/api/groups").then((res) => res.json()),
-  updateGroupStatus: (groupId, status) =>
+  getGroups: () => fetch('/api/groups').then(res => res.json()),
+  updateGroupStatus: (groupId, status) => 
     fetch(`/api/groups/${groupId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    }),
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    })
 };
 ```

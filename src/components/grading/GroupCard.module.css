@@ -16,7 +16,7 @@
 
 .groupCard_top {
   display: flex;
-  font-size: 1.6rem;
+  font-size: 1.2rem;
   font-weight: bold;
   justify-content: space-between;
   margin-bottom: 20px;
@@ -49,6 +49,7 @@
   background-color: #F4F3F8;
   padding: 10px;
   border-radius: 20px;
+  align-items: center;
 }
 
 .groupCard__project {
@@ -63,17 +64,20 @@
   margin-bottom: var(--spacing-lg);
   display: flex;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .groupCard__detail {
   display: flex;
+  flex: 1;
+  min-width: 0;
   flex-direction: column;
   align-items: center;
   gap: 6px;
   margin-bottom: var(--spacing-sm);
   font-size: 1.4rem;
   background-color: #F4F3F8;
-  padding: 16px 23px;
+  padding: 8px 14px;
   border-radius: 16px;
 }
 
@@ -82,21 +86,29 @@
 }
 
 .groupCard__detailIcon {
-  /* font-size: 1.4rem;
+  font-size: 1.4rem;
   width: 20px;
-  text-align: center; */
+  text-align: center;
 }
 
 .groupCard__detailLabel {
   color: var(--text-secondary);
   font-weight: 500;
   flex: 1;
+  text-align: center;
 }
 
 .groupCard__detailValue {
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 2.0rem;
+  font-size: 1.6rem;
+  text-align: center;
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .groupCard__actionBtn {

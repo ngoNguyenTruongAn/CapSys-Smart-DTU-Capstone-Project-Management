@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import gradingAPI from "../../services/grading.api";
+import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingDetailPage.module.css";
 import StudentSelect from "../../components/grading/StudentSelect.jsx";
 import ContributionSelect from "../../components/grading/ContributionSelect.jsx";
@@ -471,9 +471,9 @@ export default function GradingDetailPage({
       setLoading(true);
       try {
         const [criteriaData, sessionData, gradesData] = await Promise.all([
-          gradingAPI.getCriteria(),
-          gradingAPI.getSessionDetail(sessionId),
-          gradingAPI.getSessionGrades(sessionId),
+          GradingAPI.getCriteria(),
+          GradingAPI.getSessionDetail(sessionId),
+          GradingAPI.getSessionGrades(sessionId),
         ]);
         if (ignore) {
           return;
@@ -686,8 +686,8 @@ export default function GradingDetailPage({
       return;
     }
     const [updatedGrades, updatedSession] = await Promise.all([
-      gradingAPI.getSessionGrades(sessionId),
-      gradingAPI.getSessionDetail(sessionId),
+      GradingAPI.getSessionGrades(sessionId),
+      GradingAPI.getSessionDetail(sessionId),
     ]);
     setGrades(Array.isArray(updatedGrades) ? updatedGrades : []);
     setSessionDetail(updatedSession ?? null);
@@ -804,13 +804,13 @@ export default function GradingDetailPage({
       }
 
       if (shouldUpdate) {
-        await gradingAPI.updateStudentGrade(
+        await GradingAPI.updateStudentGrade(
           sessionId,
           selectedStudentId,
           payloads.updatePayload
         );
       } else {
-        await gradingAPI.createStudentGrade(sessionId, payloads.createPayload);
+        await GradingAPI.createStudentGrade(sessionId, payloads.createPayload);
       }
       await refreshData();
       setSuccessMessage(

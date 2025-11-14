@@ -3,7 +3,6 @@
 ## ✅ Đã hoàn thành
 
 ### 1. **React Components (.js → .jsx)**
-
 - ✅ `App.js` → `App.jsx`
 - ✅ `SummaryCards.js` → `SummaryCards.jsx`
 - ✅ `SearchAndFilter.js` → `SearchAndFilter.jsx`
@@ -12,7 +11,6 @@
 - ✅ `GradingPage.js` → `GradingPage.jsx`
 
 ### 2. **CSS Files (.css → .module.css)**
-
 - ✅ `SummaryCards.css` → `SummaryCards.module.css`
 - ✅ `SearchAndFilter.css` → `SearchAndFilter.module.css`
 - ✅ `GroupCard.css` → `GroupCard.module.css`
@@ -20,7 +18,6 @@
 - ✅ `GradingPage.css` → `GradingPage.module.css`
 
 ### 3. **CSS Modules Implementation**
-
 - ✅ Tất cả CSS classes đã được convert sang camelCase
 - ✅ Import statements đã được cập nhật: `import styles from './Component.module.css'`
 - ✅ ClassName usage đã được cập nhật: `className={styles.className}`
@@ -28,14 +25,12 @@
 ## 🎯 Lợi ích của việc rename
 
 ### **React Components (.jsx)**
-
 - ✅ **Rõ ràng hơn**: Ngay lập tức biết đây là React component
 - ✅ **IDE Support**: Syntax highlighting tốt hơn cho JSX
 - ✅ **Best Practice**: Cộng đồng React khuyến khích
 - ✅ **Tooling**: ESLint, Prettier có thể cấu hình riêng
 
 ### **CSS Modules (.module.css)**
-
 - ✅ **Scoped Styles**: CSS chỉ áp dụng cho component đó
 - ✅ **No Conflicts**: Không bị xung đột tên class
 - ✅ **Better Performance**: Tree shaking tốt hơn
@@ -66,13 +61,11 @@ src/
 ## 🔧 Cách sử dụng CSS Modules
 
 ### **Import**
-
 ```jsx
-import styles from "./Component.module.css";
+import styles from './Component.module.css';
 ```
 
 ### **Sử dụng**
-
 ```jsx
 // Thay vì
 <div className="summary-cards">
@@ -82,7 +75,6 @@ import styles from "./Component.module.css";
 ```
 
 ### **Dynamic Classes**
-
 ```jsx
 // Thay vì
 <div className={`summary-card summary-card--${color}`}>

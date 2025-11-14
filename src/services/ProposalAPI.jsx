@@ -11,7 +11,9 @@ const PROPOSAL_URL = `${API_BASE}/Proposal`;
 const LOGIN_URL = "http://localhost:5173/";
 
 const getToken = () =>
-  localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+  localStorage.getItem("token") ||
+  sessionStorage.getItem("token") ||
+  "";
 
 const handleUnauthorized = () => {
   try {
@@ -65,7 +67,12 @@ const normalizeMember = (m) => {
     "";
 
   const studentCode =
-    m.studentCode || m.StudentCode || m.mssv || m.MSSV || m.student_code || "";
+    m.studentCode ||
+    m.StudentCode ||
+    m.mssv ||
+    m.MSSV ||
+    m.student_code ||
+    "";
 
   if (!fullName) return null;
   return { fullName, studentCode };
@@ -142,7 +149,8 @@ const toCardShape = (p) => {
     p.createdAt ||
     null;
 
-  const approveDate = p.approveDate || p.approvedDate || p.ApprovedDate || null;
+  const approveDate =
+    p.approveDate || p.approvedDate || p.ApprovedDate || null;
 
   const raw = String(p.status ?? p.Status ?? "").toLowerCase();
   let status = "Chờ duyệt";
@@ -347,8 +355,7 @@ export const useProposalsStore = create((set, get) => {
           headers: authHeaders(),
         });
         const payload = await parseApiJson(res);
-        if (!res.ok)
-          throw new Error(payload?.message || "Không tải được chi tiết");
+        if (!res.ok) throw new Error(payload?.message || "Không tải được chi tiết");
 
         let detail = payload?.data || payload;
 
@@ -403,7 +410,9 @@ export const useProposalsStore = create((set, get) => {
         const payload = await parseApiJson(res);
         if (!res.ok) {
           const msg =
-            payload?.message || payload?.errors?.[0] || "Không thể thêm đề tài";
+            payload?.message ||
+            payload?.errors?.[0] ||
+            "Không thể thêm đề tài";
           throw new Error(msg);
         }
 

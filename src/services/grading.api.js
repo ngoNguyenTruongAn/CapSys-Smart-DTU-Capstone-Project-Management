@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file has been replaced by GradingAPI.js
+ * Please use GradingAPI from "./GradingAPI" instead
+ * This file is kept for backward compatibility only
+ */
+
 import { apiFetch } from "./http";
 
 const gradingAPI = {
