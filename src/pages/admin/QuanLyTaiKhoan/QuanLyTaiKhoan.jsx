@@ -9,6 +9,7 @@ import ViewStudent from "./ViewStudent/ViewStudent";
 import UpdateStudent from "./UpdateStudent/UpdateStudent";
 import UpdateLecturer from "./UpdateLecturer/UpdateLecturer";
 import ViewLecturer from "./ViewLecturer/ViewLecturer";
+import ActionMenu from "../../../components/common/ActionMenu";
 
 const QuanLyTaiKhoan = () => {
   const [activeTab, setActiveTab] = useState("students");
@@ -233,19 +234,11 @@ const QuanLyTaiKhoan = () => {
                     <td>{item.major}</td>
                     <td>{item.gpa}</td>
                     <td>
-                      <button onClick={() => handleViewStudent(item.studentId)}>
-                        Xem
-                      </button>
-                      <button
-                        onClick={() => handleUpdateStudent(item.studentId)}
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStudent(item.studentId)}
-                      >
-                        Xóa
-                      </button>
+                      <ActionMenu
+                        detail={() => handleViewStudent(item.studentId)}
+                        edit={() => handleUpdateStudent(item.studentId)}
+                        remove={() => handleDeleteStudent(item.studentId)}
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -256,21 +249,11 @@ const QuanLyTaiKhoan = () => {
                     <td>{item.department}</td>
                     <td>{item.phone}</td>
                     <td>
-                      <button
-                        onClick={() => handleViewLecturer(item.lecturerId)}
-                      >
-                        Xem
-                      </button>
-                      <button
-                        onClick={() => handleUpdateLecturer(item.lecturerId)}
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLecturer(item.lecturerId)}
-                      >
-                        Xóa
-                      </button>
+                      <ActionMenu
+                        detail={() => handleViewLecturer(item.studentId)}
+                        edit={() => handleUpdateLecturer(item.studentId)}
+                        remove={() => handleDeleteLecturer(item.studentId)}
+                      />
                     </td>
                   </tr>
                 )

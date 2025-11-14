@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import TeamDetailModal from "./Action/TeamDetailModal";
 import MoveStudentModal from "./Action/MoveStudentModal";
 import SwapStudentModal from "./Action/SwapStudentModal";
+import ActionMenu from "../../../components/common/ActionMenu";
 
 const QuanLyDoAn = () => {
   const navigate = useNavigate();
@@ -140,51 +141,32 @@ const QuanLyDoAn = () => {
       {
         header: "Hành động",
         accessorKey: "teamId",
+        meta: { className: "action-col" },
         cell: (info) => {
-          const value = info.getValue();
+          const teamId = info.getValue();
           const team = info.row.original;
+
           return (
-            <div className="qlda-actions">
-              <button
-                onClick={() => {
-                  setTeamDetailModal(true);
-                  setTeamId(value);
-                }}
-              >
-                Chi tiết
-              </button>
-              <button
-                style={{ backgroundColor: "red", color: "white" }}
-                onClick={() => {
-                  handleDelete(value);
-                }}
-              >
-                Xóa
-              </button>
-              <button
-                style={{ backgroundColor: "#007bff", color: "white" }}
-                onClick={() => {
-                  setSelectedTeamStudents(team.students || []);
-                  setTeamId(value);
-                  setMoveModal(true);
-                }}
-              >
-                Chuyển SV
-              </button>
-              <button
-                style={{ backgroundColor: "orange", color: "white" }}
-                onClick={() => {
-                  setTeamId(value);
-                  setSelectedTeamStudents(team.students || []);
-                  setSwapModal(true);
-                }}
-              >
-                Đổi SV
-              </button>
-            </div>
+            <ActionMenu
+              detail={() => {
+                setTeamDetailModal(true);
+                setTeamId(team.teamId);
+              }}
+              move={() => {
+                setSelectedTeamStudents(team.students || []);
+                setTeamId(team.teamId);
+                setMoveModal(true);
+              }}
+              swap={() => {
+                setSelectedTeamStudents(team.students || []);
+                setTeamId(team.teamId);
+                setSwapModal(true);
+              }}
+              remove={() => handleDelete(team.teamId)}
+            />
           );
         },
-      },
+      }
     ],
     [handleDelete]
   );

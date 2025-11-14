@@ -4,13 +4,17 @@ import { useDispatch, useSelector } from "react-redux";
 import { swapStudents } from "../../../../store/teamSlice";
 import "./ActionModal.scss";
 
-const SwapStudentModal = ({ show, setShow, currentTeamId, students, teams }) => {
+const SwapStudentModal = ({ show, setShow, currentTeamId }) => {
   const [selectedStudentId1, setSelectedStudentId1] = useState(null);
   const [targetTeamId, setTargetTeamId] = useState("");
   const [selectedStudentId2, setSelectedStudentId2] = useState(null);
 
   const dispatch = useDispatch();
-  const { loading } = useSelector((state) => state.teams);
+  const { data: allTeams, loading } = useSelector((state) => state.teams);
+
+  // Lấy nhóm hiện tại và nhóm đích trực tiếp từ Redux state
+  const currentTeam = allTeams.find((t) => t.teamId === currentTeamId);
+  const targetTeam = allTeams.find((t) => t.teamId === Number(targetTeamId));
 
   const handleSwap = async () => {
     if (!selectedStudentId1 || !selectedStudentId2) {
@@ -28,6 +32,10 @@ const SwapStudentModal = ({ show, setShow, currentTeamId, students, teams }) => 
 
       if (swapStudents.fulfilled.match(result)) {
         alert("Hoán đổi sinh viên thành công!");
+        // Reset selection sau swap
+        setSelectedStudentId1(null);
+        setSelectedStudentId2(null);
+        setTargetTeamId("");
         setShow(false);
       } else {
         alert("Lỗi khi hoán đổi sinh viên!");
@@ -37,8 +45,6 @@ const SwapStudentModal = ({ show, setShow, currentTeamId, students, teams }) => 
       alert("Đã xảy ra lỗi khi gọi API hoán đổi!");
     }
   };
-
-  const targetTeam = teams.find((t) => t.teamId === Number(targetTeamId));
 
   return (
     <Modal
@@ -66,8 +72,8 @@ const SwapStudentModal = ({ show, setShow, currentTeamId, students, teams }) => 
             </tr>
           </thead>
           <tbody>
-            {students?.length ? (
-              students.map((s) => (
+            {currentTeam?.students?.length ? (
+              currentTeam.students.map((s) => (
                 <tr key={s.studentId}>
                   <td>
                     <Form.Check
@@ -103,7 +109,7 @@ const SwapStudentModal = ({ show, setShow, currentTeamId, students, teams }) => 
             }}
           >
             <option value="">-- Chọn nhóm --</option>
-            {teams
+            {allTeams
               .filter((t) => t.teamId !== currentTeamId && t.students?.length > 0)
               .map((t) => (
                 <option key={t.teamId} value={t.teamId}>

@@ -418,27 +418,18 @@ const teamSlice = createSlice({
       })
       .addCase(swapStudents.fulfilled, (state, action) => {
         state.loading = false;
-        const { studentId1, studentId2 } = action.payload;
 
-        // Update local state nếu muốn sync UI ngay
-        const allStudents = state.data.flatMap((t) => t.students || []);
-        const s1 = allStudents.find((s) => s.studentId === studentId1);
-        const s2 = allStudents.find((s) => s.studentId === studentId2);
-        if (!s1 || !s2) return;
-
-        state.data = state.data.map((team) => {
-          const newTeam = { ...team };
-          if (newTeam.teamId === s1.teamId) {
-            newTeam.students = newTeam.students.map((s) =>
-              s.studentId === s1.studentId ? { ...s2, teamId: newTeam.teamId } : s
-            );
-          } else if (newTeam.teamId === s2.teamId) {
-            newTeam.students = newTeam.students.map((s) =>
-              s.studentId === s2.studentId ? { ...s1, teamId: newTeam.teamId } : s
-            );
-          }
-          return newTeam;
-        });
+        if (action.payload.data && Array.isArray(action.payload.data)) {
+          action.payload.data.forEach((updatedTeam) => {
+            const index = state.data.findIndex((t) => t.teamId === updatedTeam.teamId);
+            if (index !== -1) {
+              state.data[index] = updatedTeam; // Ghi đè team cũ bằng team mới từ API
+            } else {
+              // Nếu team mới chưa có trong state, push vào
+              state.data.push(updatedTeam);
+            }
+          });
+        }
 
         state.error = null;
       })
