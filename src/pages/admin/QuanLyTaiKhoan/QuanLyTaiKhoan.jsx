@@ -30,6 +30,8 @@ const QuanLyTaiKhoan = () => {
   const [studentImportFile, setStudentImportFile] = useState(null);
   const [lecturerImportFile, setLecturerImportFile] = useState(null);
   const [importCapstoneType, setImportCapstoneType] = useState(1);
+  const [isStudentImporting, setIsStudentImporting] = useState(false);
+  const [isLecturerImporting, setIsLecturerImporting] = useState(false);
   const studentFileInputRef = useRef(null);
   const lecturerFileInputRef = useRef(null);
 
@@ -166,6 +168,8 @@ const QuanLyTaiKhoan = () => {
       return;
     }
 
+    setIsStudentImporting(true);
+
     try {
       const response = await insertStudentsFromFileAPI(
         studentImportFile,
@@ -217,6 +221,8 @@ const QuanLyTaiKhoan = () => {
             error?.message ||
             "Không rõ nguyên nhân")
       );
+    } finally {
+      setIsStudentImporting(false);
     }
   };
 
@@ -225,6 +231,8 @@ const QuanLyTaiKhoan = () => {
       alert("Vui lòng chọn file Excel giảng viên trước khi import.");
       return;
     }
+
+    setIsLecturerImporting(true);
 
     try {
       const response = await insertLecturersFromFileAPI(lecturerImportFile);
@@ -276,6 +284,8 @@ const QuanLyTaiKhoan = () => {
             error?.message ||
             "Không rõ nguyên nhân")
       );
+    } finally {
+      setIsLecturerImporting(false);
     }
   };
 
@@ -405,7 +415,14 @@ const QuanLyTaiKhoan = () => {
         </button>
       </header>
 
-      <section className="qltk-import-panel">
+      <section
+        className={`qltk-import-panel ${
+          (activeTab === "students" && isStudentImporting) ||
+          (activeTab === "lecturers" && isLecturerImporting)
+            ? "is-loading"
+            : ""
+        }`}
+      >
         {activeTab === "students" ? (
           <>
             <label className="btn-secondary file-picker">
@@ -452,11 +469,26 @@ const QuanLyTaiKhoan = () => {
               ? handleImportStudents
               : handleImportLecturers
           }
+          disabled={
+            (activeTab === "students" && isStudentImporting) ||
+            (activeTab === "lecturers" && isLecturerImporting)
+          }
         >
           {activeTab === "students"
-            ? "📂 Import sinh viên"
+            ? isStudentImporting
+              ? "⏳ Đang import..."
+              : "📂 Import sinh viên"
+            : isLecturerImporting
+            ? "⏳ Đang import..."
             : "📂 Import giảng viên"}
         </button>
+
+        {(activeTab === "students" && isStudentImporting) ||
+        (activeTab === "lecturers" && isLecturerImporting) ? (
+          <div className="import-loading" aria-label="Đang tải">
+            <span className="loader" />
+          </div>
+        ) : null}
       </section>
 
       {isLoading && <p>Đang tải dữ liệu...</p>}

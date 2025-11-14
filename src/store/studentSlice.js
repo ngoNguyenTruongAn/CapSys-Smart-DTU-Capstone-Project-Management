@@ -16,7 +16,7 @@ export const fetchStudents = createAsyncThunk(
       return res.data; // Giả sử { data: [...] }
     } catch (err) {
       return rejectWithValue(
-        err.response?.data?.message || "Không thể tải danh sách sinh viên"
+        err.response?.data?.message || "Chưa có danh sách sinh viên"
       );
     }
   }
