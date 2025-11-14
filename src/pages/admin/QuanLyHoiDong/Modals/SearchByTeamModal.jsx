@@ -45,6 +45,41 @@ const SearchByTeamModal = ({ show, setShow }) => {
     setShow(false);
   };
 
+  // Format ngày tháng
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString("vi-VN", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Lọc members: tách chủ tịch và các thành viên khác
+  const getMembersByRole = () => {
+    if (!committee?.members) return { chairman: null, others: [] };
+
+    const chairman = committee.members.find(
+      (m) => m.role === "Chủ tịch" || m.lecturerId === committee.chairmanId
+    );
+    const others = committee.members.filter(
+      (m) => m.role !== "Chủ tịch" && m.lecturerId !== committee.chairmanId
+    );
+
+    return { chairman, others };
+  };
+
+  const { chairman, others } = committee
+    ? getMembersByRole()
+    : { chairman: null, others: [] };
+
   return (
     <Modal
       show={show}
@@ -91,64 +126,137 @@ const SearchByTeamModal = ({ show, setShow }) => {
         )}
 
         {committee && (
-          <div className="mt-3">
-            <Alert variant="success">
+          <div className="mt-4">
+            <Alert variant="success" className="mb-4">
               <strong>Đã tìm thấy hội đồng!</strong>
             </Alert>
             <div className="committee-details">
-              <div className="mb-3">
-                <strong>ID Hội đồng:</strong> {committee.committeeId}
+              {/* Thông tin cơ bản */}
+              <div className="mb-4">
+                <h5 className="mb-3 border-bottom pb-2">Thông tin hội đồng</h5>
+                <div className="row mb-2">
+                  <div className="col-md-6">
+                    <strong>ID Hội đồng:</strong>{" "}
+                    <span className="text-muted">{committee.committeeId}</span>
+                  </div>
+                  <div className="col-md-6">
+                    <strong>Tên hội đồng:</strong>{" "}
+                    <span className="text-primary fw-bold">
+                      {committee.committeeName}
+                    </span>
+                  </div>
+                </div>
+                <div className="row mb-2">
+                  <div className="col-md-6">
+                    <strong>Trạng thái:</strong>{" "}
+                    <Badge
+                      bg={
+                        committee.isActive !== false ? "success" : "secondary"
+                      }
+                    >
+                      {committee.isActive !== false ? "Hoạt động" : "Vô hiệu"}
+                    </Badge>
+                  </div>
+                  <div className="col-md-6">
+                    <strong>Ngày tạo:</strong>{" "}
+                    <span className="text-muted">
+                      {formatDate(committee.createdDate)}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="mb-3">
-                <strong>Tên hội đồng:</strong> {committee.committeeName}
-              </div>
-              <div className="mb-3">
-                <strong>Trạng thái:</strong>{" "}
-                <Badge
-                  bg={committee.isActive !== false ? "success" : "secondary"}
-                >
-                  {committee.isActive !== false ? "Hoạt động" : "Vô hiệu"}
-                </Badge>
-              </div>
-              <div className="mb-3">
-                <strong>Chủ tịch:</strong>{" "}
-                {committee.chairman?.fullName || "Chưa có"}
-                {committee.chairman?.lecturerCode && (
-                  <span className="text-muted">
-                    {" "}
-                    ({committee.chairman.lecturerCode})
-                  </span>
+
+              {/* Chủ tịch */}
+              <div className="mb-4">
+                <h5 className="mb-3 border-bottom pb-2">Chủ tịch hội đồng</h5>
+                {chairman || committee.chairmanName ? (
+                  <div className="p-3 bg-light rounded">
+                    <div className="d-flex justify-content-between align-items-start">
+                      <div>
+                        <div className="mb-1">
+                          <strong>
+                            {chairman?.lecturerName ||
+                              committee.chairmanName ||
+                              "N/A"}
+                          </strong>
+                        </div>
+                        <div className="text-muted small">
+                          ID:{" "}
+                          {chairman?.lecturerId ||
+                            committee.chairmanId ||
+                            "N/A"}
+                        </div>
+                        {chairman?.joinedDate && (
+                          <div className="text-muted small mt-1">
+                            Ngày tham gia: {formatDate(chairman.joinedDate)}
+                          </div>
+                        )}
+                      </div>
+                      <Badge bg="warning" className="ms-2">
+                        {chairman?.role || "Chủ tịch"}
+                      </Badge>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-muted">Chưa có chủ tịch</p>
                 )}
               </div>
-              <div className="mb-3">
-                <strong>Số thành viên:</strong> {committee.members?.length || 0}
-              </div>
-              {committee.members && committee.members.length > 0 && (
+
+              {/* Thành viên khác */}
+              {others.length > 0 && (
                 <div className="mb-3">
-                  <strong>Danh sách thành viên:</strong>
-                  <ul className="list-unstyled mt-2">
-                    {committee.members.map((member, index) => (
-                      <li
-                        key={index}
-                        className="p-2 border rounded mb-2"
-                      >
-                        <div>
-                          <strong>
-                            {member.lecturer?.fullName ||
-                              `ID: ${member.lecturerId}`}
-                          </strong>
-                          {member.lecturer?.lecturerCode && (
-                            <span className="text-muted ms-2">
-                              ({member.lecturer.lecturerCode})
-                            </span>
-                          )}
+                  <h5 className="mb-3 border-bottom pb-2">
+                    Thành viên ({others.length})
+                  </h5>
+                  <div className="row">
+                    {others.map((member, index) => {
+                      const roleColors = {
+                        "Thư ký": "info",
+                        "Phản biện": "primary",
+                        "Thành viên": "secondary",
+                      };
+                      const badgeColor = roleColors[member.role] || "secondary";
+
+                      return (
+                        <div
+                          key={member.committeeMemberId || index}
+                          className="col-md-6 mb-3"
+                        >
+                          <div className="p-3 border rounded h-100">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <div className="flex-grow-1">
+                                <div className="mb-1">
+                                  <strong>
+                                    {member.lecturerName ||
+                                      `ID: ${member.lecturerId}`}
+                                  </strong>
+                                </div>
+                                <div className="text-muted small">
+                                  ID: {member.lecturerId}
+                                </div>
+                                {member.joinedDate && (
+                                  <div className="text-muted small mt-1">
+                                    Ngày tham gia:{" "}
+                                    {formatDate(member.joinedDate)}
+                                  </div>
+                                )}
+                              </div>
+                              <Badge bg={badgeColor} className="ms-2">
+                                {member.role || "Thành viên"}
+                              </Badge>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <Badge bg="info">{member.role || "Member"}</Badge>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Nếu không có thành viên nào */}
+              {(!committee.members || committee.members.length === 0) && (
+                <div className="alert alert-info">
+                  <strong>Chưa có thành viên nào trong hội đồng</strong>
                 </div>
               )}
             </div>
@@ -165,4 +273,3 @@ const SearchByTeamModal = ({ show, setShow }) => {
 };
 
 export default SearchByTeamModal;
-

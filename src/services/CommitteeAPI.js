@@ -63,16 +63,6 @@ const updateCommitteeAPI = async (
   }
 };
 
-//Xóa (vô hiệu hóa) một hội đồng.
-const deleteCommitteeAPI = async (committeeId) => {
-  try {
-    const response = await instance.delete(`/Committee/${committeeId}`);
-    return response.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || "Server Error");
-  }
-};
-
 //Kiểm tra tính hợp lệ của hội đồng cho một nhóm.
 const validateCommitteeAPI = async (committeeId, teamId) => {
   try {
@@ -95,12 +85,25 @@ const getCommitteeByTeamIdAPI = async (teamId) => {
   }
 };
 
+//phân công hội đồng cho nhóm.
+const assignCommitteeToTeamAPI = async (committeeId, teamId) => {
+  try {
+    const response = await instance.post(`/Committee/assign`, {
+      committeeId,
+      teamId,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Server Error");
+  }
+};
+
 export {
   getAllCommitteesAPI,
   getCommitteeByIdAPI,
   createCommitteeAPI,
   updateCommitteeAPI,
-  deleteCommitteeAPI,
   validateCommitteeAPI,
   getCommitteeByTeamIdAPI,
+  assignCommitteeToTeamAPI,
 };

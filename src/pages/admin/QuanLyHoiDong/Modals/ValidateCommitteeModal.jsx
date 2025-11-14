@@ -105,10 +105,6 @@ const ValidateCommitteeModal = ({ show, setShow }) => {
             >
               <strong>Kết quả kiểm tra:</strong>
               <div className="mt-2">
-                <div>
-                  <strong>Hợp lệ:</strong>{" "}
-                  {result.isValid ? "✓ Có" : "✗ Không"}
-                </div>
                 {result.message && (
                   <div className="mt-2">
                     <strong>Thông báo:</strong> {result.message}
@@ -127,7 +123,11 @@ const ValidateCommitteeModal = ({ show, setShow }) => {
           )}
 
           <Modal.Footer>
-            <Button variant="secondary" onClick={handleClose} disabled={loading}>
+            <Button
+              variant="secondary"
+              onClick={handleClose}
+              disabled={loading}
+            >
               Đóng
             </Button>
             <Button variant="primary" type="submit" disabled={loading}>
@@ -141,4 +141,3 @@ const ValidateCommitteeModal = ({ show, setShow }) => {
 };
 
 export default ValidateCommitteeModal;
-

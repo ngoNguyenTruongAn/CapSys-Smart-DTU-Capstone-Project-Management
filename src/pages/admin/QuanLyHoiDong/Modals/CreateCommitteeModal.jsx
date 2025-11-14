@@ -10,9 +10,9 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
     committeeName: "",
     Chairman: "",
     member1Id: "",
-    member1Role: "Thành viên",
+    member1Role: "Thư ký",
     member2Id: "",
-    member2Role: "Thành viên",
+    member2Role: "Phản biện",
   });
   const [lecturers, setLecturers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -56,7 +56,7 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
     }
 
     if (!formData.member1Id || !formData.member2Id) {
-      setError("Vui lòng chọn đầy đủ 2 thành viên");
+      setError("Vui lòng chọn đầy đủ thư ký và phản biện");
       return;
     }
 
@@ -65,25 +65,26 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
       parseInt(formData.Chairman) === parseInt(formData.member1Id) ||
       parseInt(formData.Chairman) === parseInt(formData.member2Id)
     ) {
-      setError("Chủ tịch không thể là thành viên");
+      setError("Chủ tịch không thể là thư ký hoặc phản biện");
       return;
     }
 
-    // Kiểm tra 2 thành viên không được trùng nhau
+    // Kiểm tra thư ký và phản biện không được trùng nhau
     if (parseInt(formData.member1Id) === parseInt(formData.member2Id)) {
-      setError("Hai thành viên không được trùng nhau");
+      setError("Thư ký và phản biện không được trùng nhau");
       return;
     }
 
     // Tạo mảng members từ 2 thành viên
+    // Thành viên 1 luôn là Thư ký, Thành viên 2 luôn là Phản biện
     const members = [
       {
         lecturerId: parseInt(formData.member1Id),
-        role: formData.member1Role,
+        role: "Thư ký",
       },
       {
         lecturerId: parseInt(formData.member2Id),
-        role: formData.member2Role,
+        role: "Phản biện",
       },
     ];
 
@@ -109,9 +110,9 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
       committeeName: "",
       Chairman: "",
       member1Id: "",
-      member1Role: "Thành viên",
+      member1Role: "Thư ký",
       member2Id: "",
-      member2Role: "Thành viên",
+      member2Role: "Phản biện",
     });
     setError(null);
     setShow(false);
@@ -175,63 +176,37 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Label>Thành viên 1 *</Form.Label>
-            <div className="d-flex gap-2 mb-3">
-              <Form.Select
-                name="member1Id"
-                value={formData.member1Id}
-                onChange={handleChange}
-                required
-                style={{ flex: 1 }}
-              >
-                <option value="">-- Chọn giảng viên --</option>
-                {getAvailableLecturers(formData.member2Id).map((lecturer) => (
-                  <option key={lecturer.lecturerId} value={lecturer.lecturerId}>
-                    {lecturer.fullName} ({lecturer.lecturerCode})
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Select
-                name="member1Role"
-                value={formData.member1Role}
-                onChange={handleChange}
-                style={{ width: "150px" }}
-              >
-                <option value="Thành viên">Thành viên</option>
-                <option value="Thư ký">Thư ký</option>
-                <option value="Phản biện">Phản biện</option>
-              </Form.Select>
-            </div>
+            <Form.Label>Thư ký</Form.Label>
+            <Form.Select
+              name="member1Id"
+              value={formData.member1Id}
+              onChange={handleChange}
+              required
+            >
+              <option value="">-- Chọn giảng viên --</option>
+              {getAvailableLecturers(formData.member2Id).map((lecturer) => (
+                <option key={lecturer.lecturerId} value={lecturer.lecturerId}>
+                  {lecturer.fullName} ({lecturer.lecturerCode})
+                </option>
+              ))}
+            </Form.Select>
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Label>Thành viên 2 *</Form.Label>
-            <div className="d-flex gap-2">
-              <Form.Select
-                name="member2Id"
-                value={formData.member2Id}
-                onChange={handleChange}
-                required
-                style={{ flex: 1 }}
-              >
-                <option value="">-- Chọn giảng viên --</option>
-                {getAvailableLecturers(formData.member1Id).map((lecturer) => (
-                  <option key={lecturer.lecturerId} value={lecturer.lecturerId}>
-                    {lecturer.fullName} ({lecturer.lecturerCode})
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Select
-                name="member2Role"
-                value={formData.member2Role}
-                onChange={handleChange}
-                style={{ width: "150px" }}
-              >
-                <option value="Thành viên">Thành viên</option>
-                <option value="Thư ký">Thư ký</option>
-                <option value="Phản biện">Phản biện</option>
-              </Form.Select>
-            </div>
+            <Form.Label>Phản biện</Form.Label>
+            <Form.Select
+              name="member2Id"
+              value={formData.member2Id}
+              onChange={handleChange}
+              required
+            >
+              <option value="">-- Chọn giảng viên --</option>
+              {getAvailableLecturers(formData.member1Id).map((lecturer) => (
+                <option key={lecturer.lecturerId} value={lecturer.lecturerId}>
+                  {lecturer.fullName} ({lecturer.lecturerCode})
+                </option>
+              ))}
+            </Form.Select>
           </Form.Group>
 
           <Modal.Footer>

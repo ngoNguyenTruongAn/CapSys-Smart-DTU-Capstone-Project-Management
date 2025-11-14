@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Modal, Form, Button, Alert, Spinner } from "react-bootstrap";
 import {
   getCommitteeByIdAPI,
@@ -12,31 +12,29 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
   const [formData, setFormData] = useState({
     committeeName: "",
     chairmanId: "",
-    members: [],
+    member1Id: "",
+    member2Id: "",
   });
   const [lecturers, setLecturers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedLecturerId, setSelectedLecturerId] = useState("");
-  const [selectedRole, setSelectedRole] = useState("Thành viên");
 
-  useEffect(() => {
-    if (show && committeeId) {
-      fetchCommittee();
-      fetchLecturers();
-    }
-  }, [show, committeeId]);
-
-  const fetchCommittee = async () => {
+  const fetchCommittee = useCallback(async () => {
     try {
       setFetching(true);
       const response = await getCommitteeByIdAPI(committeeId);
       const committee = response.data;
+
+      // Tìm thư ký và phản biện từ danh sách members
+      const secretary = committee.members?.find((m) => m.role === "Thư ký");
+      const reviewer = committee.members?.find((m) => m.role === "Phản biện");
+
       setFormData({
         committeeName: committee.committeeName || "",
         chairmanId: committee.chairmanId?.toString() || "",
-        members: committee.members || [],
+        member1Id: secretary?.lecturerId?.toString() || "",
+        member2Id: reviewer?.lecturerId?.toString() || "",
       });
     } catch (err) {
       setError(err.message || "Lỗi khi tải thông tin hội đồng");
@@ -44,7 +42,14 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
     } finally {
       setFetching(false);
     }
-  };
+  }, [committeeId]);
+
+  useEffect(() => {
+    if (show && committeeId) {
+      fetchCommittee();
+      fetchLecturers();
+    }
+  }, [show, committeeId, fetchCommittee]);
 
   const fetchLecturers = async () => {
     try {
@@ -60,42 +65,20 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    setError(null); // Clear error when user changes input
   };
 
-  const handleAddMember = () => {
-    if (!selectedLecturerId) {
-      alert("Vui lòng chọn giảng viên");
-      return;
-    }
-
-    if (
-      formData.members.some(
-        (m) => m.lecturerId === parseInt(selectedLecturerId)
-      ) ||
-      formData.chairmanId === selectedLecturerId
-    ) {
-      alert("Giảng viên này đã được thêm vào hội đồng");
-      return;
-    }
-
-    setFormData({
-      ...formData,
-      members: [
-        ...formData.members,
-        {
-          lecturerId: parseInt(selectedLecturerId),
-          role: selectedRole,
-        },
-      ],
-    });
-    setSelectedLecturerId("");
-    setSelectedRole("Thành viên");
-  };
-
-  const handleRemoveMember = (index) => {
-    setFormData({
-      ...formData,
-      members: formData.members.filter((_, i) => i !== index),
+  // Lọc danh sách giảng viên để loại bỏ những người đã được chọn
+  const getAvailableLecturers = (excludeMemberId = null) => {
+    return lecturers.filter((l) => {
+      const lecturerId = l.lecturerId;
+      // Loại bỏ chủ tịch
+      if (formData.chairmanId && lecturerId === parseInt(formData.chairmanId))
+        return false;
+      // Loại bỏ thành viên đã chọn ở phần khác (excludeMemberId là thành viên kia)
+      if (excludeMemberId && lecturerId === parseInt(excludeMemberId))
+        return false;
+      return true;
     });
   };
 
@@ -113,14 +96,38 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
       return;
     }
 
-    if (
-      formData.members.some(
-        (m) => m.lecturerId === parseInt(formData.chairmanId)
-      )
-    ) {
-      setError("Chủ tịch không thể là thành viên");
+    if (!formData.member1Id || !formData.member2Id) {
+      setError("Vui lòng chọn đầy đủ thư ký và phản biện");
       return;
     }
+
+    // Kiểm tra không được trùng với chủ tịch
+    if (
+      parseInt(formData.chairmanId) === parseInt(formData.member1Id) ||
+      parseInt(formData.chairmanId) === parseInt(formData.member2Id)
+    ) {
+      setError("Chủ tịch không thể là thư ký hoặc phản biện");
+      return;
+    }
+
+    // Kiểm tra thư ký và phản biện không được trùng nhau
+    if (parseInt(formData.member1Id) === parseInt(formData.member2Id)) {
+      setError("Thư ký và phản biện không được trùng nhau");
+      return;
+    }
+
+    // Tạo mảng members từ 2 thành viên
+    // Thành viên 1 luôn là Thư ký, Thành viên 2 luôn là Phản biện
+    const members = [
+      {
+        lecturerId: parseInt(formData.member1Id),
+        role: "Thư ký",
+      },
+      {
+        lecturerId: parseInt(formData.member2Id),
+        role: "Phản biện",
+      },
+    ];
 
     try {
       setLoading(true);
@@ -128,7 +135,7 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
         committeeId,
         formData.committeeName,
         parseInt(formData.chairmanId),
-        formData.members
+        members
       );
       alert("Cập nhật hội đồng thành công");
       handleClose();
@@ -144,17 +151,11 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
     setFormData({
       committeeName: "",
       chairmanId: "",
-      members: [],
+      member1Id: "",
+      member2Id: "",
     });
-    setSelectedLecturerId("");
-    setSelectedRole("Member");
     setError(null);
     setShow(false);
-  };
-
-  const getLecturerName = (lecturerId) => {
-    const lecturer = lecturers.find((l) => l.lecturerId === lecturerId);
-    return lecturer?.fullName || `ID: ${lecturerId}`;
   };
 
   return (
@@ -213,75 +214,41 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Thêm thành viên</Form.Label>
-                <div className="d-flex gap-2 mb-2">
-                  <Form.Select
-                    value={selectedLecturerId}
-                    onChange={(e) => setSelectedLecturerId(e.target.value)}
-                    style={{ flex: 1 }}
-                  >
-                    <option value="">-- Chọn giảng viên --</option>
-                    {lecturers
-                      .filter(
-                        (l) =>
-                          l.lecturerId !== parseInt(formData.chairmanId) &&
-                          !formData.members.some(
-                            (m) => m.lecturerId === l.lecturerId
-                          )
-                      )
-                      .map((lecturer) => (
-                        <option
-                          key={lecturer.lecturerId}
-                          value={lecturer.lecturerId}
-                        >
-                          {lecturer.fullName} ({lecturer.lecturerCode})
-                        </option>
-                      ))}
-                  </Form.Select>
-                  <Form.Select
-                    value={selectedRole}
-                    onChange={(e) => setSelectedRole(e.target.value)}
-                    style={{ width: "150px" }}
-                  >
-                    <option value="Thành viên">Thành viên</option>
-                    <option value="Thư ký">Thư ký</option>
-                    <option value="Phản biện">Phản biện</option>
-                  </Form.Select>
-                  <Button
-                    type="button"
-                    onClick={handleAddMember}
-                    variant="primary"
-                  >
-                    Thêm
-                  </Button>
-                </div>
+                <Form.Label>Thư ký</Form.Label>
+                <Form.Select
+                  name="member1Id"
+                  value={formData.member1Id}
+                  onChange={handleChange}
+                >
+                  <option value="">-- Chọn giảng viên --</option>
+                  {getAvailableLecturers(formData.member2Id).map((lecturer) => (
+                    <option
+                      key={lecturer.lecturerId}
+                      value={lecturer.lecturerId}
+                    >
+                      {lecturer.fullName} ({lecturer.lecturerCode})
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
 
-                {formData.members.length > 0 && (
-                  <div className="member-list">
-                    <strong>Danh sách thành viên:</strong>
-                    <ul className="list-unstyled mt-2">
-                      {formData.members.map((member, index) => (
-                        <li
-                          key={index}
-                          className="d-flex justify-content-between align-items-center mb-2 p-2 border rounded"
-                        >
-                          <span>
-                            {getLecturerName(member.lecturerId)} -{" "}
-                            <span className="badge bg-info">{member.role}</span>
-                          </span>
-                          <Button
-                            type="button"
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleRemoveMember(index)}
-                          >
-                            Xóa
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+              <Form.Group className="mb-3">
+                <Form.Label>Phản biện</Form.Label>
+                <Form.Select
+                  name="member2Id"
+                  value={formData.member2Id}
+                  onChange={handleChange}
+                >
+                  <option value="">-- Chọn giảng viên --</option>
+                  {getAvailableLecturers(formData.member1Id).map((lecturer) => (
+                    <option
+                      key={lecturer.lecturerId}
+                      value={lecturer.lecturerId}
+                    >
+                      {lecturer.fullName} ({lecturer.lecturerCode})
+                    </option>
+                  ))}
+                </Form.Select>
               </Form.Group>
 
               <Modal.Footer>

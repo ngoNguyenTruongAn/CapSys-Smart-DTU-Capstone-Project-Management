@@ -1,23 +1,20 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  getAllCommitteesAPI,
-  deleteCommitteeAPI,
-} from "../../../services/CommitteeAPI";
+import { Spinner } from "react-bootstrap";
+import { getAllCommitteesAPI } from "../../../services/CommitteeAPI";
 import "./QuanLyHoiDong.scss";
 import CreateCommitteeModal from "./Modals/CreateCommitteeModal";
 import UpdateCommitteeModal from "./Modals/UpdateCommitteeModal";
 import ViewCommitteeModal from "./Modals/ViewCommitteeModal";
 import ValidateCommitteeModal from "./Modals/ValidateCommitteeModal";
 import SearchByTeamModal from "./Modals/SearchByTeamModal";
+import AssignCommitteeModal from "./Modals/AssignCommitteeModal";
 
 const QuanLyHoiDong = () => {
   const [committees, setCommittees] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
-  const [includeInactive, setIncludeInactive] = useState(false);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(5);
 
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -25,22 +22,25 @@ const QuanLyHoiDong = () => {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showValidateModal, setShowValidateModal] = useState(false);
   const [showSearchByTeamModal, setShowSearchByTeamModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedCommitteeId, setSelectedCommitteeId] = useState(null);
 
   // Fetch committees
   const fetchCommittees = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
-      const response = await getAllCommitteesAPI(includeInactive);
+      const response = await getAllCommitteesAPI(false);
       setCommittees(response.data || []);
     } catch (err) {
-      setError(err.message || "Lỗi khi tải danh sách hội đồng");
       console.error("Lỗi khi tải hội đồng:", err);
+      alert(
+        "Lỗi khi tải danh sách hội đồng: " +
+          (err.message || "Lỗi không xác định")
+      );
     } finally {
       setLoading(false);
     }
-  }, [includeInactive]);
+  }, []);
 
   useEffect(() => {
     fetchCommittees();
@@ -91,20 +91,6 @@ const QuanLyHoiDong = () => {
     setShowUpdateModal(true);
   };
 
-  const handleDelete = async (committeeId) => {
-    if (
-      window.confirm("Bạn có chắc chắn muốn vô hiệu hóa hội đồng này không?")
-    ) {
-      try {
-        await deleteCommitteeAPI(committeeId);
-        alert("Vô hiệu hóa hội đồng thành công");
-        fetchCommittees();
-      } catch (err) {
-        alert(`Lỗi khi vô hiệu hóa: ${err.message}`);
-      }
-    }
-  };
-
   const handleCreateSuccess = () => {
     fetchCommittees();
     setShowCreateModal(false);
@@ -116,151 +102,170 @@ const QuanLyHoiDong = () => {
     setSelectedCommitteeId(null);
   };
 
+  const handleAssign = (committeeId) => {
+    setSelectedCommitteeId(committeeId);
+    setShowAssignModal(true);
+  };
+
+  const handleAssignSuccess = () => {
+    fetchCommittees();
+    setShowAssignModal(false);
+    setSelectedCommitteeId(null);
+  };
+
   return (
     <div className="quanlyhoidong-page">
-      <header className="qhd-toolbar">
-        <button onClick={() => setShowCreateModal(true)}>
-          ➕ Tạo hội đồng mới
-        </button>
-        <button onClick={() => setShowValidateModal(true)}>
-          ✓ Kiểm tra tính hợp lệ
-        </button>
-        <button onClick={() => setShowSearchByTeamModal(true)}>
-          🔍 Tìm theo Team ID
-        </button>
-        <input
-          type="text"
-          placeholder="🔍 Tìm kiếm hội đồng..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <label className="qhd-checkbox-label">
+      <header className="qlda-toolbar">
+        <div className="toolbar-controls">
+          <button onClick={() => setShowCreateModal(true)}>
+            ➕ Tạo hội đồng mới
+          </button>
+          <button onClick={() => setShowValidateModal(true)}>
+            ✓ Kiểm tra tính hợp lệ
+          </button>
+          <button onClick={() => setShowSearchByTeamModal(true)}>
+            🔍 Tìm hội đồng theo nhóm
+          </button>
           <input
-            type="checkbox"
-            checked={includeInactive}
-            onChange={(e) => setIncludeInactive(e.target.checked)}
+            type="text"
+            placeholder="Tìm kiếm hội đồng..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
-          Bao gồm hội đồng đã vô hiệu hóa
-        </label>
+        </div>
       </header>
 
-      {loading && <p>Đang tải dữ liệu...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      <div className="qhd-table-box">
-        {currentPageData.length > 0 ? (
-          <>
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Tên hội đồng</th>
-                  <th>Chủ tịch</th>
-                  <th>Số thành viên</th>
-                  <th>Trạng thái</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentPageData.map((committee) => (
-                  <tr key={committee.committeeId}>
-                    <td>{committee.committeeId}</td>
-                    <td>{committee.committeeName || "N/A"}</td>
-                    <td>
-                      {committee.chairmanName ||
-                        committee.chairman?.fullName ||
-                        "Chưa có"}
-                    </td>
-                    <td>{committee.members?.length || 0} thành viên</td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          committee.isActive !== false
-                            ? "bg-success"
-                            : "bg-secondary"
-                        }`}
-                      >
-                        {committee.isActive !== false ? "Hoạt động" : "Vô hiệu"}
-                      </span>
-                    </td>
-                    <td>
-                      <button onClick={() => handleView(committee.committeeId)}>
-                        Xem
-                      </button>
-                      <button
-                        onClick={() => handleUpdate(committee.committeeId)}
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDelete(committee.committeeId)}
-                        disabled={committee.isActive === false}
-                      >
-                        Vô hiệu hóa
-                      </button>
-                    </td>
+      {loading ? (
+        <div className="qlda-loading">
+          <Spinner animation="border" role="status" variant="primary">
+            <span className="visually-hidden">Loading...</span>
+          </Spinner>
+          <p>Đang tải dữ liệu...</p>
+        </div>
+      ) : (
+        <div className="qlda-table-box">
+          {currentPageData.length > 0 ? (
+            <>
+              <table className="qlda-table">
+                <thead>
+                  <tr>
+                    <th>Tên hội đồng</th>
+                    <th>Chủ tịch</th>
+                    <th>Trạng thái</th>
+                    <th>Hành động</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="pagination">
-                <button onClick={() => setPage(1)} disabled={page === 1}>
-                  {"<<"}
-                </button>
-                <button
-                  onClick={() => setPage((p) => p - 1)}
-                  disabled={page === 1}
-                >
-                  Trước
-                </button>
-                <span>
-                  Trang {page} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={page === totalPages}
-                >
-                  Sau
-                </button>
-                <button
-                  onClick={() => setPage(totalPages)}
-                  disabled={page === totalPages}
-                >
-                  {">>"}
-                </button>
-                <select
-                  value={pageSize}
-                  onChange={(e) => setPageSize(Number(e.target.value))}
-                >
-                  {[5, 10, 20, 50].map((size) => (
-                    <option key={size} value={size}>
-                      Hiển thị {size}
-                    </option>
+                </thead>
+                <tbody>
+                  {currentPageData.map((committee) => (
+                    <tr key={committee.committeeId}>
+                      <td>{committee.committeeName || "N/A"}</td>
+                      <td>
+                        {committee.chairmanName ||
+                          committee.chairman?.fullName ||
+                          "Chưa có"}
+                      </td>
+                      <td>
+                        <span
+                          className={`status-badge ${
+                            committee.isActive !== false
+                              ? "active"
+                              : "secondary"
+                          }`}
+                        >
+                          {committee.isActive !== false
+                            ? "Hoạt động"
+                            : "Vô hiệu"}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="qlda-actions">
+                          <button
+                            onClick={() => handleView(committee.committeeId)}
+                          >
+                            Xem
+                          </button>
+                          <button
+                            onClick={() => handleUpdate(committee.committeeId)}
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => handleAssign(committee.committeeId)}
+                          >
+                            Phân công
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   ))}
-                </select>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="empty-state">
-            <div className="empty-icon">👥</div>
-            <h3>Không có hội đồng nào</h3>
-            <p>
-              {search
-                ? `Không tìm thấy hội đồng nào với từ khóa "${search}"`
-                : "Chưa có dữ liệu hội đồng trong hệ thống"}
-            </p>
-            {!search && (
-              <button onClick={() => setShowCreateModal(true)}>
-                ➕ Tạo hội đồng mới
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+                </tbody>
+              </table>
+              <p
+                style={{
+                  fontSize: "1.7rem",
+                  margin: "3rem 0",
+                  textAlign: "center",
+                }}
+              >
+                Hiển thị {filteredCommittees.length} hội đồng | Trang {page} /{" "}
+                {totalPages}
+              </p>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="pagination qlda-pagination">
+                  <button onClick={() => setPage(1)} disabled={page === 1}>
+                    {"<<"}
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => p - 1)}
+                    disabled={page === 1}
+                  >
+                    Trước
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={page === totalPages}
+                  >
+                    Sau
+                  </button>
+                  <button
+                    onClick={() => setPage(totalPages)}
+                    disabled={page === totalPages}
+                  >
+                    {">>"}
+                  </button>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                  >
+                    {[5, 10, 20, 30, 50].map((size) => (
+                      <option key={size} value={size}>
+                        Hiển thị {size}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="empty-state">
+              <div className="empty-icon">👥</div>
+              <h3>Không có hội đồng nào</h3>
+              <p>
+                {search
+                  ? `Không tìm thấy hội đồng nào với từ khóa "${search}"`
+                  : "Chưa có dữ liệu hội đồng trong hệ thống"}
+              </p>
+              {!search && (
+                <button onClick={() => setShowCreateModal(true)}>
+                  ➕ Tạo hội đồng mới
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modals */}
       <CreateCommitteeModal
@@ -286,6 +291,12 @@ const QuanLyHoiDong = () => {
       <SearchByTeamModal
         show={showSearchByTeamModal}
         setShow={setShowSearchByTeamModal}
+      />
+      <AssignCommitteeModal
+        show={showAssignModal}
+        setShow={setShowAssignModal}
+        committeeId={selectedCommitteeId}
+        onSuccess={handleAssignSuccess}
       />
     </div>
   );
