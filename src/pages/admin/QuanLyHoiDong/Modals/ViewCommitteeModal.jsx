@@ -38,6 +38,11 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
     setShow(false);
   };
 
+  const chairmanName =
+    committee?.chairmanName || committee?.chairman?.fullName || "";
+  const chairmanCode =
+    committee?.chairmanLecturerCode || committee?.chairman?.lecturerCode || "";
+
   return (
     <Modal
       show={show}
@@ -81,13 +86,9 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
               </Badge>
             </div>
             <div className="mb-3">
-              <strong>Chủ tịch:</strong>{" "}
-              {committee.chairman?.fullName || "Chưa có"}
-              {committee.chairman?.lecturerCode && (
-                <span className="text-muted">
-                  {" "}
-                  ({committee.chairman.lecturerCode})
-                </span>
+              <strong>Chủ tịch:</strong> {chairmanName || "Chưa có"}
+              {chairmanCode && (
+                <span className="text-muted"> ({chairmanCode})</span>
               )}
             </div>
             <div className="mb-3">
@@ -97,26 +98,30 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
               <div className="mb-3">
                 <strong>Danh sách thành viên:</strong>
                 <ul className="list-unstyled mt-2">
-                  {committee.members.map((member, index) => (
-                    <li
-                      key={index}
-                      className="p-2 border rounded mb-2"
-                    >
-                      <div>
-                        <strong>
-                          {member.lecturer?.fullName || `ID: ${member.lecturerId}`}
-                        </strong>
-                        {member.lecturer?.lecturerCode && (
-                          <span className="text-muted ms-2">
-                            ({member.lecturer.lecturerCode})
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <Badge bg="info">{member.role || "Member"}</Badge>
-                      </div>
-                    </li>
-                  ))}
+                  {committee.members.map((member, index) => {
+                    const displayName =
+                      member.lecturerName ||
+                      member.lecturer?.fullName ||
+                      `ID: ${member.lecturerId}`;
+                    const displayCode =
+                      member.lecturerCode || member.lecturer?.lecturerCode;
+
+                    return (
+                      <li key={index} className="p-2 border rounded mb-2">
+                        <div>
+                          <strong>{displayName}</strong>
+                          {displayCode && (
+                            <span className="text-muted ms-2">
+                              ({displayCode})
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <Badge bg="info">{member.role || "Thành viên"}</Badge>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             )}
@@ -133,4 +138,3 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
 };
 
 export default ViewCommitteeModal;
-

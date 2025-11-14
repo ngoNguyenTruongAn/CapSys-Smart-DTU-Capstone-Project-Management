@@ -19,7 +19,7 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState(null);
   const [selectedLecturerId, setSelectedLecturerId] = useState("");
-  const [selectedRole, setSelectedRole] = useState("Member");
+  const [selectedRole, setSelectedRole] = useState("Thành viên");
 
   useEffect(() => {
     if (show && committeeId) {
@@ -89,7 +89,7 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
       ],
     });
     setSelectedLecturerId("");
-    setSelectedRole("Member");
+    setSelectedRole("Thành viên");
   };
 
   const handleRemoveMember = (index) => {
@@ -243,9 +243,9 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
                     onChange={(e) => setSelectedRole(e.target.value)}
                     style={{ width: "150px" }}
                   >
-                    <option value="Member">Thành viên</option>
-                    <option value="Secretary">Thư ký</option>
-                    <option value="Reviewer">Phản biện</option>
+                    <option value="Thành viên">Thành viên</option>
+                    <option value="Thư ký">Thư ký</option>
+                    <option value="Phản biện">Phản biện</option>
                   </Form.Select>
                   <Button
                     type="button"
@@ -305,4 +305,3 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
 };
 
 export default UpdateCommitteeModal;
-

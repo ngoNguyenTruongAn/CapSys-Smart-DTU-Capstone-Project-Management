@@ -10,9 +10,9 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
     committeeName: "",
     Chairman: "",
     member1Id: "",
-    member1Role: "Member",
+    member1Role: "Thành viên",
     member2Id: "",
-    member2Role: "Member",
+    member2Role: "Thành viên",
   });
   const [lecturers, setLecturers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -109,9 +109,9 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
       committeeName: "",
       Chairman: "",
       member1Id: "",
-      member1Role: "Member",
+      member1Role: "Thành viên",
       member2Id: "",
-      member2Role: "Member",
+      member2Role: "Thành viên",
     });
     setError(null);
     setShow(false);
@@ -197,9 +197,9 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
                 onChange={handleChange}
                 style={{ width: "150px" }}
               >
-                <option value="Member">Thành viên</option>
-                <option value="Secretary">Thư ký</option>
-                <option value="Reviewer">Phản biện</option>
+                <option value="Thành viên">Thành viên</option>
+                <option value="Thư ký">Thư ký</option>
+                <option value="Phản biện">Phản biện</option>
               </Form.Select>
             </div>
           </Form.Group>
@@ -227,9 +227,9 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
                 onChange={handleChange}
                 style={{ width: "150px" }}
               >
-                <option value="Member">Thành viên</option>
-                <option value="Secretary">Thư ký</option>
-                <option value="Reviewer">Phản biện</option>
+                <option value="Thành viên">Thành viên</option>
+                <option value="Thư ký">Thư ký</option>
+                <option value="Phản biện">Phản biện</option>
               </Form.Select>
             </div>
           </Form.Group>
