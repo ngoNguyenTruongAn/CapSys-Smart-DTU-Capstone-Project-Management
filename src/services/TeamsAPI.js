@@ -112,7 +112,7 @@ const postMoveStudentAPI = async (studentIds, targetTeamId) => {
     for (const studentId of studentIds) {
       await instance.post("Teams/move-student", {
         studentId,
-        targetTeamId
+        targetTeamId,
       });
     }
 

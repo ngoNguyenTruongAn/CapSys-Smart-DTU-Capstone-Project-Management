@@ -1,122 +1,306 @@
+@use "sass:color";
+
+$primary-color: #94070d;
+$primary-hover: #b3080f;
+$primary-light: rgba(148, 7, 13, 0.1);
+$primary-gradient: linear-gradient(135deg, #94070d, #b3080f);
+
 .quanlydoan-page {
-  padding: 1.5rem;
-  font-size: 1.7rem; // tăng size toàn trang
-  line-height: 1.5; // cho dễ đọc hơn
+  padding: 2rem;
+  font-size: 1.7rem;
+  line-height: 1.6;
+  // background: #f8f9fa;
+  min-height: 100vh;
 
   .btn-manage-team {
-    background-color: #1d62ed; // xanh như bản cũ
+    background: $primary-gradient;
     color: #fff;
-    padding: 8px 14px;
+    padding: 1rem 2rem;
     border: none;
-    border-radius: 6px;
-    margin-bottom: 10px;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
     cursor: pointer;
+    font-weight: 600;
+    font-size: 1.6rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
 
-    font-weight: 500;
-    transition: all 0.2s ease;
-
-    // hiệu ứng hover và nhấn cho mượt
     &:hover {
-      background-color: #3b7bff;
-      box-shadow: 0 4px 10px rgba(29, 98, 237, 0.3);
+      background: $primary-hover;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
     }
 
     &:active {
-      transform: translateY(1px);
-      background-color: #1756d3;
+      transform: translateY(0);
     }
   }
 
   .qlda-toolbar {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    // background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    align-items: center;
+    justify-content: space-between;
 
-    select,
+    .toolbar-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      flex: 1;
+    }
+
+    select {
+      padding: 0.8rem 1.2rem;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 180px;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px $primary-light;
+      }
+
+      &:hover {
+        border-color: $primary-color;
+      }
+    }
+
     input {
-      padding: 0.5rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
+      padding: 0.8rem 1.2rem;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 1.5rem;
+      transition: all 0.3s ease;
+      min-width: 250px;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px $primary-light;
+      }
+
+      &:hover {
+        border-color: $primary-color;
+      }
+
+      &::placeholder {
+        color: #adb5bd;
+      }
     }
 
     button {
-      padding: 0.5rem 1rem;
-      background: #2563eb;
+      padding: 0.8rem 1.5rem;
+      background: $primary-color;
       color: #fff;
       border: none;
-      border-radius: 6px;
+      border-radius: 10px;
       cursor: pointer;
+      font-weight: 600;
+      font-size: 1.5rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
+
+      &:hover {
+        background: $primary-hover;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
     }
+
+    .btn-manage-team {
+      margin-left: auto;
+      margin-bottom: 0;
+    }
+  }
+
+  .qlda-table-box {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
   }
 
   .qlda-table {
     width: 100%;
     border-collapse: collapse;
 
-    th,
-    td {
-      padding: 0.75rem;
-      border-bottom: 1px solid #e5e7eb;
+    th {
+      color: $primary-color !important;
+      font-weight: 700;
+      padding: 1rem;
+      border-bottom: 2px solid #e9ecef;
       text-align: left;
+      background: #f8f9fa;
+      color: #495057;
+      font-size: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid #e9ecef;
+      text-align: left;
+      font-size: 1.5rem;
+      color: #495057;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
     }
 
     .status-badge {
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 1.3rem;
+      text-transform: uppercase;
+      display: inline-block;
+
       &.active {
-        background: #e0f2fe;
-        color: #0369a1;
+        background: #d4edda;
+        color: #155724;
       }
       &.pending {
-        background: #fef3c7;
-        color: #92400e;
+        background: #fff3cd;
+        color: #856404;
       }
       &.completed {
-        background: #dcfce7;
-        color: #166534;
+        background: #d1ecf1;
+        color: #0c5460;
       }
       &.defending {
-        background: #ede9fe;
-        color: #5b21b6;
+        background: #f8d7da;
+        color: #721c24;
       }
     }
 
-    .qlda-actions button {
-      margin-right: 0.5rem;
-      padding: 0.25rem 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: #f9fafb;
-      cursor: pointer;
+    .qlda-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+
+      button {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 6px;
+        background: $primary-color;
+        color: #fff;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 1.3rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(148, 7, 13, 0.2);
+
+        &:hover {
+          background: $primary-hover;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(148, 7, 13, 0.3);
+        }
+
+        &[style*="red"] {
+          background: #dc3545 !important;
+
+          &:hover {
+            background: #c82333 !important;
+          }
+        }
+
+        &[style*="#007bff"] {
+          background: $primary-color !important;
+
+          &:hover {
+            background: $primary-hover !important;
+          }
+        }
+
+        &[style*="orange"] {
+          background: #ff9800 !important;
+
+          &:hover {
+            background: #f57c00 !important;
+          }
+        }
+      }
     }
   }
   .qlda-pagination {
     display: flex;
-    // justify-content: center;
+    justify-content: center;
     align-items: center;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    font-size: 1.7rem;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    font-size: 1.5rem;
+
     button {
-      padding: 0.5rem 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: #f9fafb;
+      padding: 0.6rem 1.2rem;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: #fff;
+      color: #495057;
       cursor: pointer;
-      font-size: 1.7rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      min-width: 50px;
+
+      &:hover:not(:disabled) {
+        background: #f8f9fa;
+        border-color: $primary-color;
+        color: $primary-color;
+        transform: translateY(-2px);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f8f9fa;
+        transform: none;
+      }
     }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
+
     select {
-      padding: 0.5rem 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: #f9fafb;
+      padding: 0.6rem 1rem;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: #fff;
       cursor: pointer;
+      font-size: 1.5rem;
+      transition: all 0.3s ease;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px $primary-light;
+      }
+
+      &:hover {
+        border-color: $primary-color;
+      }
     }
+
     select:disabled {
       opacity: 0.5;
       cursor: not-allowed;

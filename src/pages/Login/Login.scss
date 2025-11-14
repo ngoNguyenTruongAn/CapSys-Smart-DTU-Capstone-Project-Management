@@ -1,6 +1,6 @@
 @use "sass:color";
 
-$primary-color: #007bff;
+$primary-color: #94070d;
 $secondary-color: #6c757d;
 $error-color: #dc3545;
 $border-radius: 8px;
@@ -38,7 +38,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: #94070d;
   padding: 20px;
   box-sizing: border-box;
   overflow-x: hidden;
@@ -61,15 +61,15 @@ body {
   &::before {
     top: -80px;
     left: -60px;
-    background: radial-gradient(circle at 30% 30%, #7aa5ff, transparent 60%),
-      radial-gradient(circle at 70% 70%, #9ad1ff, transparent 60%);
+    background: radial-gradient(circle at 30% 30%, #d32f2f, transparent 60%),
+      radial-gradient(circle at 70% 70%, #f44336, transparent 60%);
   }
 
   &::after {
     bottom: -100px;
     right: -60px;
-    background: radial-gradient(circle at 40% 40%, #ffd6e7, transparent 60%),
-      radial-gradient(circle at 70% 70%, #ffc2a1, transparent 60%);
+    background: radial-gradient(circle at 40% 40%, #ff6b6b, transparent 60%),
+      radial-gradient(circle at 70% 70%, #ff8a80, transparent 60%);
     animation-delay: 1.5s;
   }
 
@@ -117,7 +117,7 @@ body {
     will-change: transform, opacity; /* Tối ưu GPU */
 
     &::before {
-      content: "";
+      // content: "";
       position: absolute;
       top: 0;
       left: 0;
@@ -301,7 +301,7 @@ body {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #1d62ed;
+        background: #94070d;
         width: 100%;
         height: 48px;
         padding: 1em;
@@ -317,8 +317,8 @@ body {
         will-change: background, box-shadow;
 
         &:hover:not(:disabled) {
-          background: #3978ff;
-          box-shadow: 0 6px 18px rgba(29, 98, 237, 0.35);
+          background: #b3080f;
+          box-shadow: 0 6px 18px rgba(148, 7, 13, 0.35);
         }
 
         &:disabled {

@@ -5,7 +5,7 @@ const getAllLecturersAPI = async () => {
     const response = await instance.get("/Lecturers/get-lecturers");
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(error.response?.data?.message || "Server Error");
   }
 };
 
@@ -17,7 +17,7 @@ const updateLecturerAPI = async (id, lecturerData) => {
     );
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(error.response?.data?.message || "Server Error");
   }
 };
 
@@ -26,7 +26,7 @@ const getLecturerByIdAPI = async (id) => {
     const response = await instance.get(`/Lecturers/get-lecturer-by-id/${id}`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(error.response?.data?.message || "Server Error");
   }
 };
 
@@ -59,8 +59,27 @@ const deleteLecturerByLecturerCodeAPI = async (id) => {
     const response = await instance.delete(`/Lecturers/delete-lecturer/${id}`);
     return response.data;
   } catch (error) {
-    throw new Error(error.response.data.message || "Server Error");
+    throw new Error(error.response?.data?.message || "Server Error");
   }
 };
 
-export { getAllLecturersAPI, updateLecturerAPI, getLecturerByIdAPI, updateLecturerBylecturerCodeAPI, deleteLecturerByLecturerCodeAPI };
+const insertLecturersFromFileAPI = async (ExcelFile) => {
+  const formData = new FormData();
+  formData.append("ExcelFile", ExcelFile);
+
+  try {
+    const response = await instance.post(`/Lecturers/insert`, formData);
+    return response;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Server Error");
+  }
+};
+
+export {
+  getAllLecturersAPI,
+  updateLecturerAPI,
+  getLecturerByIdAPI,
+  updateLecturerBylecturerCodeAPI,
+  deleteLecturerByLecturerCodeAPI,
+  insertLecturersFromFileAPI,
+};

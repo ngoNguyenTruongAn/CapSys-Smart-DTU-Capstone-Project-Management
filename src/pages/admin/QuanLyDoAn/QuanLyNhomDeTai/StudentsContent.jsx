@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   createTeam,
@@ -73,12 +73,25 @@ const StudentsContent = () => {
     );
   };
 
-  const selectAllStudents = () => {
-    setSelectedStudentIds(filteredStudents.map((s) => s.studentId));
-  };
+  const allFilteredSelected =
+    filteredStudents.length > 0 &&
+    filteredStudents.every((s) => selectedStudentIds.includes(s.studentId));
 
-  const clearStudentSelection = () => {
-    setSelectedStudentIds([]);
+  const selectAllCheckboxRef = useRef(null);
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate =
+        selectedStudentIds.length > 0 && !allFilteredSelected;
+    }
+  }, [selectedStudentIds, allFilteredSelected]);
+
+  const handleToggleSelectAll = () => {
+    if (allFilteredSelected) {
+      setSelectedStudentIds([]);
+    } else {
+      setSelectedStudentIds(filteredStudents.map((s) => s.studentId));
+    }
   };
 
   // ===== TEAM MANAGEMENT (LOGIC TÁCH RA TỪ CHA) =====
@@ -175,7 +188,7 @@ const StudentsContent = () => {
     <>
       <div className="students-section">
         <div className="section-header">
-          <h3>Danh sách sinh viên chưa có nhóm ({filteredStudents.length})</h3>
+          <h3>Danh sách sinh viên chưa có nhóm</h3>
           <div className="filter-group">
             <label htmlFor="capstone-select">Loại Capstone:</label>
             <select
@@ -208,12 +221,6 @@ const StudentsContent = () => {
             >
               ⚙️ Auto Arrange
             </button>
-            <button onClick={selectAllStudents} className="btn-secondary">
-              Chọn tất cả
-            </button>
-            <button onClick={clearStudentSelection} className="btn-secondary">
-              Bỏ chọn
-            </button>
             <span className="selected-count">
               Đã chọn: {selectedStudentIds.length}
             </span>
@@ -227,7 +234,15 @@ const StudentsContent = () => {
             <table className="students-table">
               <thead>
                 <tr>
-                  <th></th>
+                  <th>
+                    <input
+                      type="checkbox"
+                      ref={selectAllCheckboxRef}
+                      checked={allFilteredSelected}
+                      onChange={handleToggleSelectAll}
+                      aria-label="Chọn tất cả sinh viên trong danh sách hiện tại"
+                    />
+                  </th>
                   <th>MSSV</th>
                   <th>Họ tên</th>
                   <th>Email</th>

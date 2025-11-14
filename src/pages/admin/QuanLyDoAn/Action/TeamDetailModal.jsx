@@ -139,7 +139,7 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
       setShow(false);
       if (onUpdated) onUpdated();
     } catch (error) {
-      alert("Cập nhật thất bại: " + error.message);
+      alert("Cập nhật thất bại: " + error);
     } finally {
       setIsSaving(false);
     }

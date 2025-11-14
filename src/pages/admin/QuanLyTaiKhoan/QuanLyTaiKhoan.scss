@@ -1,98 +1,185 @@
-// QuanLyTaiKhoan.scss
+@use "sass:color";
+
+$primary-color: #94070d;
+$primary-hover: #b3080f;
+$primary-light: rgba(148, 7, 13, 0.12);
+$primary-gradient: linear-gradient(135deg, #94070d, #b3080f);
+
 .quanlytaikhoan-page {
-  padding: 1.5rem;
-  // background-color: #ffffff;
+  padding: 2rem;
+  background-color: #f8f9fa;
   min-height: 100vh;
   font-size: 1.7rem;
-  line-height: 1.5;
+  line-height: 1.6;
 
   // Toolbar styling
   .qltk-toolbar {
     display: flex;
-    align-items: center;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+    align-items: center;
+    justify-content: space-between;
 
-    button {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 6px;
-      font-weight: 500;
-      font-size: 1.7rem;
-      cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease;
+    .toolbar-controls {
       display: flex;
-      align-items: center;
-      gap: 6px;
-
-      &:first-child {
-        background: #2563eb;
-        color: #ffffff;
-      }
-
-      &:nth-child(2) {
-        background: #f9fafb;
-        color: #111827;
-        border: 1px solid #e5e7eb;
-      }
-
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-    }
-
-    input[type="text"] {
+      flex-wrap: wrap;
+      gap: 1rem;
       flex: 1;
-      max-width: 300px;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 1.6rem;
-      transition: border-color 0.2s ease, background 0.2s ease;
-      background: #ffffff;
 
-      &:focus {
-        outline: none;
-        border-color: #2563eb;
-        background: #ffffff;
+      select,
+      input,
+      button {
+        height: 4.2rem;
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+        font-size: 1.5rem;
+        padding: 0 1.2rem;
+        transition: all 0.3s ease;
       }
 
-      &::placeholder {
-        color: #94a3b8;
+      select,
+      input {
+        background: #fff;
+        flex: 1;
+        min-width: 180px;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px $primary-light;
+        }
+      }
+
+      button {
+        background: $primary-gradient;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        flex: 0 0 auto;
+        min-width: 140px;
+        box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
+
+        &:hover {
+          background: $primary-hover;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
       }
     }
   }
 
-  // Tabs styling
-  .qltk-tabs {
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.9rem 1.6rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1.6rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+    align-items: center;
+    gap: 0.75rem;
+    justify-content: center;
+  }
 
-    button {
-      flex: 1;
-      padding: 0.5rem 1rem;
-      border: 1px solid #ccc;
-      background: #f9fafb;
-      border-radius: 6px;
-      font-weight: 500;
-      font-size: 1.6rem;
-      cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-      color: #111827;
+  .btn-primary {
+    border: none;
+    background: $primary-gradient;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
+
+    &:hover {
+      background: $primary-hover;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
+    }
+  }
+
+  .btn-secondary {
+    border: 2px solid #ffc107;
+    background: transparent;
+    color: #856404;
+    box-shadow: none;
+
+    &:hover {
+      background: #fff3cd;
+      border-color: #ffc107;
+    }
+  }
+
+  .btn-secondary.import-btn {
+    background: $primary-color;
+    color: #fff;
+    border-color: $primary-color;
+    box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
+
+    &:hover {
+      background: $primary-hover;
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
+    }
+  }
+
+  .qltk-import-panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 1.2rem 1.5rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    align-items: center;
+
+    .selected-file {
+      padding: 0.8rem 1.2rem;
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      background: #f8f9fa;
+      font-size: 1.4rem;
+      color: #495057;
+      min-width: 200px;
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-picker {
       position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
 
-      &:hover {
-        background: #f3f4f6;
-        color: #111827;
-      }
+    .file-picker input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
 
-      &.active {
-        background: #2563eb;
-        color: #ffffff;
-        border-color: #2563eb;
+    .capstone-select {
+      padding: 0.8rem 1.2rem;
+      border: 2px solid #e9ecef;
+      border-radius: 10px;
+      background: #fff;
+      font-size: 1.4rem;
+      transition: all 0.3s ease;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px $primary-light;
       }
     }
   }
@@ -113,85 +200,115 @@
     }
   }
 
-  // Table container
-  .qltk-table-box {
-    // background: #ffffff;
-    border-radius: 8px;
-    // border: 1px solid #e5e7eb;
-    overflow: hidden;
+  // Table container styled giống QuanLyDoAn
+  .qlda-table-box {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
+    border: none;
+  }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 1.6rem;
+  .qlda-table {
+    width: 100%;
+    border-collapse: collapse;
 
-      thead {
-        // background: #f9fafb;
+    th {
+      color: $primary-color !important;
+      font-weight: 700;
+      padding: 1rem;
+      border-bottom: 2px solid #e9ecef;
+      text-align: left;
+      background: #f8f9fa;
+      font-size: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
 
-        th {
-          padding: 0.75rem 1rem;
-          text-align: left;
-          font-weight: 600;
-          color: #111827;
-          border-bottom: 1px solid #e5e7eb;
-          font-size: 1.5rem;
-        }
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid #e9ecef;
+      text-align: left;
+      font-size: 1.5rem;
+      color: #495057;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+  }
+
+  .qlda-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      background: $primary-color;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.3rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(148, 7, 13, 0.2);
+
+      &:hover {
+        background: $primary-hover;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(148, 7, 13, 0.3);
       }
 
-      tbody {
-        tr {
-          transition: background 0.2s ease;
-          border-bottom: 1px solid #e5e7eb;
+      &[data-variant="danger"] {
+        background: #dc3545;
 
-          &:hover {
-            background: #f9fafb;
-          }
-
-          &:last-child {
-            border-bottom: none;
-          }
-
-          td {
-            padding: 0.75rem 1rem;
-            color: #111827;
-            vertical-align: middle;
-
-            &:first-child {
-              font-weight: 600;
-              color: #111827;
-            }
-
-            &:last-child {
-              display: flex;
-              gap: 0.5rem;
-              align-items: center;
-            }
-          }
+        &:hover {
+          background: #c82333;
         }
       }
     }
   }
 
+  .qltk-summary {
+    text-align: center;
+    font-size: 1.6rem;
+    margin: 2rem 0 1rem;
+    color: #475569;
+  }
+
   // Action buttons
   .qltk-table-box tbody tr td button {
-    padding: 0.25rem 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 0.45rem 1rem;
+    border: none;
+    border-radius: 8px;
     font-size: 1.4rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    background: #f9fafb;
-    color: #111827;
+    background: #f8fafc;
+    color: #1e293b;
+    transition: all 0.25s ease;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 6px rgba(15, 23, 42, 0.2);
+    }
   }
-  .qltk-table-box tbody tr td button:hover {
-    background: #f3f4f6;
+  .qltk-table-box tbody tr td button:nth-child(1) {
+    background: $primary-color;
+    color: #fff;
   }
-  .qltk-table-box tbody tr td button:nth-child(1),
-  .qltk-table-box tbody tr td button:nth-child(2),
+  .qltk-table-box tbody tr td button:nth-child(2) {
+    background: blue;
+    color: #fff;
+  }
   .qltk-table-box tbody tr td button:nth-child(3) {
-    background: #f9fafb;
-    color: #111827;
-    border: 1px solid #ccc;
+    background: red;
+    color: #fff;
   }
 
   // Empty state
@@ -216,38 +333,89 @@
       margin: 0;
       font-size: 14px;
     }
-  }
-
-  // Pagination (đồng bộ kiểu QuanLyDoAn)
-  .pagination {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    font-size: 1.7rem;
 
     button {
-      padding: 0.5rem 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: #f9fafb;
+      margin-top: 1.5rem;
+      padding: 0.9rem 1.6rem;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1.5rem;
+      background: $primary-gradient;
+      color: #fff;
       cursor: pointer;
-      font-size: 1.7rem;
+      box-shadow: 0 4px 10px rgba(148, 7, 13, 0.25);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: $primary-hover;
+        transform: translateY(-2px);
+      }
     }
-    button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+  }
+
+  .qlda-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    font-size: 1.5rem;
+
+    button {
+      padding: 0.6rem 1.2rem;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: #fff;
+      color: #495057;
+      cursor: pointer;
+      font-size: 1.5rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      min-width: 50px;
+
+      &:hover:not(:disabled) {
+        background: #f8f9fa;
+        border-color: $primary-color;
+        color: $primary-color;
+        transform: translateY(-2px);
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #f8f9fa;
+        transform: none;
+      }
     }
+
     select {
-      padding: 0.5rem 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: #f9fafb;
+      padding: 0.6rem 1rem;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+      background: #fff;
       cursor: pointer;
-    }
-    select:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+      font-size: 1.5rem;
+      transition: all 0.3s ease;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px $primary-light;
+      }
+
+      &:hover {
+        border-color: $primary-color;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
     }
   }
 
@@ -257,17 +425,29 @@
 
     .qltk-toolbar {
       flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
+      .toolbar-controls {
+        width: 100%;
+        flex-direction: column;
 
-      input[type="text"] {
-        max-width: none;
+        input,
+        select,
+        button {
+          width: 100%;
+        }
+      }
+      .btn-primary {
+        width: 100%;
+        justify-content: center;
       }
     }
 
-    .qltk-tabs {
+    .qltk-import-panel {
       flex-direction: column;
-      gap: 2px;
+      align-items: stretch;
+
+      .selected-file {
+        width: 100%;
+      }
     }
 
     .qltk-table-box {

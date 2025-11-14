@@ -25,9 +25,7 @@ const QuanLyDoAn = () => {
 
   // Local state
   const [projects, setProjects] = useState([]);
-  const [capstoneType, setCapstoneType] = useState("1");
-  const [year, setYear] = useState("");
-  const [semester, setSemester] = useState("");
+  const [capstoneType, setCapstoneType] = useState(1);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [teamId, setTeamId] = useState(null);
@@ -50,13 +48,18 @@ const QuanLyDoAn = () => {
     (data) => {
       let filtered = [...data];
 
-      if (year) filtered = filtered.filter((t) => t.academicYear === year);
-      if (semester)
-        filtered = filtered.filter((t) => String(t.semester) === semester);
-      if (status) filtered = filtered.filter((t) => t.status === status);
+      // Filter theo status
+      if (status) {
+        filtered = filtered.filter((t) => t.status === status);
+      }
+      // Filter theo capstoneType
+      if (capstoneType) {
+        filtered = filtered.filter((t) => t.capstoneType === capstoneType);
+      }
 
+      // Filter theo search (tìm trong đề tài và nhóm)
       if (search) {
-        const s = search.toLowerCase();
+        const s = search.toLowerCase().trim();
         filtered = filtered.filter(
           (t) =>
             (t.projectTitle && t.projectTitle.toLowerCase().includes(s)) ||
@@ -66,7 +69,7 @@ const QuanLyDoAn = () => {
 
       setProjects(filtered);
     },
-    [year, semester, status, search]
+    [status, capstoneType, search]
   );
 
   // Gọi API khi capstoneType thay đổi (ban đầu hoặc chọn lại Capstone 1/2)
@@ -74,12 +77,22 @@ const QuanLyDoAn = () => {
     fetchProjects();
   }, [fetchProjects]);
 
-  // Áp dụng filter khi rawData thay đổi
+  // Áp dụng filter khi rawData hoặc các giá trị filter thay đổi
   useEffect(() => {
     if (rawData && rawData.length > 0) {
       applyFilters(rawData);
     }
-  }, [rawData, applyFilters]);
+  }, [rawData, status, search, capstoneType, applyFilters]);
+
+  // Hàm reset về trạng thái ban đầu
+  const handleRefresh = useCallback(() => {
+    setStatus("");
+    setSearch("");
+    setCapstoneType(1);
+    // Giữ nguyên capstoneType vì nó là filter chính để fetch data
+    // Reload data từ API
+    fetchProjects();
+  }, [fetchProjects]);
 
   const handleDelete = useCallback(
     async (teamId) => {
@@ -128,14 +141,6 @@ const QuanLyDoAn = () => {
             </span>
           );
         },
-      },
-      {
-        header: "Ngày bảo vệ",
-        accessorKey: "defenseDate",
-        cell: (info) =>
-          info.getValue()
-            ? new Date(info.getValue()).toLocaleDateString()
-            : "—",
       },
       {
         header: "Hành động",
@@ -212,44 +217,45 @@ const QuanLyDoAn = () => {
   };
   return (
     <div className="quanlydoan-page">
-      {/* Tạo nhóm mới button */}
-      <button className="btn-manage-team" onClick={handleManageTeam}>
-        Quản Lí Nhóm Đề Tài
-      </button>
       <header className="qlda-toolbar">
-        <select
-          value={capstoneType}
-          onChange={(e) => setCapstoneType(e.target.value)}
-        >
-          <option value="1">Capstone 1</option>
-          <option value="2">Capstone 2</option>
-        </select>
-        <select value={year} onChange={(e) => setYear(e.target.value)}>
+        <div className="toolbar-controls">
+          <select
+            value={capstoneType}
+            onChange={(e) => setCapstoneType(Number(e.target.value))}
+          >
+            <option value="1">Capstone 1</option>
+            <option value="2">Capstone 2</option>
+          </select>
+          {/* <select value={year} onChange={(e) => setYear(e.target.value)}>
           <option value="">Tất cả năm</option>
           <option value="2024-2025">2024-2025</option>
           <option value="2025-2026">2025-2026</option>
-        </select>
-        <select value={semester} onChange={(e) => setSemester(e.target.value)}>
+        </select> */}
+          {/* <select value={semester} onChange={(e) => setSemester(e.target.value)}>
           <option value="">Tất cả học kỳ</option>
           <option value="1">HK1</option>
           <option value="2">HK2</option>
           <option value="3">Summer</option>
-        </select>
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">Tất cả trạng thái</option>
-          <option value="Active">Đang thực hiện</option>
-          <option value="Pending">Chờ duyệt</option>
-          <option value="Completed">Hoàn thành</option>
-          <option value="Defending">Sắp bảo vệ</option>
-        </select>
-        <input
-          type="text"
-          placeholder="Tìm đề tài / nhóm…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {/* Chỉ khi nhấn mới áp dụng filter */}
-        <button onClick={() => applyFilters(rawData)}>Refresh</button>
+        </select> */}
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">Tất cả trạng thái</option>
+            <option value="Active">Đang thực hiện</option>
+            {/* <option value="Pending">Chờ duyệt</option> */}
+            <option value="Completed">Hoàn thành</option>
+            {/* <option value="Defending">Sắp bảo vệ</option> */}
+          </select>
+          <input
+            type="text"
+            placeholder="Tìm đề tài / nhóm…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {/* Reset về trạng thái ban đầu */}
+          <button onClick={handleRefresh}>Refresh</button>
+        </div>
+        <button className="btn-manage-team" onClick={handleManageTeam}>
+          Quản Lí Nhóm Đề Tài
+        </button>
       </header>
 
       {loading ? (
@@ -294,7 +300,13 @@ const QuanLyDoAn = () => {
               )}
             </tbody>
           </table>
-          <p style={{ fontSize: "1.7rem", margin: "3rem 0" }}>
+          <p
+            style={{
+              fontSize: "1.7rem",
+              margin: "3rem 0",
+              textAlign: "center",
+            }}
+          >
             Hiển thị {projects.length} đề tài | Trang {pageIndex + 1} /{" "}
             {pageCount}
           </p>

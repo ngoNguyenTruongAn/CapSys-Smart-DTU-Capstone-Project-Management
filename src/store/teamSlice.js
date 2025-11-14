@@ -11,7 +11,7 @@ import {
   postRemoveMentorAPI,
   getStudentsNotInTeamAPI,
   postMoveStudentAPI,
-  postSwapStudentAPI
+  postSwapStudentAPI,
 } from "../services/TeamsAPI";
 
 export const fetchAllTeams = createAsyncThunk(
@@ -24,9 +24,7 @@ export const fetchAllTeams = createAsyncThunk(
       }
       return res.data;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Lỗi không xác định"
-      );
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -41,9 +39,7 @@ export const getTeamById = createAsyncThunk(
       }
       return res.data;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Lỗi không xác định"
-      );
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -68,9 +64,7 @@ export const updateTeam = createAsyncThunk(
       }
       return res.data;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Lỗi không xác định"
-      );
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -85,9 +79,7 @@ export const deleteTeam = createAsyncThunk(
       }
       return res.data;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Lỗi không xác định"
-      );
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -102,9 +94,7 @@ export const createTeam = createAsyncThunk(
       }
       return res.data; // { success, message, data: createdTeam }
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Lỗi không xác định"
-      );
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -116,9 +106,7 @@ export const fetchTeamsWithoutMentor = createAsyncThunk(
       const res = await getTeamsWithoutMentorAPI(capstoneType);
       return res.data || [];
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Lỗi không xác định"
-      );
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -147,9 +135,7 @@ export const assignMentor = createAsyncThunk(
       }
       return { teamId, mentorId, data: res.data };
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Lỗi không xác định"
-      );
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -164,9 +150,7 @@ export const removeMentor = createAsyncThunk(
       }
       return { teamId, data: res.data };
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Lỗi không xác định"
-      );
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -195,7 +179,7 @@ export const moveStudents = createAsyncThunk(
       }
       return { studentIds, targetTeamId, data: res.data };
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Lỗi không xác định");
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -210,7 +194,7 @@ export const swapStudents = createAsyncThunk(
       }
       return { studentId1, studentId2, data: res.data };
     } catch (err) {
-      return rejectWithValue(err.response?.data?.message || "Lỗi không xác định");
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );
@@ -398,7 +382,10 @@ const teamSlice = createSlice({
           );
           if (team.teamId === targetTeamId) {
             // Giả định team.students có sẵn, push sinh viên mới vào nhóm đích
-            team.students = [...(team.students || []), ...(action.payload.data || [])];
+            team.students = [
+              ...(team.students || []),
+              ...(action.payload.data || []),
+            ];
           } else {
             team.students = updatedStudents;
           }
@@ -430,11 +417,15 @@ const teamSlice = createSlice({
           const newTeam = { ...team };
           if (newTeam.teamId === s1.teamId) {
             newTeam.students = newTeam.students.map((s) =>
-              s.studentId === s1.studentId ? { ...s2, teamId: newTeam.teamId } : s
+              s.studentId === s1.studentId
+                ? { ...s2, teamId: newTeam.teamId }
+                : s
             );
           } else if (newTeam.teamId === s2.teamId) {
             newTeam.students = newTeam.students.map((s) =>
-              s.studentId === s2.studentId ? { ...s1, teamId: newTeam.teamId } : s
+              s.studentId === s2.studentId
+                ? { ...s1, teamId: newTeam.teamId }
+                : s
             );
           }
           return newTeam;

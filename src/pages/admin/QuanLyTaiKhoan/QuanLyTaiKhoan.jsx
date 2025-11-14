@@ -1,5 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { getAllLecturersAPI } from "../../../services/LecturersAPI";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { deleteStudent, fetchStudents } from "../../../store/studentSlice";
 import { deleteLecturer, fetchLecturers } from "../../../store/lecturerSlice";
@@ -9,14 +14,24 @@ import ViewStudent from "./ViewStudent/ViewStudent";
 import UpdateStudent from "./UpdateStudent/UpdateStudent";
 import UpdateLecturer from "./UpdateLecturer/UpdateLecturer";
 import ViewLecturer from "./ViewLecturer/ViewLecturer";
+import { insertStudentsFromFileAPI } from "../../../services/StudentsAPI";
+import { insertLecturersFromFileAPI } from "../../../services/LecturersAPI";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  flexRender,
+} from "@tanstack/react-table";
 
 const QuanLyTaiKhoan = () => {
   const [activeTab, setActiveTab] = useState("students");
   const [search, setSearch] = useState("");
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
-  // Phân trang (local state)
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [studentImportFile, setStudentImportFile] = useState(null);
+  const [lecturerImportFile, setLecturerImportFile] = useState(null);
+  const [importCapstoneType, setImportCapstoneType] = useState(1);
+  const studentFileInputRef = useRef(null);
+  const lecturerFileInputRef = useRef(null);
 
   const dispatch = useDispatch();
   const {
@@ -29,7 +44,7 @@ const QuanLyTaiKhoan = () => {
   useEffect(() => {
     dispatch(fetchStudents());
   }, [dispatch]);
-  
+
   // Lấy lecturers từ Redux
   const {
     data: lecturers,
@@ -41,7 +56,6 @@ const QuanLyTaiKhoan = () => {
   useEffect(() => {
     dispatch(fetchLecturers());
   }, [dispatch]);
-
 
   // Hàm filter chung để tránh duplication
   const filterItems = useMemo(() => {
@@ -59,102 +73,209 @@ const QuanLyTaiKhoan = () => {
     };
   }, []);
 
-  // Filtered data (memoized để optimize)
-  const filteredStudents = useMemo(
-    () => filterItems(students || [], search, "students"),
-    [students, search, filterItems]
-  );
+  const filteredStudents = useMemo(() => {
+    const base = students || [];
+    return filterItems(base, search, "students");
+  }, [students, search, filterItems]);
 
-  const filteredLecturers = useMemo(
-    () => filterItems(lecturers || [], search, "lecturers"),
-    [lecturers, search, filterItems]
-  );
+  const filteredLecturers = useMemo(() => {
+    const base = lecturers || [];
+    return filterItems(base, search, "lecturers");
+  }, [lecturers, search, filterItems]);
 
-  // Data theo tab
-  const data = useMemo(
-    () => (activeTab === "students" ? filteredStudents : filteredLecturers),
-    [activeTab, filteredStudents, filteredLecturers]
-  );
-
-  // Phân trang (memoized)
-  const totalItems = data.length;
-  const totalPages = useMemo(
-    () => Math.ceil(totalItems / pageSize),
-    [totalItems, pageSize]
-  );
-  const currentPageData = useMemo(
-    () => data.slice((page - 1) * pageSize, page * pageSize),
-    [data, page, pageSize]
-  );
-
-  // Reset page khi đổi tab, search, hoặc pageSize
-  useEffect(() => {
-    setPage(1);
-  }, [activeTab, search, pageSize]);
-
-  // Adjust page tự động nếu page > totalPages (sau delete hoặc filter thay đổi)
-  useEffect(() => {
-    if (page > totalPages && totalPages > 0) {
-      setPage(totalPages);
-    }
-  }, [totalPages, page]);
+  const filteredData =
+    activeTab === "students" ? filteredStudents : filteredLecturers;
 
   // Modals state cho students
   const [showViewStudent, setShowViewStudent] = useState(false);
   const [showUpdateStudent, setShowUpdateStudent] = useState(false);
   const [studentId, setStudentId] = useState(null);
 
-  const handleViewStudent = (id) => {
+  const handleViewStudent = useCallback((id) => {
     setStudentId(id);
     setShowViewStudent(true);
-  };
+  }, []);
 
-  const handleUpdateStudent = (id) => {
+  const handleUpdateStudent = useCallback((id) => {
     setStudentId(id);
     setShowUpdateStudent(true);
-  };
+  }, []);
 
-  const handleDeleteStudent = (studentId) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa sinh viên này?")) {
-      dispatch(deleteStudent(studentId))
-        .unwrap()
-        .then(() => {
-          alert("Xóa sinh viên thành công");
-          // Reducer sẽ update students → useEffect adjust page tự động
-        })
-        .catch((error) => {
-          console.error("Lỗi khi xóa sinh viên:", error);
-          alert(`Xóa sinh viên thất bại: ${error}`);
-        });
-    }
-  };
+  const handleDeleteStudent = useCallback(
+    (studentId) => {
+      if (window.confirm("Bạn có chắc chắn muốn xóa sinh viên này?")) {
+        dispatch(deleteStudent(studentId))
+          .unwrap()
+          .then(() => {
+            alert("Xóa sinh viên thành công");
+          })
+          .catch((error) => {
+            console.error("Lỗi khi xóa sinh viên:", error);
+            alert(`Xóa sinh viên thất bại: ${error}`);
+          });
+      }
+    },
+    [dispatch]
+  );
 
   const [showViewLecturer, setShowViewLecturer] = useState(false);
   const [showUpdateLecturer, setShowUpdateLecturer] = useState(false);
   const [lecturerId, setLecturerId] = useState(null);
 
   // Placeholder handlers cho lecturers (gợi ý: implement modals tương tự students)
-  const handleViewLecturer = (lecturerId) => {
+  const handleViewLecturer = useCallback((lecturerId) => {
     setLecturerId(lecturerId);
     setShowViewLecturer(true);
-  };
+  }, []);
 
-  const handleUpdateLecturer = (lecturerId) => {
+  const handleUpdateLecturer = useCallback((lecturerId) => {
     setLecturerId(lecturerId);
     setShowUpdateLecturer(true);
+  }, []);
+
+  const handleDeleteLecturer = useCallback(
+    (lecturerId) => {
+      if (window.confirm("Bạn có chắc chắn muốn xóa giảng viên này?")) {
+        dispatch(deleteLecturer(lecturerId))
+          .unwrap()
+          .then(() => {
+            alert("Xóa giảng viên thành công");
+          })
+          .catch((error) => {
+            console.error("Lỗi khi xóa giảng viên:", error);
+            alert(`Xóa giảng viên thất bại: ${error}`);
+          });
+      }
+    },
+    [dispatch]
+  );
+
+  const handleStudentFileChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setStudentImportFile(file);
   };
 
-  const handleDeleteLecturer = (lecturerId) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa giảng viên này?")) {
-      dispatch(deleteLecturer(lecturerId))
-        .unwrap()
-        .then(() => {
-          alert("Xóa giảng viên thành công");
-        })
-        .catch((error) => {
-          console.error("Lỗi khi xóa giảng viên:", error);
-          alert(`Xóa giảng viên thất bại: ${error}`);
-        });
+  const handleLecturerFileChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setLecturerImportFile(file);
+  };
+
+  const handleImportStudents = async () => {
+    if (!studentImportFile) {
+      alert("Vui lòng chọn file Excel sinh viên trước khi import.");
+      return;
+    }
+
+    try {
+      const response = await insertStudentsFromFileAPI(
+        studentImportFile,
+        importCapstoneType
+      );
+      const data = response.data;
+
+      if (!data) {
+        alert("Không nhận được phản hồi từ server.");
+        return;
+      }
+
+      const failedCount = data.data?.failureCount || 0;
+      const successCount = data.data?.successCount || 0;
+
+      if (data.success && failedCount === 0) {
+        alert("✅ Import sinh viên thành công!\n" + (data.message || ""));
+        setStudentImportFile(null);
+        if (studentFileInputRef.current) {
+          studentFileInputRef.current.value = "";
+        }
+        dispatch(fetchStudents());
+      } else if (failedCount > 0) {
+        const previewErrors =
+          data.data?.errors
+            ?.slice(0, 5)
+            .map(
+              (err) =>
+                `• Dòng ${err.rowNumber} (${err.studentCode}): ${err.errorMessage}`
+            )
+            .join("\n") || "Không có chi tiết lỗi";
+
+        alert(
+          `⚠️ Import sinh viên thất bại một phần hoặc toàn bộ!\n\n` +
+            `✅ Thành công: ${successCount}\n❌ Thất bại: ${failedCount}\n\n${previewErrors}`
+        );
+        console.error("Import sinh viên lỗi:", data.data?.errors);
+      } else {
+        alert(
+          "❌ Import sinh viên thất bại: " +
+            (data.message || "Không rõ nguyên nhân")
+        );
+      }
+    } catch (error) {
+      console.error("Import sinh viên error:", error);
+      alert(
+        "💥 Lỗi khi import sinh viên: " +
+          (error?.response?.data?.message ||
+            error?.message ||
+            "Không rõ nguyên nhân")
+      );
+    }
+  };
+
+  const handleImportLecturers = async () => {
+    if (!lecturerImportFile) {
+      alert("Vui lòng chọn file Excel giảng viên trước khi import.");
+      return;
+    }
+
+    try {
+      const response = await insertLecturersFromFileAPI(lecturerImportFile);
+      const data = response.data;
+
+      if (!data) {
+        alert("Không nhận được phản hồi từ server.");
+        return;
+      }
+
+      const failedCount = data.data?.failureCount || 0;
+      const successCount = data.data?.successCount || 0;
+
+      if (data.success && failedCount === 0) {
+        alert("✅ Import giảng viên thành công!\n" + (data.message || ""));
+        setLecturerImportFile(null);
+        if (lecturerFileInputRef.current) {
+          lecturerFileInputRef.current.value = "";
+        }
+        dispatch(fetchLecturers());
+      } else if (failedCount > 0) {
+        const previewErrors =
+          data.data?.errors
+            ?.slice(0, 5)
+            .map(
+              (err) =>
+                `• Dòng ${err.rowNumber} (${err.lecturerCode || "N/A"}): ${
+                  err.errorMessage
+                }`
+            )
+            .join("\n") || "Không có chi tiết lỗi";
+
+        alert(
+          `⚠️ Import giảng viên thất bại một phần hoặc toàn bộ!\n\n` +
+            `✅ Thành công: ${successCount}\n❌ Thất bại: ${failedCount}\n\n${previewErrors}`
+        );
+        console.error("Import giảng viên lỗi:", data.data?.errors);
+      } else {
+        alert(
+          "❌ Import giảng viên thất bại: " +
+            (data.message || "Không rõ nguyên nhân")
+        );
+      }
+    } catch (error) {
+      console.error("Import giảng viên error:", error);
+      alert(
+        "💥 Lỗi khi import giảng viên: " +
+          (error?.response?.data?.message ||
+            error?.message ||
+            "Không rõ nguyên nhân")
+      );
     }
   };
 
@@ -163,118 +284,214 @@ const QuanLyTaiKhoan = () => {
     activeTab === "students" ? studentsLoading : lecturersLoading;
   const error = activeTab === "students" ? studentsError : lecturersError;
 
+  const handleRefresh = useCallback(() => {
+    setSearch("");
+    dispatch(fetchStudents());
+    dispatch(fetchLecturers());
+  }, [dispatch]);
+
+  const columns = useMemo(() => {
+    if (activeTab === "students") {
+      return [
+        { header: "Mã SV", accessorKey: "studentCode" },
+        { header: "Họ tên", accessorKey: "fullName" },
+        { header: "Email", accessorKey: "email" },
+        { header: "Ngành", accessorKey: "major" },
+        { header: "GPA", accessorKey: "gpa" },
+        {
+          header: "Hành động",
+          accessorKey: "studentId",
+          cell: (info) => {
+            const value = info.getValue();
+            return (
+              <div className="qlda-actions">
+                <button onClick={() => handleViewStudent(value)}>Xem</button>
+                <button onClick={() => handleUpdateStudent(value)}>Sửa</button>
+                <button
+                  data-variant="danger"
+                  onClick={() => handleDeleteStudent(value)}
+                >
+                  Xóa
+                </button>
+              </div>
+            );
+          },
+        },
+      ];
+    }
+
+    return [
+      { header: "Mã GV", accessorKey: "lecturerCode" },
+      { header: "Họ tên", accessorKey: "fullName" },
+      { header: "Email", accessorKey: "email" },
+      { header: "Khoa", accessorKey: "department" },
+      { header: "Điện thoại", accessorKey: "phone" },
+      {
+        header: "Hành động",
+        accessorKey: "lecturerId",
+        cell: (info) => {
+          const value = info.getValue();
+          return (
+            <div className="qlda-actions">
+              <button onClick={() => handleViewLecturer(value)}>Xem</button>
+              <button onClick={() => handleUpdateLecturer(value)}>Sửa</button>
+              <button
+                data-variant="danger"
+                onClick={() => handleDeleteLecturer(value)}
+              >
+                Xóa
+              </button>
+            </div>
+          );
+        },
+      },
+    ];
+  }, [
+    activeTab,
+    handleDeleteLecturer,
+    handleDeleteStudent,
+    handleUpdateLecturer,
+    handleUpdateStudent,
+    handleViewLecturer,
+    handleViewStudent,
+  ]);
+
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageIndex: 0,
+        pageSize: 5,
+      },
+    },
+  });
+
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageSize = table.getState().pagination.pageSize;
+  const pageCount = table.getPageCount();
+  const canPreviousPage = table.getCanPreviousPage();
+  const canNextPage = table.getCanNextPage();
+  const totalItems = filteredData.length;
+
   return (
     <div className="quanlytaikhoan-page">
       <header className="qltk-toolbar">
-        <button onClick={() => setShowRegisterStudent(true)}>
+        <div className="toolbar-controls">
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value)}
+          >
+            <option value="students">Danh sách sinh viên</option>
+            <option value="lecturers">Danh sách giảng viên</option>
+          </select>
+          <input
+            type="text"
+            placeholder="Tìm kiếm họ tên / mã tài khoản…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button className="btn-primary" onClick={handleRefresh}>
+            Refresh
+          </button>
+        </div>
+        <button
+          className="btn-primary"
+          onClick={() => setShowRegisterStudent(true)}
+        >
           ➕ Thêm tài khoản
         </button>
-        <button onClick={() => alert("Import Excel")}>📂 Import Excel</button>
-        {/* TODO: Thêm debounce cho search nếu cần (sử dụng lodash.debounce) */}
-        <input
-          type="text"
-          placeholder="🔍 Tìm kiếm..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
       </header>
 
-      <div className="qltk-tabs">
+      <section className="qltk-import-panel">
+        {activeTab === "students" ? (
+          <>
+            <label className="btn-secondary file-picker">
+              📁 Chọn file sinh viên
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                ref={studentFileInputRef}
+                onChange={handleStudentFileChange}
+              />
+            </label>
+            <select
+              className="capstone-select"
+              value={importCapstoneType}
+              onChange={(e) => setImportCapstoneType(Number(e.target.value))}
+            >
+              <option value={1}>Capstone 1</option>
+              <option value={2}>Capstone 2</option>
+            </select>
+            <span className="selected-file">
+              {studentImportFile ? studentImportFile.name : "Chưa chọn file"}
+            </span>
+          </>
+        ) : (
+          <>
+            <label className="btn-secondary file-picker">
+              📁 Chọn file giảng viên
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                ref={lecturerFileInputRef}
+                onChange={handleLecturerFileChange}
+              />
+            </label>
+            <span className="selected-file">
+              {lecturerImportFile ? lecturerImportFile.name : "Chưa chọn file"}
+            </span>
+          </>
+        )}
         <button
-          className={activeTab === "students" ? "active" : ""}
-          onClick={() => setActiveTab("students")}
+          className="btn-secondary import-btn"
+          onClick={
+            activeTab === "students"
+              ? handleImportStudents
+              : handleImportLecturers
+          }
         >
-          Sinh viên
+          {activeTab === "students"
+            ? "📂 Import sinh viên"
+            : "📂 Import giảng viên"}
         </button>
-        <button
-          className={activeTab === "lecturers" ? "active" : ""}
-          onClick={() => setActiveTab("lecturers")}
-        >
-          Giảng viên
-        </button>
-      </div>
+      </section>
 
       {isLoading && <p>Đang tải dữ liệu...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <div className="qltk-table-box">
-        {currentPageData.length > 0 ? (
-          <table>
+      <div className="qlda-table-box qltk-table-box">
+        {table.getRowModel().rows.length > 0 ? (
+          <table className="qlda-table">
             <thead>
-              <tr>
-                {activeTab === "students" ? (
-                  <>
-                    <th>Mã SV</th>
-                    <th>Họ tên</th>
-                    <th>Email</th>
-                    <th>Ngành</th>
-                    <th>GPA</th>
-                    <th>Hành động</th>
-                  </>
-                ) : (
-                  <>
-                    <th>Mã GV</th>
-                    <th>Họ tên</th>
-                    <th>Email</th>
-                    <th>Khoa</th>
-                    <th>Điện thoại</th>
-                    <th>Hành động</th>
-                  </>
-                )}
-              </tr>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th key={header.id}>
+                      {flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
             </thead>
             <tbody>
-              {currentPageData.map((item) =>
-                activeTab === "students" ? (
-                  <tr key={item.studentId}>
-                    <td>{item.studentCode}</td>
-                    <td>{item.fullName}</td>
-                    <td>{item.email}</td>
-                    <td>{item.major}</td>
-                    <td>{item.gpa}</td>
-                    <td>
-                      <button onClick={() => handleViewStudent(item.studentId)}>
-                        Xem
-                      </button>
-                      <button
-                        onClick={() => handleUpdateStudent(item.studentId)}
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDeleteStudent(item.studentId)}
-                      >
-                        Xóa
-                      </button>
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </td>
-                  </tr>
-                ) : (
-                  <tr key={item.lecturerId}>
-                    <td>{item.lecturerCode}</td>
-                    <td>{item.fullName}</td>
-                    <td>{item.email}</td>
-                    <td>{item.department}</td>
-                    <td>{item.phone}</td>
-                    <td>
-                      <button
-                        onClick={() => handleViewLecturer(item.lecturerId)}
-                      >
-                        Xem
-                      </button>
-                      <button
-                        onClick={() => handleUpdateLecturer(item.lecturerId)}
-                      >
-                        Sửa
-                      </button>
-                      <button
-                        onClick={() => handleDeleteLecturer(item.lecturerId)}
-                      >
-                        Xóa
-                      </button>
-                    </td>
-                  </tr>
-                )
-              )}
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         ) : (
@@ -305,39 +522,39 @@ const QuanLyTaiKhoan = () => {
           </div>
         )}
 
-        {/* Phân trang */}
-        {totalPages > 1 && (
-          <div className="pagination">
-            <button onClick={() => setPage(1)} disabled={page === 1}>
+        <p className="qltk-summary">
+          Hiển thị {totalItems} tài khoản | Trang {pageIndex + 1} /{" "}
+          {pageCount || 1}
+        </p>
+
+        {pageCount > 1 && (
+          <div className="pagination qlda-pagination">
+            <button
+              onClick={() => table.setPageIndex(0)}
+              disabled={!canPreviousPage}
+            >
               {"<<"}
             </button>
-            <button onClick={() => setPage((p) => p - 1)} disabled={page === 1}>
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!canPreviousPage}
+            >
               Trước
             </button>
-            <span>
-              Trang {page} / {totalPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page === totalPages}
-            >
+            <button onClick={() => table.nextPage()} disabled={!canNextPage}>
               Sau
             </button>
             <button
-              onClick={() => setPage(totalPages)}
-              disabled={page === totalPages}
+              onClick={() => table.setPageIndex(pageCount - 1)}
+              disabled={!canNextPage}
             >
               {">>"}
             </button>
-
             <select
               value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                // Reset page=1 đã handle ở useEffect
-              }}
+              onChange={(e) => table.setPageSize(Number(e.target.value))}
             >
-              {[5, 10, 20, 50].map((size) => (
+              {[5, 10, 20, 30, 50].map((size) => (
                 <option key={size} value={size}>
                   Hiển thị {size}
                 </option>

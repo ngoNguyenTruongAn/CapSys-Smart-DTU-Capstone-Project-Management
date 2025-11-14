@@ -1,20 +1,40 @@
+@use "sass:color";
+
+$primary-color: #94070d;
+$primary-hover: #b3080f;
+$primary-light: rgba(148, 7, 13, 0.1);
+$primary-gradient: linear-gradient(135deg, #94070d, #b3080f);
+
 .qlnd-wrapper {
   background: #f8f9fa;
   min-height: 100vh;
+  padding: 2rem;
+  font-size: 1.6rem;
+  line-height: 1.6;
+
+  button,
+  input,
+  select {
+    font-size: 1.35rem;
+  }
 
   // ===== HEADER =====
   .qlnd-header {
     background: white;
-    height: 84px;
-    border-bottom: 0.2px solid #dadee3;
+    height: auto;
+    min-height: 84px;
+    border-bottom: 2px solid #e9ecef;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 1.5rem 2rem;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 
     .header-left-content {
       display: flex;
       align-items: center;
-      padding-left: 22px;
+      padding-left: 0;
 
       .header-icon {
         width: 54px;
@@ -23,16 +43,18 @@
         align-items: center;
         justify-content: center;
         margin-right: 20px;
-        background-color: #1d62ed;
-        border-radius: 6px;
+        background-color: $primary-color;
+        border-radius: 10px;
         color: #fff;
         font-size: 2.4rem;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
 
         &:hover {
-          background-color: #1556d8;
+          background-color: $primary-hover;
           transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
         }
       }
 
@@ -43,6 +65,7 @@
           font-size: 2.6rem;
           font-weight: 700;
           margin: 0;
+          color: $primary-color;
         }
 
         .header-text {
@@ -54,7 +77,7 @@
     }
 
     .header-right-content {
-      padding-right: 22px;
+      padding-right: 0;
 
       .header-actions {
         display: flex;
@@ -63,18 +86,21 @@
 
         .import-btn {
           position: relative;
-          background: #1d62ed;
+          background: $primary-color;
           color: #fff;
           padding: 0.8rem 1.5rem;
           border-radius: 10px;
           cursor: pointer;
           font-weight: 600;
-          font-size: 1.6rem;
-          transition: all 0.2s ease;
+          font-size: 1.35rem;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           border: none;
+          box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
 
           &:hover {
-            background: #1556d8;
+            background: $primary-hover;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
           }
 
           input {
@@ -88,37 +114,41 @@
         .filter-group {
           select {
             padding: 0.8rem 1.2rem;
-            border: 1px solid #d7dce7;
+            border: 2px solid #e9ecef;
             border-radius: 8px;
             background: #fff;
-            font-size: 1.6rem;
+            font-size: 1.35rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
 
             &:focus {
               outline: none;
-              border-color: #1d62ed;
+              border-color: $primary-color;
+              box-shadow: 0 0 0 3px $primary-light;
             }
 
             &:hover {
-              border-color: #1d62ed;
+              border-color: $primary-color;
             }
           }
         }
 
         .btn-import {
-          background: #1d62ed;
+          background: $primary-color;
           color: #fff;
           padding: 0.8rem 1.5rem;
           border-radius: 10px;
           border: none;
           cursor: pointer;
           font-weight: 600;
-          font-size: 1.6rem;
-          transition: all 0.2s ease;
+          font-size: 1.35rem;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
 
           &:hover {
-            background: #1556d8;
+            background: $primary-hover;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
           }
         }
       }
@@ -130,32 +160,33 @@
     background: white;
     border-radius: 12px;
     padding: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     display: flex;
     gap: 0.5rem;
 
     .tab-btn {
       flex: 1;
-      padding: 0.8rem 1.2rem;
+      padding: 1rem 1.5rem;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       background: transparent;
       color: #6c757d;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
-      font-size: 0.9rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      font-size: 1.4rem;
 
       &:hover {
         background: #f8f9fa;
-        color: #495057;
+        color: $primary-color;
       }
 
       &.active {
-        background: linear-gradient(135deg, #2d9cdb, #1e7bb8);
+        background: $primary-gradient;
         color: white;
-        box-shadow: 0 2px 4px rgba(45, 156, 219, 0.3);
+        box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
+        transform: translateY(-2px);
       }
     }
   }
@@ -164,8 +195,8 @@
   .main-content {
     background: white;
     border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     min-height: 500px;
   }
 
@@ -178,7 +209,7 @@
       gap: 0.5rem;
 
       label {
-        font-size: 0.9rem;
+        font-size: 1.3rem;
         font-weight: 600;
         color: #495057;
       }
@@ -188,19 +219,19 @@
         border: 2px solid #e9ecef;
         border-radius: 8px;
         background: #fff;
-        font-size: 0.9rem;
+        font-size: 1.4rem;
         min-width: 180px;
         cursor: pointer;
         transition: all 0.2s ease;
 
         &:focus {
           outline: none;
-          border-color: #2d9cdb;
-          box-shadow: 0 0 0 3px rgba(45, 156, 219, 0.1);
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px $primary-light;
         }
 
         &:hover {
-          border-color: #2d9cdb;
+          border-color: $primary-color;
         }
       }
 
@@ -209,23 +240,23 @@
         border: 2px solid #e9ecef;
         border-radius: 8px;
         background: #fff;
-        font-size: 0.9rem;
+        font-size: 1.4rem;
         min-width: 300px;
         transition: all 0.2s ease;
 
         &:focus {
           outline: none;
-          border-color: #2d9cdb;
-          box-shadow: 0 0 0 3px rgba(45, 156, 219, 0.1);
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px $primary-light;
         }
 
         &:hover {
-          border-color: #2d9cdb;
+          border-color: $primary-color;
         }
 
         &::placeholder {
           color: #adb5bd;
-          font-size: 0.85rem;
+          font-size: 1.2rem;
         }
       }
     }
@@ -239,8 +270,8 @@
 
       h3 {
         margin: 0;
-        color: #2d9cdb;
-        font-size: 1.3rem;
+        color: $primary-color;
+        font-size: 1.9rem;
         font-weight: 700;
       }
       .selection-controls {
@@ -257,6 +288,7 @@
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
+          font-size: 1.25rem;
 
           &:hover {
             background: #6c757d;
@@ -271,12 +303,13 @@
           border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
+          font-size: 1.25rem;
         }
 
         .selected-count {
           font-weight: 600;
-          color: #2d9cdb;
-          background: #e3f2fd;
+          color: $primary-color;
+          background: $primary-light;
           padding: 0.5rem 1rem;
           border-radius: 6px;
         }
@@ -305,13 +338,13 @@
         background: #f8f9fa;
         font-weight: 700;
         color: #495057;
-        font-size: 0.9rem;
+        font-size: 1.4rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
 
       td {
-        font-size: 0.9rem;
+        font-size: 1.4rem;
         color: #495057;
       }
 
@@ -345,19 +378,20 @@
       justify-content: flex-end;
 
       .btn-primary {
-        background: linear-gradient(135deg, #2d9cdb, #1e7bb8);
+        background: $primary-gradient;
         color: white;
         padding: 0.8rem 1.5rem;
         border: none;
-        border-radius: 8px;
+        border-radius: 10px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(45, 156, 219, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
+        font-size: 1.3rem;
 
         &:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(45, 156, 219, 0.4);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
         }
 
         &:disabled {
@@ -387,8 +421,8 @@
 
       h3 {
         margin: 0;
-        color: #2d9cdb;
-        font-size: 1.3rem;
+        color: $primary-color;
+        font-size: 1.9rem;
         font-weight: 700;
       }
 
@@ -405,7 +439,7 @@
           gap: 0.5rem;
 
           label {
-            font-size: 0.9rem;
+            font-size: 1.3rem;
             font-weight: 600;
             color: #495057;
           }
@@ -415,7 +449,7 @@
             border: 2px solid #e9ecef;
             border-radius: 8px;
             background: #fff;
-            font-size: 0.9rem;
+            font-size: 1.4rem;
             min-width: 250px;
             transition: all 0.2s ease;
 
@@ -431,7 +465,7 @@
 
             &::placeholder {
               color: #adb5bd;
-              font-size: 0.85rem;
+              font-size: 1.2rem;
             }
           }
 
@@ -440,7 +474,7 @@
             border: 2px solid #e9ecef;
             border-radius: 8px;
             background: #fff;
-            font-size: 0.9rem;
+            font-size: 1.4rem;
             min-width: 180px;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -468,6 +502,7 @@
         cursor: pointer;
         transition: all 0.2s ease;
         box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        font-size: 1.25rem;
 
         &:hover:not(:disabled) {
           transform: translateY(-1px);
@@ -509,8 +544,8 @@
 
         h4 {
           margin: 0;
-          color: #2d9cdb;
-          font-size: 1.1rem;
+          color: $primary-color;
+          font-size: 1.6rem;
           font-weight: 700;
         }
 
@@ -541,22 +576,23 @@
           font-weight: 600;
           color: #495057;
           margin-bottom: 0.8rem;
-          font-size: 0.9rem;
+          font-size: 1.4rem;
         }
 
         .mentor-info {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          background: #e3f2fd;
+          background: $primary-light;
           padding: 0.8rem;
-          border-radius: 6px;
+          border-radius: 8px;
           margin-bottom: 1rem;
           font-size: 0.9rem;
+          font-size: 1.3rem;
 
           .btn-small {
             padding: 0.3rem 0.6rem;
-            font-size: 0.8rem;
+            font-size: 1.2rem;
             background: #ffc107;
             color: #212529;
             border: none;
@@ -574,7 +610,7 @@
           margin-bottom: 1rem;
 
           strong {
-            font-size: 0.9rem;
+            font-size: 1.4rem;
             color: #495057;
             display: block;
             margin-bottom: 0.5rem;
@@ -585,7 +621,7 @@
             padding-left: 1.2rem;
 
             li {
-              font-size: 0.85rem;
+              font-size: 1.3rem;
               color: #6c757d;
               margin-bottom: 0.3rem;
             }
@@ -596,7 +632,7 @@
           .status-badge {
             padding: 0.4rem 0.8rem;
             border-radius: 20px;
-            font-size: 0.8rem;
+            font-size: 1.2rem;
             font-weight: 600;
             text-transform: uppercase;
 
@@ -622,229 +658,76 @@
 
   // ===== MENTORS SECTION =====
   .mentors-section {
-    .mentors-layout {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 2rem;
+    margin-top: 2rem;
 
-      @media (max-width: 1200px) {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto auto;
-      }
-
-      @media (max-width: 768px) {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .teams-without-mentor,
-    .mentor-assignment,
-    .mentor-workload {
-      background: #f8f9fa;
-      border-radius: 12px;
-      padding: 1.5rem;
-      border: 1px solid #e9ecef;
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e9ecef;
 
       h3 {
-        margin: 0 0 1rem 0;
-        color: #2d9cdb;
-        font-size: 1.1rem;
+        margin: 0;
+        color: $primary-color;
+        font-size: 1.9rem;
         font-weight: 700;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid #e9ecef;
       }
     }
 
-    .teams-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .team-item {
-      background: white;
-      border-radius: 8px;
-      padding: 1rem;
+    .table-container {
+      margin-top: 1.5rem;
+      background: #ffffff;
+      border-radius: 12px;
       border: 1px solid #e9ecef;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.2s ease;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 
-      &:hover {
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
 
-      .team-info {
-        flex: 1;
-
-        h4 {
-          margin: 0 0 0.3rem 0;
-          color: #495057;
-          font-size: 1rem;
+        th,
+        td {
+          padding: 1rem;
+          border-bottom: 1px solid #e9ecef;
+          text-align: left;
+          font-size: 1.4rem;
         }
 
-        p {
-          margin: 0 0 0.3rem 0;
-          color: #6c757d;
-          font-size: 0.9rem;
+        th {
+          background: #f8f9fa;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: $primary-color;
         }
 
-        .member-count {
-          font-size: 0.8rem;
-          color: #adb5bd;
+        tr:hover {
+          background: #fdf2f2;
         }
       }
 
-      .btn-primary {
-        background: linear-gradient(135deg, #2d9cdb, #1e7bb8);
-        color: white;
-        padding: 0.5rem 1rem;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-
-        &:hover {
-          transform: translateY(-1px);
-        }
-
-        &.active {
-          background: linear-gradient(135deg, #28a745, #1e7e34);
-        }
-      }
-    }
-
-    .assignment-form {
-      .selected-team {
-        background: #e3f2fd;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 1rem;
-
-        strong {
-          color: #2d9cdb;
-        }
-
-        p {
-          margin: 0.3rem 0 0 0;
-          font-weight: 600;
-          color: #495057;
-        }
-      }
-
-      .mentor-selection {
-        margin-bottom: 1rem;
-
-        label {
-          display: block;
-          margin-bottom: 0.5rem;
-          font-weight: 600;
-          color: #495057;
-        }
-
-        select {
-          width: 100%;
-          padding: 0.6rem;
-          border: 2px solid #e9ecef;
-          border-radius: 6px;
-          background: white;
-          font-size: 0.9rem;
-
-          &:focus {
-            outline: none;
-            border-color: #2d9cdb;
-          }
-        }
-      }
-
-      .assignment-actions {
+      .mentors-teams {
+        margin: 0;
+        padding-left: 1.2rem;
         display: flex;
-        gap: 0.5rem;
+        flex-direction: column;
+        gap: 0.4rem;
 
-        .btn-success {
-          background: linear-gradient(135deg, #28a745, #1e7e34);
-          color: white;
-          padding: 0.6rem 1rem;
-          border: none;
-          border-radius: 6px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
+        li {
+          list-style: disc;
+          color: #475569;
 
-          &:hover:not(:disabled) {
-            transform: translateY(-1px);
+          strong {
+            color: #1f2933;
           }
 
-          &:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
+          span {
+            display: block;
+            font-size: 1.2rem;
+            color: #94a3b8;
           }
-        }
-
-        .btn-secondary {
-          background: #6c757d;
-          color: white;
-          padding: 0.6rem 1rem;
-          border: none;
-          border-radius: 6px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
-
-          &:hover {
-            background: #5a6268;
-          }
-        }
-      }
-    }
-
-    .no-selection {
-      text-align: center;
-      padding: 2rem;
-      color: #6c757d;
-      font-style: italic;
-    }
-
-    .workload-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .mentor-item {
-      background: white;
-      border-radius: 8px;
-      padding: 1rem;
-      border: 1px solid #e9ecef;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-
-      .mentor-info {
-        h4 {
-          margin: 0 0 0.3rem 0;
-          color: #495057;
-          font-size: 1rem;
-        }
-
-        p {
-          margin: 0;
-          color: #6c757d;
-          font-size: 0.85rem;
-        }
-      }
-
-      .workload-info {
-        .workload-count {
-          background: #e3f2fd;
-          color: #2d9cdb;
-          padding: 0.4rem 0.8rem;
-          border-radius: 20px;
-          font-weight: 600;
-          font-size: 0.8rem;
         }
       }
     }
@@ -855,7 +738,7 @@
     text-align: center;
     padding: 3rem;
     color: #6c757d;
-    font-size: 1.1rem;
+    font-size: 1.5rem;
     font-style: italic;
   }
 
@@ -866,7 +749,7 @@
 
     p {
       margin: 0;
-      font-size: 1rem;
+      font-size: 1.4rem;
       font-style: italic;
     }
   }
@@ -897,9 +780,9 @@
 
       h3 {
         margin: 0 0 1.5rem 0;
-        color: #2d9cdb;
+        color: $primary-color;
         text-align: center;
-        font-size: 1.4rem;
+        font-size: 1.9rem;
         font-weight: 700;
       }
 
@@ -919,13 +802,13 @@
           padding: 0.8rem;
           border: 2px solid #e9ecef;
           border-radius: 8px;
-          font-size: 0.9rem;
+          font-size: 1.4rem;
           transition: all 0.2s ease;
 
           &:focus {
             outline: none;
-            border-color: #2d9cdb;
-            box-shadow: 0 0 0 3px rgba(45, 156, 219, 0.1);
+            border-color: $primary-color;
+            box-shadow: 0 0 0 3px $primary-light;
           }
         }
       }
@@ -938,7 +821,7 @@
 
         strong {
           color: #495057;
-          font-size: 1rem;
+          font-size: 1.5rem;
           display: block;
           margin-bottom: 1rem;
         }
@@ -948,7 +831,7 @@
           padding-left: 1.2rem;
 
           li {
-            font-size: 0.9rem;
+            font-size: 1.3rem;
             color: #6c757d;
             margin-bottom: 0.5rem;
           }
@@ -978,19 +861,19 @@
         }
 
         .btn-primary {
-          background: linear-gradient(135deg, #2d9cdb, #1e7bb8);
+          background: $primary-gradient;
           color: white;
           padding: 0.8rem 1.5rem;
           border: none;
-          border-radius: 8px;
+          border-radius: 10px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 2px 4px rgba(45, 156, 219, 0.3);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 2px 8px rgba(148, 7, 13, 0.2);
 
           &:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 8px rgba(45, 156, 219, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
           }
 
           &:disabled {
@@ -1009,7 +892,7 @@
     text-align: center;
 
     p {
-      font-size: 1rem;
+      font-size: 1.4rem;
       color: #6c757d;
       margin: 0;
       padding: 0.5rem 1rem;
@@ -1037,7 +920,7 @@
       color: #495057;
       border-radius: 6px;
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 1.3rem;
       font-weight: 500;
       transition: all 0.2s ease;
       min-width: 40px;
@@ -1048,9 +931,9 @@
 
       &:hover:not(:disabled) {
         background: #f8f9fa;
-        border-color: #2d9cdb;
-        color: #2d9cdb;
-        transform: translateY(-1px);
+        border-color: $primary-color;
+        color: $primary-color;
+        transform: translateY(-2px);
       }
 
       &:disabled {
@@ -1060,11 +943,11 @@
       }
 
       &.active {
-        background: #2d9cdb;
-        border-color: #2d9cdb;
+        background: $primary-color;
+        border-color: $primary-color;
         color: white;
         font-weight: 600;
-        box-shadow: 0 2px 4px rgba(45, 156, 219, 0.3);
+        box-shadow: 0 2px 8px rgba(148, 7, 13, 0.3);
       }
     }
 
@@ -1090,7 +973,7 @@
       border-left: 2px solid #e9ecef;
 
       label {
-        font-size: 0.9rem;
+        font-size: 1.3rem;
         font-weight: 600;
         color: #495057;
       }
@@ -1100,23 +983,23 @@
         border: 2px solid #e9ecef;
         border-radius: 6px;
         background: white;
-        font-size: 0.9rem;
+        font-size: 1.3rem;
         cursor: pointer;
         transition: all 0.2s ease;
 
         &:focus {
           outline: none;
-          border-color: #2d9cdb;
-          box-shadow: 0 0 0 3px rgba(45, 156, 219, 0.1);
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px $primary-light;
         }
 
         &:hover {
-          border-color: #2d9cdb;
+          border-color: $primary-color;
         }
       }
 
       span {
-        font-size: 0.9rem;
+        font-size: 1.3rem;
         color: #6c757d;
         font-weight: 500;
       }
@@ -1145,6 +1028,111 @@
         min-width: 35px;
         height: 35px;
         font-size: 0.8rem;
+      }
+    }
+  }
+
+  // ===== MENTORS SECTION =====
+  .mentors-section {
+    margin-top: 2rem;
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e9ecef;
+      gap: 1rem;
+      flex-wrap: wrap;
+
+      h3 {
+        margin: 0;
+        color: $primary-color;
+        font-size: 1.9rem;
+        font-weight: 700;
+      }
+
+      .mentor-search {
+        flex: 1;
+        min-width: 260px;
+        max-width: 340px;
+
+        input {
+          width: 100%;
+          padding: 0.8rem 1.2rem;
+          border: 2px solid #e9ecef;
+          border-radius: 10px;
+          font-size: 1.4rem;
+          transition: all 0.3s ease;
+          background: #fff;
+
+          &:focus {
+            outline: none;
+            border-color: $primary-color;
+            box-shadow: 0 0 0 3px $primary-light;
+          }
+
+          &::placeholder {
+            color: #94a3b8;
+          }
+        }
+      }
+    }
+
+    .table-container {
+      margin-top: 1.5rem;
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+
+        th,
+        td {
+          padding: 1rem;
+          border-bottom: 1px solid #e9ecef;
+          text-align: left;
+          font-size: 1.4rem;
+        }
+
+        th {
+          background: #f8f9fa;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: $primary-color;
+        }
+
+        tr:hover {
+          background: #fdf2f2;
+        }
+      }
+
+      .mentors-teams {
+        margin: 0;
+        padding-left: 1.2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+
+        li {
+          list-style: disc;
+          color: #475569;
+
+          strong {
+            color: #1f2933;
+          }
+
+          span {
+            display: block;
+            font-size: 1.2rem;
+            color: #94a3b8;
+          }
+        }
       }
     }
   }

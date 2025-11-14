@@ -1,81 +1,116 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchMentorWorkload } from "../../../../store/teamSlice";
-import { Table, Spinner, Badge } from "react-bootstrap";
 
 const MentorContent = () => {
   const dispatch = useDispatch();
   const { mentorWorkload, loading } = useSelector((state) => state.teams);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     dispatch(fetchMentorWorkload());
   }, [dispatch]);
 
-  if (loading) {
+  const filteredMentors = useMemo(() => {
+    if (!mentorWorkload) return [];
+    const keyword = searchTerm.trim().toLowerCase();
+    if (!keyword) return mentorWorkload;
+
+    return mentorWorkload.filter((mentor) => {
+      return (
+        mentor.fullName?.toLowerCase().includes(keyword) ||
+        mentor.department?.toLowerCase().includes(keyword) ||
+        mentor.specialization?.toLowerCase().includes(keyword) ||
+        mentor.mentoredTeams?.some(
+          (team) =>
+            team.teamName?.toLowerCase().includes(keyword) ||
+            team.projectTitle?.toLowerCase().includes(keyword)
+        )
+      );
+    });
+  }, [mentorWorkload, searchTerm]);
+
+  const renderAvailability = (isAvailable) => {
     return (
-      <div className="text-center mt-4">
-        <Spinner animation="border" /> Đang tải danh sách giảng viên...
-      </div>
+      <span
+        className={`status-badge ${
+          isAvailable ? "active" : "pending"
+        } mentor-status`}
+      >
+        {isAvailable ? "Còn trống" : "Đã đủ"}
+      </span>
     );
-  }
+  };
 
   return (
-    <div className="giangvien-wrapper">
-      <h2 className="tab-title">📚 Danh sách Giảng viên & Khối lượng hướng dẫn</h2>
-      <Table bordered hover responsive>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Họ tên</th>
-            <th>Khoa</th>
-            <th>Chuyên ngành</th>
-            <th>Số nhóm hiện tại</th>
-            <th>Giới hạn tối đa</th>
-            <th>Trạng thái</th>
-            <th>Nhóm đang hướng dẫn</th>
-          </tr>
-        </thead>
-        <tbody>
-          {mentorWorkload?.length ? (
-            mentorWorkload.map((gv, index) => (
-              <tr key={gv.lecturerId}>
-                <td>{index + 1}</td>
-                <td>{gv.fullName}</td>
-                <td>{gv.department}</td>
-                <td>{gv.specialization}</td>
-                <td>{gv.currentTeamCount}</td>
-                <td>{gv.maxTeamsAllowed}</td>
-                <td>
-                  {gv.isAvailable ? (
-                    <Badge bg="success">Còn trống</Badge>
-                  ) : (
-                    <Badge bg="secondary">Đã đủ</Badge>
-                  )}
-                </td>
-                <td>
-                  {gv.mentoredTeams?.length ? (
-                    <ul>
-                      {gv.mentoredTeams.map((t) => (
-                        <li key={t.teamId}>
-                          {t.teamName} ({t.projectTitle || "Không có đề tài"})
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <em>Chưa có nhóm</em>
-                  )}
-                </td>
+    <div className="mentors-section">
+      <div className="section-header">
+        <h3>Danh sách Giảng viên &amp; Khối lượng hướng dẫn</h3>
+        <div className="mentor-search">
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên, khoa, nhóm..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="loading">Đang tải danh sách giảng viên...</div>
+      ) : (
+        <div className="table-container">
+          <table className="students-table mentors-table">
+            <thead>
+              <tr>
+                <th>Họ tên</th>
+                <th>Khoa</th>
+                <th>Chuyên ngành</th>
+                <th>Số nhóm hiện tại</th>
+                <th>Giới hạn tối đa</th>
+                <th>Trạng thái</th>
+                <th>Nhóm đang hướng dẫn</th>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="8" className="text-center">
-                Không có dữ liệu giảng viên.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </Table>
+            </thead>
+            <tbody>
+              {filteredMentors?.length ? (
+                filteredMentors.map((gv) => (
+                  <tr key={gv.lecturerId}>
+                    <td>{gv.fullName}</td>
+                    <td>{gv.department}</td>
+                    <td>{gv.specialization}</td>
+                    <td>{gv.currentTeamCount}</td>
+                    <td>{gv.maxTeamsAllowed}</td>
+                    <td>{renderAvailability(gv.isAvailable)}</td>
+                    <td>
+                      {gv.mentoredTeams?.length ? (
+                        <ul className="mentors-teams">
+                          {gv.mentoredTeams.map((t) => (
+                            <li key={t.teamId}>
+                              <strong>{t.teamName}</strong>
+                              <span>{t.projectTitle || "Không có đề tài"}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <em>Chưa có nhóm</em>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="empty-state">
+                    {mentorWorkload?.length
+                      ? "Không tìm thấy giảng viên phù hợp với từ khóa."
+                      : "Không có dữ liệu giảng viên."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };

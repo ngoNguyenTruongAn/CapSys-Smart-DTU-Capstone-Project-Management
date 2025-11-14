@@ -27,6 +27,10 @@ const TeamsContent = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [mentorFilter, setMentorFilter] = useState("all"); // "all", "with", "without"
   const [capstoneFilter, setCapstoneFilter] = useState("all"); // "all", "with", "without"
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
   // ===== FILTER LOGIC =====
   const filteredTeams = useMemo(() => {
     return teamsData.filter((team) => {
@@ -55,6 +59,19 @@ const TeamsContent = () => {
       return matchesSearch && matchesFilter && matchesCapstone;
     });
   }, [teamsData, searchTerm, mentorFilter, capstoneFilter]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTeams.length / pageSize) || 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, filteredTeams.length);
+  const paginatedTeams = useMemo(
+    () => filteredTeams.slice(startIndex, endIndex),
+    [filteredTeams, startIndex, endIndex]
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, mentorFilter, capstoneFilter, pageSize]);
 
   // ===== HANDLERS (LOGIC TÁCH RA TỪ CHA) =====
   const handleDeleteTeam = async (teamId) => {
@@ -94,6 +111,17 @@ const TeamsContent = () => {
     }
   };
 
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
+    setCurrentPage(1);
+  };
+
   // ===== RENDER =====
   // Đây là nội dung của hàm renderTeamsTab() cũ
   return (
@@ -101,9 +129,7 @@ const TeamsContent = () => {
       <div className="teams-section">
         <div className="section-header">
           <div>
-            <h3>
-              Danh sách nhóm đã tạo ({filteredTeams.length}/{teamsData.length})
-            </h3>
+            <h3>Danh sách nhóm đã tạo</h3>
           </div>
 
           {/* Search và Filter Controls */}
@@ -160,63 +186,197 @@ const TeamsContent = () => {
             </p>
           </div>
         ) : (
-          <div className="teams-grid">
-            {filteredTeams.map((team) => (
-              <div key={team.teamId} className="team-card">
-                <div className="team-header">
-                  <h4>{team.teamName}</h4>
-                  <button
-                    onClick={() => handleUpdateTeam(team.teamId)}
-                    className="btn-info btn-icon"
-                  >
-                    Chi tiêt
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTeam(team.teamId)}
-                    disabled={loading}
-                    className="btn-danger btn-icon"
-                  >
-                    🗑️
-                  </button>
-                </div>
-
-                <div className="team-content">
-                  <p className="project-title">
-                    <strong>Đề tài:</strong> {team.projectTitle}
-                  </p>
-                  {team.mentorName ? (
-                    <p className="mentor-info">
-                      <strong>Mentor:</strong> {team.mentorName}
-                      <button
-                        onClick={() => handleRemoveMentor(team.teamId)}
-                        className="btn-warning btn-small"
-                      >
-                        Gỡ mentor
-                      </button>
-                    </p>
-                  ) : (
-                    <p className="mentor-info">
-                      <strong>Mentor:</strong> Chưa có mentor
-                    </p>
-                  )}
-                  <div className="team-members">
-                    <strong>Thành viên ({team.students?.length || 0}):</strong>
-                    {/* Bạn có thể list sinh viên ở đây nếu muốn */}
-                    {team.students?.map((student) => (
-                      <li key={student.studentId}>{student.fullName}</li>
-                    ))}
-                  </div>
-                  <div className="team-status">
-                    <span
-                      className={`status-badge ${team.status?.toLowerCase()}`}
+          <>
+            <div className="teams-grid">
+              {paginatedTeams.map((team) => (
+                <div key={team.teamId} className="team-card">
+                  <div className="team-header">
+                    <h4>{team.teamName}</h4>
+                    <button
+                      onClick={() => handleUpdateTeam(team.teamId)}
+                      className="btn-info btn-icon"
                     >
-                      {team.status}
-                    </span>
+                      Chi tiêt
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTeam(team.teamId)}
+                      disabled={loading}
+                      className="btn-danger btn-icon"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+
+                  <div className="team-content">
+                    <p className="project-title">
+                      <strong>Đề tài:</strong> {team.projectTitle}
+                    </p>
+                    {team.mentorName ? (
+                      <p className="mentor-info">
+                        <strong>Mentor:</strong> {team.mentorName}
+                        <button
+                          onClick={() => handleRemoveMentor(team.teamId)}
+                          className="btn-warning btn-small"
+                        >
+                          Gỡ mentor
+                        </button>
+                      </p>
+                    ) : (
+                      <p className="mentor-info">
+                        <strong>Mentor:</strong> Chưa có mentor
+                      </p>
+                    )}
+                    <div className="team-members">
+                      <strong>
+                        Thành viên ({team.students?.length || 0}):
+                      </strong>
+                      {team.students?.map((student) => (
+                        <li key={student.studentId}>{student.fullName}</li>
+                      ))}
+                    </div>
+                    <div className="team-status">
+                      <span
+                        className={`status-badge ${team.status?.toLowerCase()}`}
+                      >
+                        {team.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+            <div className="pagination-info">
+              <p>
+                Hiển thị {filteredTeams.length === 0 ? 0 : startIndex + 1}-
+                {endIndex} trong tổng số {filteredTeams.length} nhóm | Trang{" "}
+                {currentPage} / {totalPages || 1}
+              </p>
+            </div>
+            <div className="pagination qlda-pagination">
+              <button
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1 || filteredTeams.length === 0}
+                className="pagination-btn"
+                title="Trang đầu"
+              >
+                {"<<"}
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1 || filteredTeams.length === 0}
+                className="pagination-btn"
+                title="Trang trước"
+              >
+                {"<"}
+              </button>
+              <div className="page-numbers">
+                {(() => {
+                  if (filteredTeams.length === 0) {
+                    return <button className="pagination-btn active">1</button>;
+                  }
+                  const pages = [];
+                  const maxVisiblePages = 5;
+                  let startPage = Math.max(
+                    1,
+                    currentPage - Math.floor(maxVisiblePages / 2)
+                  );
+                  let endPage = Math.min(
+                    totalPages,
+                    startPage + maxVisiblePages - 1
+                  );
+                  if (endPage - startPage + 1 < maxVisiblePages) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                  }
+                  if (startPage > 1) {
+                    pages.push(
+                      <button
+                        key={1}
+                        onClick={() => handlePageChange(1)}
+                        className="pagination-btn"
+                      >
+                        1
+                      </button>
+                    );
+                    if (startPage > 2) {
+                      pages.push(
+                        <span key="ellipsis1" className="ellipsis">
+                          ...
+                        </span>
+                      );
+                    }
+                  }
+                  for (let i = startPage; i <= endPage; i++) {
+                    pages.push(
+                      <button
+                        key={i}
+                        onClick={() => handlePageChange(i)}
+                        className={`pagination-btn ${
+                          i === currentPage ? "active" : ""
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    );
+                  }
+                  if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                      pages.push(
+                        <span key="ellipsis2" className="ellipsis">
+                          ...
+                        </span>
+                      );
+                    }
+                    pages.push(
+                      <button
+                        key={totalPages}
+                        onClick={() => handlePageChange(totalPages)}
+                        className="pagination-btn"
+                      >
+                        {totalPages}
+                      </button>
+                    );
+                  }
+                  return pages;
+                })()}
               </div>
-            ))}
-          </div>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={
+                  currentPage === totalPages || filteredTeams.length === 0
+                }
+                className="pagination-btn"
+                title="Trang sau"
+              >
+                {">"}
+              </button>
+              <button
+                onClick={() => handlePageChange(totalPages)}
+                disabled={
+                  currentPage === totalPages || filteredTeams.length === 0
+                }
+                className="pagination-btn"
+                title="Trang cuối"
+              >
+                {">>"}
+              </button>
+              <div className="page-size-selector">
+                <label htmlFor="team-page-size">Hiển thị:</label>
+                <select
+                  id="team-page-size"
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="page-size-select"
+                >
+                  {[3, 6, 9, 12].map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+                <span>nhóm/trang</span>
+              </div>
+            </div>
+          </>
         )}
       </div>
 

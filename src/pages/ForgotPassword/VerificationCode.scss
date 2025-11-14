@@ -1,4 +1,9 @@
 /* VerificationCode.scss */
+@use "sass:color";
+
+$primary-color: #94070d;
+$secondary-color: #6c757d;
+$error-color: #dc3545;
 
 .reset-password-container {
   /* toàn bộ màn hình */
@@ -6,26 +11,73 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh; // chiếm full chiều cao
-  background: #f5f7fa; // màu nền nhẹ
+  background: #94070d;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  position: relative;
+
+  /* Decorative animated blobs */
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.45;
+    z-index: 0;
+    animation: floatBlob 14s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  }
+
+  &::before {
+    top: -80px;
+    left: -60px;
+    background: radial-gradient(circle at 30% 30%, #d32f2f, transparent 60%),
+      radial-gradient(circle at 70% 70%, #f44336, transparent 60%);
+  }
+
+  &::after {
+    bottom: -100px;
+    right: -60px;
+    background: radial-gradient(circle at 40% 40%, #ff6b6b, transparent 60%),
+      radial-gradient(circle at 70% 70%, #ff8a80, transparent 60%);
+    animation-delay: 1.5s;
+  }
+
+  @keyframes floatBlob {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(12px) scale(1.05);
+    }
+  }
 }
 
 .reset-password-content {
-  background: #fff;
-  border: 1px solid #dcdcdc; // viền bọc nội dung
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 16px;
   padding: 2.5rem 3rem;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
 
   h2 {
-    font-size: 1.6rem;
+    font-size: 2.2rem;
     margin-bottom: 0.5rem;
     color: #333;
+    font-weight: 700;
   }
 
   p {
-    font-size: 0.95rem;
+    font-size: 1.1rem;
     // text-align: center;
     color: #666;
     margin-bottom: 1.8rem;
@@ -38,6 +90,7 @@
 
     label {
       font-weight: 600;
+      font-size: 1.05rem;
       margin-bottom: 0.4rem;
       color: #444;
     }
@@ -46,12 +99,13 @@
       padding: 0.75rem 0.9rem;
       border: 1px solid #ccc;
       border-radius: 6px;
-      font-size: 0.95rem;
+      font-size: 1.1rem;
       transition: border-color 0.2s;
 
       &:focus {
-        border-color: #007bff;
+        border-color: $primary-color;
         outline: none;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
       }
 
       &.error {
@@ -69,29 +123,31 @@
 
     .error-message {
       color: #e74c3c;
-      font-size: 0.85rem;
+      font-size: 0.95rem;
       margin-top: 0.4rem;
     }
   }
 
   .reset-button {
     width: 100%;
-    padding: 1rem;
-    background-color: #007bff;
+    padding: 1.3rem;
+    background-color: $primary-color;
     color: #fff;
     border: none;
-    border-radius: 6px;
+    border-radius: 10px;
     font-weight: 600;
+    font-size: 1.3rem;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: all 0.55s cubic-bezier(0.22, 0.61, 0.36, 1);
     margin: 10px 0;
 
-    &:hover {
-      background-color: #0062cc;
+    &:hover:not(:disabled) {
+      background-color: #b3080f;
+      box-shadow: 0 6px 18px rgba(148, 7, 13, 0.35);
     }
 
     &:disabled {
-      background-color: #6c757d;
+      opacity: 0.8;
       cursor: not-allowed;
     }
   }
@@ -117,7 +173,7 @@
 
   .error-message {
     color: #e74c3c;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
     margin-top: 0.4rem;
     text-align: center;
   }
