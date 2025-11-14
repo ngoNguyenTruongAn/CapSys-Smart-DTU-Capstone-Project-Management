@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingDetailPage.module.css";
-import StudentSelect from "../../components/grading/StudentSelect.jsx";
-import ContributionSelect from "../../components/grading/ContributionSelect.jsx";
+import ContributionLevelSelect from "../../components/grading/ContributionLevelSelect.jsx";
 import Toasts from "../../components/ui/Toasts.jsx";
 
 const CONTRIBUTION_LEVELS = [
@@ -17,6 +16,14 @@ const CONTRIBUTION_SCORES = {
   Medium: 1,
   High: 1.5,
   Excellent: 2,
+};
+
+const getContributionScoreLabel = (level) => {
+  const numeric = CONTRIBUTION_SCORES[level];
+  if (typeof numeric === "number") {
+    return numeric.toFixed(1);
+  }
+  return level;
 };
 
 const createDemoCriteria = () => [
@@ -254,6 +261,265 @@ const toScoreValue = (value) =>
 const toCommentValue = (value) =>
   value === null || value === undefined ? "" : String(value);
 
+const pickFirstValue = (...candidates) =>
+  candidates.find(
+    (value) => value !== undefined && value !== null && value !== ""
+  ) ?? null;
+
+const normalizeText = (value) => {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+};
+
+const CRITERION_SCOPE = {
+  TEAM: "team",
+  PERSONAL: "personal",
+};
+
+const TEAM_CRITERIA_KEYWORDS = [
+  "software engineering practices",
+  "ideas and proposed solutions",
+  "software process",
+  "artifacts",
+];
+
+const PERSONAL_CRITERIA_KEYWORDS = [
+  "teamwork and communication",
+  "presentation",
+];
+
+const determineCriteriaScope = (criterion, index, total) => {
+  const normalizedCategory = normalizeText(criterion?.category);
+  if (normalizedCategory.includes("team") || normalizedCategory.includes("group")) {
+    return CRITERION_SCOPE.TEAM;
+  }
+  if (
+    normalizedCategory.includes("member") ||
+    normalizedCategory.includes("individual") ||
+    normalizedCategory.includes("personal")
+  ) {
+    return CRITERION_SCOPE.PERSONAL;
+  }
+
+  const normalizedName = normalizeText(criterion?.criteriaName);
+  if (
+    PERSONAL_CRITERIA_KEYWORDS.some((keyword) =>
+      normalizedName.includes(keyword)
+    ) ||
+    normalizedName.includes("teamwork") ||
+    normalizedName.includes("communication") ||
+    normalizedName.includes("presentation")
+  ) {
+    return CRITERION_SCOPE.PERSONAL;
+  }
+
+  if (
+    TEAM_CRITERIA_KEYWORDS.some((keyword) =>
+      normalizedName.includes(keyword)
+    ) ||
+    normalizedName.includes("software") ||
+    normalizedName.includes("artifact") ||
+    normalizedName.includes("process")
+  ) {
+    return CRITERION_SCOPE.TEAM;
+  }
+
+  if (total - index <= 2) {
+    return CRITERION_SCOPE.PERSONAL;
+  }
+
+  return CRITERION_SCOPE.TEAM;
+};
+
+const isSecretaryRole = (role) => {
+  if (!role) {
+    return false;
+  }
+  const normalized = normalizeText(role);
+  return (
+    normalized.includes("thu ky") ||
+    normalized.includes("thu ki") ||
+    normalized.includes("secretary")
+  );
+};
+
+const normalizeStudentRecord = (student) => {
+  if (!student) {
+    return null;
+  }
+  const nested = student.student || student.Student || {};
+  const studentId = pickFirstValue(
+    student.studentId,
+    student.StudentId,
+    nested.studentId,
+    nested.StudentId,
+    student.id,
+    student.Id
+  );
+  if (studentId === null || studentId === undefined) {
+    return null;
+  }
+  const studentCode =
+    pickFirstValue(
+      student.studentCode,
+      student.StudentCode,
+      nested.studentCode,
+      nested.StudentCode,
+      student.code,
+      student.Code
+    ) || `SV_${studentId}`;
+  const fullName =
+    pickFirstValue(
+      student.fullName,
+      student.FullName,
+      nested.fullName,
+      nested.FullName,
+      student.name,
+      student.Name,
+      [
+        pickFirstValue(student.firstName, nested.firstName),
+        pickFirstValue(student.lastName, nested.lastName),
+      ]
+        .filter(Boolean)
+        .join(" ")
+    ) || studentCode;
+
+  const finalScore =
+    typeof student.finalScore === "number"
+      ? student.finalScore
+      : typeof student.FinalScore === "number"
+      ? student.FinalScore
+      : null;
+
+  return {
+    studentId,
+    studentCode,
+    fullName,
+    isGraded: student.isGraded ?? student.IsGraded ?? false,
+    finalScore,
+    gradedDate: student.gradedDate || student.GradedDate || null,
+    contributionLevel:
+      student.contributionLevel || student.ContributionLevel || null,
+  };
+};
+
+const mapStudentsArray = (value) => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map((student) => normalizeStudentRecord(student)).filter(Boolean);
+};
+
+const deriveGraderName = (session, teamData) => {
+  const evaluators = session?.evaluators || session?.Evaluators;
+  if (Array.isArray(evaluators)) {
+    const secretary = evaluators.find((evaluator) =>
+      isSecretaryRole(evaluator?.role || evaluator?.Role)
+    );
+    const secretaryName = pickFirstValue(
+      secretary?.fullName,
+      secretary?.FullName,
+      secretary?.name,
+      secretary?.Name
+    );
+    if (secretaryName) {
+      return secretaryName;
+    }
+  }
+
+  const committeeMembers =
+    teamData?.committeeMembers || teamData?.CommitteeMembers;
+  if (Array.isArray(committeeMembers)) {
+    const secretaryMember = committeeMembers.find((member) =>
+      isSecretaryRole(member?.role || member?.Role)
+    );
+    if (secretaryMember) {
+      const memberName = pickFirstValue(
+        secretaryMember?.fullName,
+        secretaryMember?.FullName,
+        secretaryMember?.lecturerName,
+        secretaryMember?.LecturerName,
+        secretaryMember?.lecturer?.fullName,
+        secretaryMember?.Lecturer?.FullName
+      );
+      if (memberName) {
+        return memberName;
+      }
+    }
+  }
+
+  return (
+    session?.graderName ||
+    session?.grader ||
+    session?.createdByName ||
+    null
+  );
+};
+
+const enhanceSessionDetail = (session, teamData, context = {}) => {
+  const safeSession = session && typeof session === "object" ? { ...session } : {};
+  const sessionStudents = mapStudentsArray(
+    safeSession.students || safeSession.Students
+  );
+  const fallbackTeamArrays =
+    teamData?.students ||
+    teamData?.Students ||
+    teamData?.teamMembers ||
+    teamData?.TeamMembers ||
+    [];
+  const teamStudents = mapStudentsArray(fallbackTeamArrays);
+  const finalStudents = sessionStudents.length ? sessionStudents : teamStudents;
+
+  safeSession.students = finalStudents;
+  safeSession.totalStudents =
+    safeSession.totalStudents || finalStudents.length;
+  safeSession.teamId =
+    safeSession.teamId ||
+    safeSession.TeamId ||
+    teamData?.teamId ||
+    teamData?.TeamId ||
+    context.fallbackTeamId ||
+    null;
+  safeSession.teamName =
+    safeSession.teamName ||
+    safeSession.teamCode ||
+    teamData?.teamName ||
+    teamData?.teamCode ||
+    context.group?.team ||
+    "";
+  safeSession.mentorName =
+    safeSession.mentorName ||
+    teamData?.mentorName ||
+    teamData?.mentor?.fullName ||
+    context.group?.mentor ||
+    "";
+  safeSession.committeeId =
+    safeSession.committeeId ||
+    safeSession.CommitteeId ||
+    teamData?.committeeId ||
+    teamData?.CommitteeId ||
+    context.group?.committeeId ||
+    null;
+  safeSession.committeeMembers =
+    safeSession.committeeMembers ||
+    safeSession.CommitteeMembers ||
+    teamData?.committeeMembers ||
+    teamData?.CommitteeMembers ||
+    [];
+
+  const derivedName = deriveGraderName(safeSession, teamData);
+  if (derivedName) {
+    safeSession.graderName = derivedName;
+  }
+
+  return safeSession;
+};
+
 const buildEmptyForm = (criteriaList) => {
   const scores = {};
   const comments = {};
@@ -330,6 +596,206 @@ const hasNumericValue = (value) => {
   return !Number.isNaN(parsed);
 };
 
+const normalizeCriteriaRecord = (item) => {
+  if (!item) {
+    return null;
+  }
+  const criteriaId =
+    item.criteriaId ??
+    item.CriteriaId ??
+    item.id ??
+    item.Id ??
+    null;
+  if (criteriaId === null || criteriaId === undefined) {
+    return null;
+  }
+  const maxScore =
+    Number(
+      item.maxScore ??
+        item.MaxScore ??
+        item.maximumScore ??
+        item.MaximumScore ??
+        10
+    ) || 10;
+  const weight =
+    Number(
+      item.weight ??
+        item.Weight ??
+        item.weightPercentage ??
+        item.WeightPercentage ??
+        0
+    ) || 0;
+  return {
+    criteriaId,
+    criteriaName:
+      item.criteriaName ||
+      item.CriteriaName ||
+      item.name ||
+      item.Name ||
+      `Criteria ${criteriaId}`,
+    description:
+      item.description ||
+      item.Description ||
+      item.criteriaDescription ||
+      item.CriteriaDescription ||
+      "",
+    maxScore,
+    weight,
+    category: item.category || item.Category || "",
+    isContribution:
+      item.isContribution ?? item.IsContribution ?? false,
+    displayOrder:
+      item.displayOrder ?? item.DisplayOrder ?? criteriaId,
+    isActive: item.isActive ?? item.IsActive ?? true,
+  };
+};
+
+const normalizeCriteriaList = (list) => {
+  if (!Array.isArray(list)) {
+    return [];
+  }
+  return list
+    .map((item) => normalizeCriteriaRecord(item))
+    .filter(Boolean)
+    .sort(
+      (a, b) => (a.displayOrder ?? a.criteriaId) - (b.displayOrder ?? b.criteriaId)
+    );
+};
+
+const aggregateDetailedGrades = (details) => {
+  if (!Array.isArray(details)) {
+    return [];
+  }
+  const grouped = new Map();
+  details.forEach((detail) => {
+    const studentId = pickFirstValue(detail?.studentId, detail?.StudentId);
+    if (studentId === null || studentId === undefined) {
+      return;
+    }
+    const existing = grouped.get(studentId) || {
+      studentId,
+      studentCode:
+        pickFirstValue(detail?.studentCode, detail?.StudentCode) ||
+        `SV_${studentId}`,
+      fullName:
+        pickFirstValue(detail?.studentName, detail?.StudentName) ||
+        pickFirstValue(detail?.fullName, detail?.FullName) ||
+        "",
+      isCompleted: true,
+      finalScore: null,
+      gradedDate: detail?.gradedDate || detail?.GradedDate || null,
+      contributionLevel: null,
+      criteriaGrades: [],
+    };
+    existing.gradeId =
+      existing.gradeId ??
+      pickFirstValue(
+        detail?.gradeId,
+        detail?.GradeId,
+        detail?.studentGradeId,
+        detail?.StudentGradeId
+      );
+    existing.contributionLevel =
+      existing.contributionLevel ??
+      pickFirstValue(
+        detail?.contributionLevel,
+        detail?.ContributionLevel,
+        detail?.contribution?.level
+      );
+    const criteriaEntry = {
+      detailedGradeId: pickFirstValue(
+        detail?.detailedGradeId,
+        detail?.DetailedGradeId
+      ),
+      criteriaId: pickFirstValue(detail?.criteriaId, detail?.CriteriaId),
+      criteriaName:
+        pickFirstValue(detail?.criteriaName, detail?.CriteriaName) || "",
+      score: detail?.score ?? detail?.Score ?? null,
+      comments: detail?.comments || detail?.Comments || "",
+      evaluatorId: pickFirstValue(detail?.evaluatorId, detail?.EvaluatorId),
+      evaluatorRole: detail?.evaluatorRole || detail?.EvaluatorRole || "",
+      gradedDate: detail?.gradedDate || detail?.GradedDate || null,
+    };
+    if (
+      criteriaEntry.criteriaId !== null &&
+      criteriaEntry.criteriaId !== undefined
+    ) {
+      existing.criteriaGrades.push(criteriaEntry);
+    }
+    grouped.set(studentId, existing);
+  });
+  return Array.from(grouped.values());
+};
+
+const mapRoleToApiRole = (role) => {
+  const normalized = normalizeText(role);
+  if (!normalized) {
+    return "Secretary";
+  }
+  if (normalized.includes("chu tich")) {
+    return "Chairman";
+  }
+  if (
+    normalized.includes("phan bien") ||
+    normalized.includes("phan-bien") ||
+    normalized.includes("phan bien")
+  ) {
+    return "Reviewer";
+  }
+  if (normalized.includes("thu ky") || normalized.includes("thu ki")) {
+    return "Secretary";
+  }
+  if (["chairman", "reviewer", "secretary"].includes(normalized)) {
+    return normalized[0].toUpperCase() + normalized.slice(1);
+  }
+  return "Secretary";
+};
+
+const selectEvaluatorForSubmission = (session) => {
+  const evaluatorList = [];
+  if (Array.isArray(session?.evaluators)) {
+    session.evaluators.forEach((evaluator) => {
+      const evaluatorId = pickFirstValue(
+        evaluator?.evaluatorId,
+        evaluator?.EvaluatorId,
+        evaluator?.lecturerId,
+        evaluator?.LecturerId
+      );
+      if (!evaluatorId) {
+        return;
+      }
+      evaluatorList.push({
+        evaluatorId,
+        role: mapRoleToApiRole(evaluator?.role || evaluator?.Role),
+      });
+    });
+  }
+  if (!evaluatorList.length && Array.isArray(session?.committeeMembers)) {
+    session.committeeMembers.forEach((member) => {
+      const memberId = pickFirstValue(
+        member?.lecturerId,
+        member?.LecturerId,
+        member?.evaluatorId,
+        member?.EvaluatorId
+      );
+      if (!memberId) {
+        return;
+      }
+      evaluatorList.push({
+        evaluatorId: memberId,
+        role: mapRoleToApiRole(member?.role || member?.Role),
+      });
+    });
+  }
+  if (!evaluatorList.length) {
+    return null;
+  }
+  const secretary = evaluatorList.find(
+    (evaluator) => evaluator.role === "Secretary"
+  );
+  return secretary || evaluatorList[0];
+};
+
 export default function GradingDetailPage({
   group,
   teamId,
@@ -353,14 +819,38 @@ export default function GradingDetailPage({
   const [sessionDetail, setSessionDetail] = useState(null);
   const [grades, setGrades] = useState([]);
   const [forms, setForms] = useState({});
+  const [teamScores, setTeamScores] = useState({});
+  const [criterionComments, setCriterionComments] = useState({});
   const [demoMode, setDemoMode] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [initialised, setInitialised] = useState(false);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errors, setErrors] = useState([]);
+  const [isCommentPanelOpen, setIsCommentPanelOpen] = useState(false);
+  const [invalidScoreMap, setInvalidScoreMap] = useState({});
+
+  const genreKey = (criteriaId, studentId) =>
+    `${criteriaId}__${studentId ?? "team"}`;
+
+  const isInvalidField = useCallback(
+    (criteriaId, studentId = null) =>
+      Boolean(invalidScoreMap[genreKey(criteriaId, studentId)]),
+    [invalidScoreMap]
+  );
+
+  const clearInvalidState = useCallback((criteriaId, studentId = null) => {
+    setInvalidScoreMap((prev) => {
+      const key = genreKey(criteriaId, studentId);
+      if (!prev[key]) {
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }, []);
 
   const activateDemoMode = useCallback(() => {
     const demoCriteria = createDemoCriteria();
@@ -375,10 +865,28 @@ export default function GradingDetailPage({
     setInitialised(true);
   }, []);
 
-  const criteriaForScoring = useMemo(
-    () => criteria.filter((item) => !item.isContribution),
-    [criteria]
-  );
+  const criteriaForScoring = useMemo(() => {
+    const filtered = criteria.filter((item) => !item.isContribution);
+    return filtered.map((criterion, index) => ({
+      ...criterion,
+      scope: determineCriteriaScope(criterion, index, filtered.length),
+    }));
+  }, [criteria]);
+
+  const scopeSets = useMemo(() => {
+    const team = new Set();
+    const personal = new Set();
+    criteriaForScoring.forEach((criterion) => {
+      if (criterion.scope === CRITERION_SCOPE.PERSONAL) {
+        personal.add(criterion.criteriaId);
+      } else {
+        team.add(criterion.criteriaId);
+      }
+    });
+    return { team, personal };
+  }, [criteriaForScoring]);
+
+  const teamScopeIds = scopeSets.team;
 
   const criteriaMap = useMemo(() => {
     const map = {};
@@ -399,6 +907,21 @@ export default function GradingDetailPage({
   }, [grades]);
 
   const students = sessionDetail?.students ?? [];
+
+  const gridTemplateColumns = useMemo(() => {
+    const baseColumns = [
+      "minmax(0, 1.4fr)",
+      "minmax(0, 1.8fr)",
+      "minmax(80px, 0.7fr)",
+      "minmax(70px, 0.6fr)",
+    ];
+    if (students.length > 0) {
+      baseColumns.push(
+        `repeat(${students.length}, minmax(48px, 0.55fr))`
+      );
+    }
+    return baseColumns.join(" ");
+  }, [students.length]);
 
   const studentSummaries = useMemo(() => {
     if (!students.length) {
@@ -424,10 +947,22 @@ export default function GradingDetailPage({
     });
   }, [students, gradeLookup, forms]);
 
-  const currentForm =
-    selectedStudentId && forms[selectedStudentId]
-      ? forms[selectedStudentId]
-      : null;
+  const getHistoricalGrade = useCallback(
+    (gradeEntry, criteriaId) =>
+      gradeEntry?.criteriaGrades?.find(
+        (grade) => grade.criteriaId === criteriaId
+      ),
+    []
+  );
+
+  const contributionOptions = useMemo(
+    () =>
+      CONTRIBUTION_LEVELS.map((option) => ({
+        ...option,
+        displayLabel: getContributionScoreLabel(option.value),
+      })),
+    []
+  );
 
   const forcedDemoMode =
     group?.isDemo ||
@@ -449,6 +984,35 @@ export default function GradingDetailPage({
       return Number((baseScore + contributionScore).toFixed(2));
     },
     [criteriaMap]
+  );
+
+  const prepareSessionDetail = useCallback(
+    async (rawSession) => {
+      if (!rawSession || typeof rawSession !== "object") {
+        return null;
+      }
+      const fallbackTeamId = pickFirstValue(
+        rawSession?.teamId,
+        rawSession?.TeamId,
+        group?.teamId,
+        group?.team?.teamId,
+        teamId
+      );
+      let fallbackTeamData = null;
+      if (fallbackTeamId) {
+        try {
+          const teamResponse = await GradingAPI.getTeam(fallbackTeamId);
+          fallbackTeamData = teamResponse?.data || teamResponse || null;
+        } catch (teamError) {
+          console.warn(`Could not load team ${fallbackTeamId}:`, teamError);
+        }
+      }
+      return enhanceSessionDetail(rawSession, fallbackTeamData, {
+        fallbackTeamId,
+        group,
+      });
+    },
+    [group, teamId]
   );
 
   useEffect(() => {
@@ -478,9 +1042,16 @@ export default function GradingDetailPage({
         if (ignore) {
           return;
         }
-        setCriteria(Array.isArray(criteriaData) ? criteriaData : []);
-        setSessionDetail(sessionData ?? null);
-        setGrades(Array.isArray(gradesData) ? gradesData : []);
+        const normalizedCriteria = normalizeCriteriaList(
+          Array.isArray(criteriaData) ? criteriaData : []
+        );
+        const enhancedSession = await prepareSessionDetail(sessionData ?? null);
+        const aggregatedGrades = aggregateDetailedGrades(
+          Array.isArray(gradesData) ? gradesData : []
+        );
+        setCriteria(normalizedCriteria);
+        setSessionDetail(enhancedSession);
+        setGrades(aggregatedGrades);
         setError("");
       } catch (err) {
         if (ignore) {
@@ -506,10 +1077,19 @@ export default function GradingDetailPage({
     return () => {
       ignore = true;
     };
-  }, [sessionId, forcedDemoMode, demoMode, activateDemoMode]);
+  }, [
+    sessionId,
+    forcedDemoMode,
+    demoMode,
+    activateDemoMode,
+    prepareSessionDetail,
+  ]);
 
   useEffect(() => {
     if (!criteria.length || !students.length) {
+      setForms({});
+      setTeamScores({});
+      setCriterionComments({});
       return;
     }
     const nextForms = {};
@@ -520,24 +1100,26 @@ export default function GradingDetailPage({
       );
     });
     setForms(nextForms);
-  }, [criteria, students, gradeLookup]);
 
-  useEffect(() => {
-    if (!students.length) {
-      setSelectedStudentId(null);
-      return;
-    }
-    setSelectedStudentId((prev) => {
-      if (
-        prev !== null &&
-        prev !== undefined &&
-        students.some((student) => student.studentId === prev)
-      ) {
-        return prev;
+    const firstStudentId = students[0]?.studentId;
+    const baseForm =
+      (firstStudentId && nextForms[firstStudentId]) ||
+      buildEmptyForm(criteria);
+    const initialComments = {};
+    const initialTeamScores = {};
+
+    criteriaForScoring.forEach((criterion) => {
+      initialComments[criterion.criteriaId] =
+        baseForm?.comments?.[criterion.criteriaId] ?? "";
+      if (criterion.scope !== CRITERION_SCOPE.PERSONAL) {
+        initialTeamScores[criterion.criteriaId] =
+          baseForm?.scores?.[criterion.criteriaId] ?? "";
       }
-      return students[0].studentId;
     });
-  }, [students]);
+
+    setCriterionComments(initialComments);
+    setTeamScores(initialTeamScores);
+  }, [criteria, criteriaForScoring, students, gradeLookup]);
 
   const handleBackClick = () => {
     if (typeof onBack === "function") {
@@ -545,140 +1127,220 @@ export default function GradingDetailPage({
     }
   };
 
-  const handleScoreChange = (criteriaId) => (event) => {
-    if (!selectedStudentId) {
-      return;
-    }
+  const handleScoreChange = (criteriaId, targetStudentId = null) => (event) => {
     const { value } = event.target;
+    if (teamScopeIds.has(criteriaId)) {
+    setTeamScores((prev) => ({
+      ...prev,
+      [criteriaId]: value,
+    }));
+    clearInvalidState(criteriaId, null);
+    setError("");
+    return;
+  }
+  if (targetStudentId === null || targetStudentId === undefined) {
+    return;
+    }
     setForms((prev) => {
-      const baseForm = prev[selectedStudentId] ?? buildEmptyForm(criteria);
+      const existingForm = prev[targetStudentId] ?? buildEmptyForm(criteria);
       return {
         ...prev,
-        [selectedStudentId]: {
-          ...baseForm,
+        [targetStudentId]: {
+          ...existingForm,
           scores: {
-            ...baseForm.scores,
+            ...existingForm.scores,
             [criteriaId]: value,
           },
         },
       };
     });
+    clearInvalidState(criteriaId, targetStudentId);
     setError("");
   };
 
   const handleCommentChange = (criteriaId) => (event) => {
-    if (!selectedStudentId) {
+    const { value } = event.target;
+    setCriterionComments((prev) => ({
+      ...prev,
+      [criteriaId]: value,
+    }));
+  };
+
+  const applyContributionChange = (targetId, nextValue) => {
+    if (!targetId) {
       return;
     }
-    const { value } = event.target;
     setForms((prev) => {
-      const baseForm = prev[selectedStudentId] ?? buildEmptyForm(criteria);
+      const baseForm = prev[targetId] ?? buildEmptyForm(criteria);
       return {
         ...prev,
-        [selectedStudentId]: {
+        [targetId]: {
           ...baseForm,
-          comments: {
-            ...baseForm.comments,
-            [criteriaId]: value,
-          },
+          contributionLevel: nextValue,
         },
       };
     });
+    setError("");
+    clearInvalidState("contribution", targetId);
   };
 
-  const handleContributionChange = (event) => {
-    if (!selectedStudentId) {
+  const scrollToInvalidInput = (invalidKeys) => {
+    if (!invalidKeys || invalidKeys.size === 0) {
       return;
     }
-    const { value } = event.target;
-    setForms((prev) => {
-      const baseForm = prev[selectedStudentId] ?? buildEmptyForm(criteria);
-      return {
-        ...prev,
-        [selectedStudentId]: {
-          ...baseForm,
-          contributionLevel: value,
-        },
-      };
-    });
+    const firstKey = invalidKeys.values().next().value;
+    const el = document.querySelector(`[data-score-key="${firstKey}"]`);
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.focus?.();
+    }
   };
 
-  const buildPayload = () => {
-    if (!selectedStudentId || !criteriaForScoring.length) {
+  const buildAllPayloads = () => {
+    if (!students.length || !criteriaForScoring.length) {
       return {
-        error: ["Vui lòng chọn sinh viên trước khi chấm điểm."],
+        errors: ["Không có dữ liệu sinh viên để chấm điểm."],
       };
     }
 
-    const form = forms[selectedStudentId] ?? buildEmptyForm(criteria);
-    const missingCriteria = [];
-    const invalidScores = [];
-    const criteriaGrades = [];
+    const messages = [];
+    const invalidMap = {};
+    const teamCriteria = criteriaForScoring.filter(
+      (criterion) => criterion.scope !== CRITERION_SCOPE.PERSONAL
+    );
+    const personalCriteria = criteriaForScoring.filter(
+      (criterion) => criterion.scope === CRITERION_SCOPE.PERSONAL
+    );
 
-    criteriaForScoring.forEach((criterion) => {
-      const raw = form.scores?.[criterion.criteriaId];
+    const scrollTargets = new Set();
+    const teamEntriesTemplate = [];
+    teamCriteria.forEach((criterion) => {
+      const raw = teamScores[criterion.criteriaId];
       if (!hasNumericValue(raw)) {
-        missingCriteria.push(criterion.criteriaName);
+        messages.push(`Vui lòng nhập điểm cho tiêu chí ${criterion.criteriaName}.`);
+        invalidMap[genreKey(criterion.criteriaId, null)] = true;
+        scrollTargets.add(genreKey(criterion.criteriaId, null));
         return;
       }
-
       const numericValue = Number(raw);
       if (numericValue < 0) {
-        invalidScores.push(
+        messages.push(
           `${criterion.criteriaName}: Điểm không được nhỏ hơn 0.`
         );
+        invalidMap[genreKey(criterion.criteriaId, null)] = true;
+        scrollTargets.add(genreKey(criterion.criteriaId, null));
       }
       if (
         typeof criterion.maxScore === "number" &&
         numericValue > criterion.maxScore
       ) {
-        invalidScores.push(
+        messages.push(
           `${criterion.criteriaName}: Điểm không được vượt quá ${criterion.maxScore}.`
         );
+        invalidMap[genreKey(criterion.criteriaId, null)] = true;
+        scrollTargets.add(genreKey(criterion.criteriaId, null));
       }
-
-      criteriaGrades.push({
+      teamEntriesTemplate.push({
         criteriaId: criterion.criteriaId,
         score: numericValue,
-        comments: form.comments?.[criterion.criteriaId] ?? "",
+        comments: criterionComments[criterion.criteriaId] ?? "",
       });
     });
 
-    const removeErrorAt = (idx) => {
-      setErrors((prev) => prev.filter((_, i) => i !== idx));
-    };
+    const payloads = [];
 
-    const messages = [];
-    if (missingCriteria.length > 0) {
-      messages.push(
-        `Vui lòng nhập điểm cho các tiêu chí: ${missingCriteria.join(", ")}.`
-      );
-    }
+    students.forEach((student) => {
+      const studentKey = student.studentId;
+      const form = forms[student.studentId] ?? buildEmptyForm(criteria);
+      const existingGradeEntry = gradeLookup[student.studentId];
+      const criteriaGrades = [];
+      const missingPersonal = [];
+      const invalidScores = [];
 
-    if (invalidScores.length > 0) {
-      messages.push(...invalidScores);
-    }
+      personalCriteria.forEach((criterion) => {
+        const raw = form.scores?.[criterion.criteriaId];
+        if (!hasNumericValue(raw)) {
+          missingPersonal.push(criterion.criteriaName);
+          invalidMap[genreKey(criterion.criteriaId, studentKey)] = true;
+          scrollTargets.add(genreKey(criterion.criteriaId, studentKey));
+          return;
+        }
+        const numericValue = Number(raw);
+        if (numericValue < 0) {
+          invalidScores.push(
+            `${student.fullName}: ${criterion.criteriaName} không được nhỏ hơn 0.`
+          );
+          invalidMap[genreKey(criterion.criteriaId, studentKey)] = true;
+          scrollTargets.add(genreKey(criterion.criteriaId, studentKey));
+        }
+        if (
+          typeof criterion.maxScore === "number" &&
+          numericValue > criterion.maxScore
+        ) {
+          invalidScores.push(
+            `${student.fullName}: ${criterion.criteriaName} không được vượt quá ${criterion.maxScore}.`
+          );
+          invalidMap[genreKey(criterion.criteriaId, studentKey)] = true;
+          scrollTargets.add(genreKey(criterion.criteriaId, studentKey));
+        }
+        const historicalGrade = getHistoricalGrade(
+          existingGradeEntry,
+          criterion.criteriaId
+        );
+        criteriaGrades.push({
+          criteriaId: criterion.criteriaId,
+          score: numericValue,
+          comments: criterionComments[criterion.criteriaId] ?? "",
+          detailedGradeId: historicalGrade?.detailedGradeId ?? null,
+        });
+      });
 
-    const contributionLevel = form.contributionLevel;
-    if (!contributionLevel) {
-      messages.push("Vui lòng chọn mức đóng góp của sinh viên.");
-    }
+      teamEntriesTemplate.forEach((teamEntry) => {
+        const historicalGrade = getHistoricalGrade(
+          existingGradeEntry,
+          teamEntry.criteriaId
+        );
+        criteriaGrades.push({
+          ...teamEntry,
+          detailedGradeId: historicalGrade?.detailedGradeId ?? null,
+        });
+      });
+
+      if (missingPersonal.length) {
+        messages.push(
+          `Vui lòng nhập điểm cho ${student.fullName}: ${missingPersonal.join(", ")}.`
+        );
+      }
+      if (invalidScores.length) {
+        messages.push(...invalidScores);
+      }
+
+      const contributionLevel = form.contributionLevel;
+      if (!contributionLevel) {
+        messages.push(
+          `Vui lòng chọn mức đóng góp cho ${student.fullName}.`
+        );
+        invalidMap[genreKey("contribution", studentKey)] = true;
+        scrollTargets.add(genreKey("contribution", studentKey));
+      }
+
+      payloads.push({
+        studentId: student.studentId,
+        student,
+        criteriaGrades,
+        contributionLevel,
+        updateId: existingGradeEntry?.gradeId ?? null,
+      });
+    });
 
     if (messages.length > 0) {
+      setInvalidScoreMap(invalidMap);
+      requestAnimationFrame(() => scrollToInvalidInput(scrollTargets));
       return { errors: messages };
     }
 
-    return {
-      createPayload: {
-        studentId: selectedStudentId,
-        criteriaGrades,
-        contributionLevel,
-      },
-      updatePayload: {
-        criteriaGrades,
-        contributionLevel,
-      },
-    };
+    setInvalidScoreMap({});
+    return { payloads };
   };
 
   const refreshData = async () => {
@@ -689,16 +1351,20 @@ export default function GradingDetailPage({
       GradingAPI.getSessionGrades(sessionId),
       GradingAPI.getSessionDetail(sessionId),
     ]);
-    setGrades(Array.isArray(updatedGrades) ? updatedGrades : []);
-    setSessionDetail(updatedSession ?? null);
+    const aggregatedGrades = aggregateDetailedGrades(
+      Array.isArray(updatedGrades) ? updatedGrades : []
+    );
+    const enhancedSession = await prepareSessionDetail(updatedSession ?? null);
+    setGrades(aggregatedGrades);
+    setSessionDetail(enhancedSession);
   };
 
   const handleSaveGrade = async () => {
     setSuccessMessage("");
     setErrors([]);
-    const payloads = buildPayload();
-    if (payloads.errors?.length) {
-      setErrors(payloads.errors);
+    const payloadResult = buildAllPayloads();
+    if (payloadResult.errors?.length) {
+      setErrors(payloadResult.errors);
       setError("");
       return;
     }
@@ -706,14 +1372,11 @@ export default function GradingDetailPage({
       setError("Không tìm thấy phiên chấm điểm hợp lệ.");
       return;
     }
-    const targetStudent = studentSummaries.find(
-      (student) => student.studentId === selectedStudentId
-    );
-    const gradeEntry = gradeLookup[selectedStudentId];
-    const shouldUpdate =
-      gradeEntry &&
-      Array.isArray(gradeEntry.criteriaGrades) &&
-      gradeEntry.criteriaGrades.length > 0;
+    const studentPayloads = payloadResult.payloads ?? [];
+    if (!studentPayloads.length) {
+      setError("Không có dữ liệu để lưu điểm.");
+      return;
+    }
 
     try {
       setSaving(true);
@@ -721,49 +1384,48 @@ export default function GradingDetailPage({
 
       if (demoMode) {
         const nowIso = new Date().toISOString();
-        const contributionLevel = payloads.createPayload.contributionLevel;
-        const normalizedGrades = payloads.createPayload.criteriaGrades.map(
-          (item) => {
-            const criterion = criteriaMap[item.criteriaId];
-            const weight = criterion?.weight ?? 0;
-            const score = Number(item.score ?? 0);
-            return {
-              ...item,
-              score,
-              criteriaName: criterion?.criteriaName ?? "",
-              weight,
-              weightedScore: Number((score * (weight / 100)).toFixed(2)),
-            };
-          }
-        );
-        const finalScore = calculateFinalScore(
-          normalizedGrades,
-          contributionLevel
-        );
-        const contributionScore = CONTRIBUTION_SCORES[contributionLevel] ?? 0;
-
-        const gradeData = {
-          studentId: selectedStudentId,
-          studentCode: targetStudent?.studentCode ?? "",
-          fullName: targetStudent?.fullName ?? "",
-          finalScore,
-          isCompleted: true,
-          gradedDate: nowIso,
-          contributionLevel,
-          contributionScore,
-          criteriaGrades: normalizedGrades,
-        };
-
         setGrades((prev) => {
-          const existingIndex = prev.findIndex(
-            (item) => item.studentId === selectedStudentId
-          );
-          if (existingIndex >= 0) {
-            const next = prev.slice();
-            next[existingIndex] = gradeData;
-            return next;
-          }
-          return [...prev, gradeData];
+          const nextGrades = [...prev];
+          studentPayloads.forEach((payload) => {
+            const normalizedGrades = payload.criteriaGrades.map((item) => {
+              const criterion = criteriaMap[item.criteriaId];
+              const weight = criterion?.weight ?? 0;
+              const score = Number(item.score ?? 0);
+              return {
+                ...item,
+                score,
+                criteriaName: criterion?.criteriaName ?? "",
+                weight,
+                weightedScore: Number((score * (weight / 100)).toFixed(2)),
+              };
+            });
+            const finalScore = calculateFinalScore(
+              normalizedGrades,
+              payload.contributionLevel
+            );
+            const contributionScore =
+              CONTRIBUTION_SCORES[payload.contributionLevel] ?? 0;
+            const gradeData = {
+              studentId: payload.studentId,
+              studentCode: payload.student?.studentCode ?? "",
+              fullName: payload.student?.fullName ?? "",
+              finalScore,
+              isCompleted: true,
+              gradedDate: nowIso,
+              contributionLevel: payload.contributionLevel,
+              contributionScore,
+              criteriaGrades: normalizedGrades,
+            };
+            const existingIndex = nextGrades.findIndex(
+              (item) => item.studentId === payload.studentId
+            );
+            if (existingIndex >= 0) {
+              nextGrades[existingIndex] = gradeData;
+            } else {
+              nextGrades.push(gradeData);
+            }
+          });
+          return nextGrades;
         });
 
         setSessionDetail((prev) => {
@@ -771,9 +1433,28 @@ export default function GradingDetailPage({
             return prev;
           }
           const students = (prev.students ?? []).map((student) => {
-            if (student.studentId !== selectedStudentId) {
+            const payload = studentPayloads.find(
+              (item) => item.studentId === student.studentId
+            );
+            if (!payload) {
               return student;
             }
+            const normalizedGrades = payload.criteriaGrades.map((item) => {
+              const criterion = criteriaMap[item.criteriaId];
+              const weight = criterion?.weight ?? 0;
+              const score = Number(item.score ?? 0);
+              return {
+                ...item,
+                score,
+                criteriaName: criterion?.criteriaName ?? "",
+                weight,
+                weightedScore: Number((score * (weight / 100)).toFixed(2)),
+              };
+            });
+            const finalScore = calculateFinalScore(
+              normalizedGrades,
+              payload.contributionLevel
+            );
             return {
               ...student,
               finalScore,
@@ -795,27 +1476,25 @@ export default function GradingDetailPage({
           };
         });
 
-        setSuccessMessage(
-          `Đã lưu điểm cho ${
-            targetStudent?.fullName ?? "sinh viên"
-          } thành công.`
-        );
+        setSuccessMessage("Đã lưu điểm cho toàn bộ nhóm (demo).");
         return;
       }
 
-      if (shouldUpdate) {
-        await GradingAPI.updateStudentGrade(
+      for (const payload of studentPayloads) {
+        const body = {
+          studentId: payload.studentId,
           sessionId,
-          selectedStudentId,
-          payloads.updatePayload
-        );
-      } else {
-        await GradingAPI.createStudentGrade(sessionId, payloads.createPayload);
+          criteriaGrades: payload.criteriaGrades,
+          contributionLevel: payload.contributionLevel,
+        };
+        if (payload.updateId) {
+          await GradingAPI.updateStudentGrade(payload.updateId, body);
+        } else {
+          await GradingAPI.createStudentGrade(body);
+        }
       }
       await refreshData();
-      setSuccessMessage(
-        `Đã lưu điểm cho ${targetStudent?.fullName ?? "sinh viên"} thành công.`
-      );
+      setSuccessMessage("Đã lưu điểm cho toàn bộ nhóm thành công.");
     } catch (err) {
       const message =
         err?.message || "Không thể lưu điểm. Vui lòng thử lại sau.";
@@ -891,15 +1570,6 @@ export default function GradingDetailPage({
             <span>Ngày chấm: {formatDate(sessionDetail?.sessionDate)}</span>
           </div>
         </div>
-        <div className={styles.studentSelector}>
-          <StudentSelect
-            studentSummaries={studentSummaries}
-            selectedStudentId={selectedStudentId}
-            setSelectedStudentId={setSelectedStudentId}
-            selectId="student-select"
-            label="Chọn sinh viên"
-          />
-        </div>
       </div>
 
       <Toasts
@@ -914,31 +1584,89 @@ export default function GradingDetailPage({
         autoHideErrorMs={6000} // Bật nếu muốn mỗi lỗi tự ẩn sau 6s
       />
 
-      <div className={styles.card}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Tiêu chí</th>
-              <th>Mô tả</th>
-              <th className={styles.headScore}>Đánh giá</th>
-              <th>Điểm thực</th>
-              <th>Nhận xét</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className={styles.criteriaSection}>
+        <div className={styles.card}>
+          <div className={styles.criteriaGridWrapper}>
+            <div
+              className={`${styles.criteriaGrid} ${styles.gridHeader}`}
+              style={{ gridTemplateColumns }}
+            >
+              <div className={`${styles.gridCell} ${styles.colTitle}`}>Tiêu chí</div>
+              <div className={styles.gridCell}>Mô tả</div>
+              <div className={`${styles.gridCell} ${styles.headScore}`}>
+                Thang điểm
+              </div>
+              <div className={styles.gridCell}>Nhóm</div>
+              {students.map((student, index) => (
+                <div
+                  key={`member-head-${student.studentId}`}
+                  className={`${styles.gridCell} ${styles.memberHeaderCell}`}
+                >
+                  <div
+                    className={styles.memberHead}
+                    title={`${student.fullName} · ${student.studentCode}`}
+                  >
+                    <span className={styles.memberIndex}>{index + 1}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
             {criteriaForScoring.map((criterion) => {
-              const rawScore = currentForm?.scores?.[criterion.criteriaId];
-              const hasScore = hasNumericValue(rawScore);
-              const scoreNum = hasScore ? Number(rawScore) : null;
+              const weightRatio = (criterion.weight ?? 0) / 100;
+              const baseTeamValue = teamScores[criterion.criteriaId];
+              const hasTeamScore = hasNumericValue(baseTeamValue);
+              const scoreNum =
+                !criterion ||
+                criterion.scope === CRITERION_SCOPE.PERSONAL ||
+                !hasTeamScore
+                  ? null
+                  : Number(baseTeamValue);
               const ipsValue =
-                scoreNum !== null
-                  ? scoreNum * ((criterion.weight ?? 0) / 100)
+                scoreNum !== null ? scoreNum * weightRatio : null;
+
+              const memberEntries = students.map((student) => {
+                const studentForm = forms[student.studentId];
+                const memberRaw =
+                  studentForm?.scores?.[criterion.criteriaId] ?? "";
+                const memberHasScore = hasNumericValue(memberRaw);
+                const memberScore = memberHasScore ? Number(memberRaw) : null;
+                return {
+                  student,
+                  rawInput: memberRaw,
+                  numericScore: memberScore,
+                  weightedScore:
+                    memberScore !== null ? memberScore * weightRatio : null,
+                };
+              });
+
+              const filledMembers = memberEntries.filter(
+                (entry) => entry.numericScore !== null
+              );
+              const personalIpsValue =
+                filledMembers.length > 0
+                  ? (filledMembers.reduce(
+                      (sum, entry) => sum + entry.numericScore,
+                      0
+                    ) /
+                      filledMembers.length) *
+                    weightRatio
                   : null;
 
+              const isTeamScope =
+                criterion.scope !== CRITERION_SCOPE.PERSONAL;
+
               return (
-                <tr key={criterion.criteriaId}>
-                  <td className={styles.colTitle}>{criterion.criteriaName}</td>
-                  <td className={styles.description}>
+                <div
+                  key={criterion.criteriaId}
+                  className={`${styles.criteriaGrid} ${styles.gridRow} ${
+                    isTeamScope ? "" : styles.personalRow
+                  }`}
+                  style={{ gridTemplateColumns }}
+                >
+                  <div className={`${styles.gridCell} ${styles.colTitle}`}>
+                    {criterion.criteriaName}
+                  </div>
+                  <div className={`${styles.gridCell} ${styles.description}`}>
                     <div className={styles.descWrap}>
                       <div className={styles.colDesc}>
                         {criterion.description ?? "Chưa có mô tả"}
@@ -950,54 +1678,193 @@ export default function GradingDetailPage({
                         </div>
                       </div>
                     </div>
-                  </td>
-                  <td className={styles.colScore}>
-                    <input
-                      className={styles.scoreInput}
-                      type="number"
-                      min="0"
-                      step="0.1"
-                      max={criterion.maxScore ?? 10}
-                      value={currentForm?.scores?.[criterion.criteriaId] ?? ""}
-                      onChange={handleScoreChange(criterion.criteriaId)}
-                      disabled={!selectedStudentId}
-                      placeholder="--"
-                    />
-                  </td>
-                  <td className={styles.colIps}>
-                    {ipsValue === null ? "--" : ipsValue.toFixed(2)}
-                  </td>
-                  <td className={styles.colComment}>
-                    <textarea
-                      className={styles.commentInput}
-                      value={
-                        currentForm?.comments?.[criterion.criteriaId] ?? ""
-                      }
-                      onChange={handleCommentChange(criterion.criteriaId)}
-                      placeholder="Nhận xét (không bắt buộc)"
-                      disabled={!selectedStudentId}
-                    />
-                  </td>
-                </tr>
+                  </div>
+                  <div className={`${styles.gridCell} ${styles.colScore}`}>
+                    {isTeamScope ? (
+                      <input
+                        className={`${styles.scoreInput} ${
+                          isInvalidField(criterion.criteriaId, null)
+                            ? styles.invalidInput
+                            : ""
+                        }`}
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        max={criterion.maxScore ?? 10}
+                        value={teamScores[criterion.criteriaId] ?? ""}
+                        onChange={handleScoreChange(criterion.criteriaId)}
+                        disabled={saving}
+                        placeholder="--"
+                        data-score-key={genreKey(criterion.criteriaId, null)}
+                      />
+                    ) : (
+                      <span className={styles.scopeHint}>--</span>
+                    )}
+                  </div>
+                  <div className={`${styles.gridCell} ${styles.colIps}`}>
+                    {isTeamScope
+                      ? ipsValue === null
+                        ? "--"
+                        : ipsValue.toFixed(2)
+                      : personalIpsValue === null
+                      ? "--"
+                      : personalIpsValue.toFixed(2)}
+                  </div>
+                  {memberEntries.map((entry) => (
+                    <div
+                      key={`member-${criterion.criteriaId}-${entry.student.studentId}`}
+                      className={`${styles.gridCell} ${styles.memberCell} ${
+                        isTeamScope ? "" : styles.memberCellActive
+                      }`}
+                    >
+                      {isTeamScope ? (
+                        <span className={styles.memberPlaceholder}>--</span>
+                      ) : (
+                        <div className={styles.memberScoreBox}>
+                          <input
+                            className={`${styles.scoreInput} ${styles.memberScoreInput} ${
+                              isInvalidField(
+                                criterion.criteriaId,
+                                entry.student.studentId
+                              )
+                                ? styles.invalidInput
+                                : ""
+                            }`}
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            max={criterion.maxScore ?? 10}
+                            value={entry.rawInput ?? ""}
+                            onChange={handleScoreChange(
+                              criterion.criteriaId,
+                              entry.student.studentId
+                            )}
+                            disabled={saving}
+                            data-score-key={genreKey(
+                              criterion.criteriaId,
+                              entry.student.studentId
+                            )}
+                            placeholder="--"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               );
             })}
-          </tbody>
-        </table>
+            <div
+              className={`${styles.criteriaGrid} ${styles.gridRow} ${styles.contributionRow}`}
+              style={{ gridTemplateColumns }}
+            >
+              <div className={`${styles.gridCell} ${styles.colTitle}`}>
+                Contribution(*)
+              </div>
+              <div
+                className={`${styles.gridCell} ${styles.description}`}
+                style={{ gridColumn: "span 2" }}
+              >
+                <div className={styles.descWrap}>
+                  <div className={styles.colDesc}>
+                    Mức độ đóng góp cho từng thành viên trong nhóm
+                  </div>
+                  <div className={styles.gradeIPS}>
+                    <div className={styles.hint}>Thang ?i?m:</div>
+                    <div className={styles.weight}>0.5 - 2.0</div>
+                  </div>
+                </div>
+              </div>
+              <div className={`${styles.gridCell} ${styles.colIps}`}></div>
+              {students.map((student) => {
+                const form = forms[student.studentId] ?? {};
+                const contributionValue = form.contributionLevel ?? "";
+                const numericContribution =
+                  CONTRIBUTION_SCORES[contributionValue];
+                const contributionScore =
+                  typeof numericContribution === "number"
+                    ? numericContribution.toFixed(1)
+                    : "--";
+                return (
+                  <div
+                    key={`contribution-${student.studentId}`}
+                    className={`${styles.gridCell} ${styles.memberCell} ${styles.memberCellActive}`}
+                  >
+                    <div className={styles.memberScoreBox}>
+                      <ContributionLevelSelect
+                        value={contributionValue}
+                        onSelect={(nextValue) =>
+                          applyContributionChange(student.studentId, nextValue)
+                        }
+                        options={contributionOptions}
+                        disabled={saving}
+                        placeholder="--"
+                        width={72}
+                        scoreKey={genreKey("contribution", student.studentId)}
+                        buttonClassName={
+                          isInvalidField("contribution", student.studentId)
+                            ? styles.invalidInput
+                            : undefined
+                        }
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <ContributionSelect
-        selectId="contribution-select"
-        labelText={
-          <>
-            <strong>Contribution(*)</strong> Mức độ đóng góp của sinh viên
-          </>
-        }
-        value={currentForm?.contributionLevel ?? ""}
-        onChange={handleContributionChange}
-        options={CONTRIBUTION_LEVELS}
-        disabled={!selectedStudentId}
-        maxWidth={420} // tuỳ chọn: giới hạn chiều rộng tối đa
-      />
+      {isCommentPanelOpen ? (
+        <div
+          className={styles.commentDrawerBackdrop}
+          onClick={() => setIsCommentPanelOpen(false)}
+        >
+          <div
+            className={styles.commentDrawer}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.commentDrawerHeader}>
+              <div>
+                <h3>Nhận xét tiêu chí</h3>
+                <p>Áp dụng cho toàn bộ thành viên</p>
+              </div>
+              <button
+                type="button"
+                className={styles.commentDrawerClose}
+                onClick={() => setIsCommentPanelOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.commentDrawerBody}>
+              {criteriaForScoring.length ? (
+                criteriaForScoring.map((criterion) => (
+                  <div
+                    key={`comment-panel-${criterion.criteriaId}`}
+                    className={styles.commentDrawerItem}
+                  >
+                    <div className={styles.commentDrawerTitle}>
+                      {criterion.criteriaName}
+                    </div>
+                    <textarea
+                      className={styles.commentInput}
+                      value={criterionComments[criterion.criteriaId] ?? ""}
+                      onChange={handleCommentChange(criterion.criteriaId)}
+                      placeholder="Nhận xét (không bắt buộc)"
+                      disabled={saving}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className={styles.commentDrawerEmpty}>
+                  Không có tiêu chí để nhận xét.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className={styles.groupHeader}>
         <div className={styles.groupHeader_title}>
@@ -1014,13 +1881,25 @@ export default function GradingDetailPage({
           </div>
         </div>
         <div className={styles.actionBtns}>
-          <button
-            className={`${styles.btn} ${styles.btnPrimary}`}
-            onClick={handleSaveGrade}
-            disabled={saving || !selectedStudentId}
-          >
-            {saving ? "Đang lưu..." : "Lưu điểm"}
-          </button>
+          <div>
+            <button
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              type="button"
+              onClick={() => setIsCommentPanelOpen(true)}
+              disabled={saving}
+            >
+              Nhận xét
+            </button>
+          </div>
+          <div>
+            <button
+              className={`${styles.btn} ${styles.btnPrimary}`}
+              onClick={handleSaveGrade}
+              disabled={saving || !students.length}
+            >
+              {saving ? "Đang lưu..." : "Lưu điểm"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1035,15 +1914,10 @@ export default function GradingDetailPage({
               <th>Điểm cuối</th>
               <th>Ngày chấm</th>
               <th>Đóng góp</th>
-              <th></th>
             </tr>
           </thead>
           <tbody>
             {studentSummaries.map((student, index) => {
-              const isSelected =
-                selectedStudentId !== null &&
-                selectedStudentId !== undefined &&
-                String(student.studentId) === String(selectedStudentId);
               return (
                 <tr
                   key={student.studentId ?? index}
@@ -1062,16 +1936,6 @@ export default function GradingDetailPage({
                   </td>
                   <td>{formatDateTime(student.gradedDate)}</td>
                   <td>{student.contributionLevel || "--"}</td>
-                  <td width="120">
-                    <button
-                      className={`${styles.iconBtn} ${
-                        isSelected ? styles.iconBtnActive : ""
-                      }`}
-                      onClick={() => setSelectedStudentId(student.studentId)}
-                    >
-                      Chấm điểm
-                    </button>
-                  </td>
                 </tr>
               );
             })}
@@ -1081,3 +1945,7 @@ export default function GradingDetailPage({
     </div>
   );
 }
+
+
+
+
