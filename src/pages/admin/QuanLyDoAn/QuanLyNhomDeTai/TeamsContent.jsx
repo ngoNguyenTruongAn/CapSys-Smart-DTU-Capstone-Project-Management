@@ -12,11 +12,29 @@ const TeamsContent = () => {
   const dispatch = useDispatch();
 
   // Lấy data từ Redux
-  const { data: teamsData, loading } = useSelector((state) => state.teams);
+  const { loading } = useSelector((state) => state.teams);
 
-  // Fetch data khi mount
+  // Local state để lưu tất cả teams
+  const [allTeams, setAllTeams] = useState([]);
+
+  // Fetch data cho tất cả capstone types khi mount
   useEffect(() => {
-    dispatch(fetchAllTeams(1)); // Capstone 1 as default
+    const fetchAllData = async () => {
+      try {
+        // Fetch Capstone 1
+        const res1 = await dispatch(fetchAllTeams(1)).unwrap();
+
+        // Fetch Capstone 2
+        const res2 = await dispatch(fetchAllTeams(2)).unwrap();
+
+        // Kết hợp cả 2 mảng
+        const combinedTeams = [...(res1 || []), ...(res2 || [])];
+        setAllTeams(combinedTeams);
+      } catch (error) {
+        console.error("Error fetching teams:", error);
+      }
+    };
+    fetchAllData();
   }, [dispatch]);
 
   // ===== STATE MANAGEMENT (CỦA RIÊNG TAB NÀY) =====
@@ -33,7 +51,7 @@ const TeamsContent = () => {
 
   // ===== FILTER LOGIC =====
   const filteredTeams = useMemo(() => {
-    return teamsData.filter((team) => {
+    return allTeams.filter((team) => {
       // Lọc theo search term (tên nhóm hoặc mentor)
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
@@ -58,7 +76,7 @@ const TeamsContent = () => {
 
       return matchesSearch && matchesFilter && matchesCapstone;
     });
-  }, [teamsData, searchTerm, mentorFilter, capstoneFilter]);
+  }, [allTeams, searchTerm, mentorFilter, capstoneFilter]);
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredTeams.length / pageSize) || 1;
@@ -82,8 +100,10 @@ const TeamsContent = () => {
     try {
       await dispatch(deleteTeam(teamId)).unwrap();
       alert("Xóa nhóm thành công!");
-      // Refresh data
-      await dispatch(fetchAllTeams(1)); // Capstone 1 as default
+      // Refresh data for both capstone types
+      const res1 = await dispatch(fetchAllTeams(1)).unwrap();
+      const res2 = await dispatch(fetchAllTeams(2)).unwrap();
+      setAllTeams([...(res1 || []), ...(res2 || [])]);
     } catch (error) {
       console.error("Error deleting team:", error);
       alert("Có lỗi khi xóa nhóm: " + error.message);
@@ -103,8 +123,10 @@ const TeamsContent = () => {
     try {
       await dispatch(removeMentor(teamId)).unwrap();
       alert("Gỡ mentor thành công!");
-      // Refresh data
-      await dispatch(fetchAllTeams(1)); // Capstone 1 as default
+      // Refresh data for both capstone types
+      const res1 = await dispatch(fetchAllTeams(1)).unwrap();
+      const res2 = await dispatch(fetchAllTeams(2)).unwrap();
+      setAllTeams([...(res1 || []), ...(res2 || [])]);
     } catch (error) {
       console.error("Error removing mentor:", error);
       alert("Có lỗi khi gỡ mentor: " + error.message);
@@ -180,7 +202,7 @@ const TeamsContent = () => {
         ) : filteredTeams.length === 0 ? (
           <div className="empty-state">
             <p>
-              {teamsData.length === 0
+              {allTeams.length === 0
                 ? "Chưa có nhóm nào được tạo"
                 : "Không tìm thấy nhóm nào khớp với bộ lọc"}
             </p>
@@ -385,7 +407,11 @@ const TeamsContent = () => {
         show={showUpdateModal}
         setShow={setShowUpdateModal}
         teamId={selectedTeamId}
-        onUpdated={() => dispatch(fetchAllTeams(1))} // Refresh data
+        onUpdated={async () => {
+          const res1 = await dispatch(fetchAllTeams(1)).unwrap();
+          const res2 = await dispatch(fetchAllTeams(2)).unwrap();
+          setAllTeams([...(res1 || []), ...(res2 || [])]);
+        }}
       />
     </>
   );

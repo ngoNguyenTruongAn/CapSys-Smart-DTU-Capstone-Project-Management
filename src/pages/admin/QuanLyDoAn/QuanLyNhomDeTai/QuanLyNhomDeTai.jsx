@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import "./QuanLyNhomDeTai.scss";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { insertStudentsFromFileAPI } from "../../../../services/StudentsAPI";
@@ -25,19 +25,32 @@ const QuanLyNhomDeTai = () => {
   const [capstoneType, setCapstoneType] = useState(1);
   const [file, setFile] = useState(null);
 
+  // State để lưu tổng số nhóm
+  const [totalTeamsCount, setTotalTeamsCount] = useState(0);
+
   // Refresh data sau khi import
   const handleRefreshData = useCallback(async () => {
     try {
-      await Promise.all([
-        dispatch(fetchAllTeams(capstoneType)),
+      // Fetch cả Capstone 1 và 2 để tính tổng số nhóm
+      const [res1, res2] = await Promise.all([
+        dispatch(fetchAllTeams(1)).unwrap(),
+        dispatch(fetchAllTeams(2)).unwrap(),
         dispatch(fetchStudentsNotInTeam(capstoneType)),
         dispatch(fetchTeamsWithoutMentor(capstoneType)),
         dispatch(fetchMentorWorkload()),
       ]);
+
+      // Tính tổng số nhóm từ cả 2 Capstone
+      const total = (res1?.length || 0) + (res2?.length || 0);
+      setTotalTeamsCount(total);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   }, [capstoneType, dispatch]);
+
+  useEffect(() => {
+    handleRefreshData();
+  }, [handleRefreshData]);
 
   const handleImportFile = async () => {
     if (!file) {
@@ -117,7 +130,7 @@ const QuanLyNhomDeTai = () => {
           </div>
         </div>
 
-        <div className="header-right-content">
+        {/* <div className="header-right-content">
           <div className="header-actions">
             <label className="import-btn">
               📤 Import File
@@ -142,7 +155,7 @@ const QuanLyNhomDeTai = () => {
               Import
             </button>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Tab Navigation (Thay button bằng NavLink) */}
@@ -158,19 +171,25 @@ const QuanLyNhomDeTai = () => {
           to="nhom"
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          🏢 Nhóm ({teams?.length || 0})
+          🏢 Nhóm ({totalTeamsCount})
         </NavLink>
-         <NavLink
-            to="mentor"
-            className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
-          >
-            👨‍🏫 Giảng viên
-          </NavLink>
+        <NavLink
+          to="mentor"
+          className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
+        >
+          👨‍🏫 Giảng viên
+        </NavLink>
       </div>
 
       {/* Main Content (Dùng Outlet và truyền context) */}
       <div className="main-content">
-        <Outlet />
+        <Outlet
+          context={{
+            capstoneType,
+            setCapstoneType,
+            refreshData: handleRefreshData,
+          }}
+        />
       </div>
     </div>
   );
