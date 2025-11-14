@@ -182,21 +182,20 @@ const GradingAPI = {
    * @param {Object} payload - Grade payload with studentId, criteriaGrades, contributionLevel
    * @returns {Promise<Object>} Created grade
    */
-  createStudentGrade: (sessionId, payload) =>
-    apiFetch(`/grading/sessions/${sessionId}/grades`, {
+  createStudentGrade: (payload) =>
+    apiFetch(`/grading/grades`, {
       method: "POST",
       body: payload,
     }),
 
   /**
    * Update an existing student grade
-   * @param {number|string} sessionId - The session ID
-   * @param {number|string} studentId - The student ID
+   * @param {number|string} gradeId - The detailed grade ID
    * @param {Object} payload - Update payload with criteriaGrades, contributionLevel
    * @returns {Promise<Object>} Updated grade
    */
-  updateStudentGrade: (sessionId, studentId, payload) =>
-    apiFetch(`/grading/sessions/${sessionId}/grades/${studentId}`, {
+  updateStudentGrade: (gradeId, payload) =>
+    apiFetch(`/grading/grades/${gradeId}`, {
       method: "PUT",
       body: payload,
     }),

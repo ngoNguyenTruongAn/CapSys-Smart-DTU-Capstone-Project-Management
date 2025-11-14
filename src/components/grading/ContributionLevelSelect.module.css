@@ -1,0 +1,85 @@
+.inlineSelect {
+  position: relative;
+  width: 100%;
+  min-width: 64px;
+  font-size: 13px;
+}
+
+.inlineButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text-primary, #0f172a);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.inlineButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inlineButton:focus-visible {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.inlineChevron {
+  flex: 0 0 auto;
+  color: var(--text-secondary, #64748b);
+}
+
+.inlineMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  background: #fff;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.15);
+  padding: 6px;
+  z-index: 30;
+}
+
+.inlineOption {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  transition: background 0.15s ease;
+}
+
+.inlineOption:hover,
+.inlineOption:focus-visible {
+  outline: none;
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.inlineOption[aria-selected="true"] {
+  background: rgba(99, 102, 241, 0.15);
+  color: #1d4ed8;
+}
+
+.inlineOptionCheck {
+  opacity: 0;
+  color: #1d4ed8;
+}
+
+.inlineOption[aria-selected="true"] .inlineOptionCheck {
+  opacity: 1;
+}
