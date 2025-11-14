@@ -15,10 +15,10 @@ const API_BASE = ENV_BASE || "http://localhost:5295/api";
  */
 const apiFetchWithCorrectBase = async (path, options = {}) => {
   const { query, ...restOptions } = options;
-  
+
   // Build the full URL with the correct base
   let url = `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
-  
+
   // Append query parameters if provided
   if (query && typeof query === "object") {
     const urlObj = new URL(url);
@@ -29,23 +29,23 @@ const apiFetchWithCorrectBase = async (path, options = {}) => {
     });
     url = urlObj.toString();
   }
-  
+
   // Get token from localStorage (same as ProposalAPI.jsx)
   const getToken = () =>
     localStorage.getItem("token") ||
     sessionStorage.getItem("token") ||
     localStorage.getItem("accessToken") ||
     "";
-  
+
   // Prepare headers
   const headers = new Headers();
   headers.set("Accept", "application/json");
-  
+
   const token = getToken();
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
-  
+
   // Merge with provided headers
   if (options.headers) {
     Object.entries(options.headers).forEach(([key, value]) => {
@@ -54,7 +54,7 @@ const apiFetchWithCorrectBase = async (path, options = {}) => {
       }
     });
   }
-  
+
   // Set Content-Type if not provided and body exists
   if (options.body && !headers.has("Content-Type")) {
     if (options.body instanceof FormData) {
@@ -63,13 +63,17 @@ const apiFetchWithCorrectBase = async (path, options = {}) => {
       headers.set("Content-Type", "application/json");
     }
   }
-  
+
   // Prepare body
   let body = options.body;
-  if (body && !(body instanceof FormData) && headers.get("Content-Type") === "application/json") {
+  if (
+    body &&
+    !(body instanceof FormData) &&
+    headers.get("Content-Type") === "application/json"
+  ) {
     body = typeof body === "string" ? body : JSON.stringify(body);
   }
-  
+
   // Make the fetch request
   const response = await fetch(url, {
     method: options.method || "GET",
@@ -77,18 +81,20 @@ const apiFetchWithCorrectBase = async (path, options = {}) => {
     body,
     ...restOptions,
   });
-  
+
   // Parse response
   const contentType = response.headers.get("Content-Type") || "";
   const expectsJson = contentType.includes("application/json");
-  
+
   let responsePayload;
   try {
-    responsePayload = expectsJson ? await response.json() : await response.text();
+    responsePayload = expectsJson
+      ? await response.json()
+      : await response.text();
   } catch {
     responsePayload = expectsJson ? {} : "";
   }
-  
+
   // Handle errors
   if (!response.ok) {
     const message =
@@ -102,7 +108,7 @@ const apiFetchWithCorrectBase = async (path, options = {}) => {
     error.payload = responsePayload;
     throw error;
   }
-  
+
   // Unwrap data if present (same behavior as apiFetch)
   if (
     responsePayload &&
@@ -111,7 +117,7 @@ const apiFetchWithCorrectBase = async (path, options = {}) => {
   ) {
     return responsePayload.data;
   }
-  
+
   return responsePayload;
 };
 
@@ -133,8 +139,7 @@ const GradingAPI = {
    * @param {number|string} sessionId - The session ID
    * @returns {Promise<Object>} Session detail with students
    */
-  getSessionDetail: (sessionId) =>
-    apiFetch(`/grading/sessions/${sessionId}`),
+  getSessionDetail: (sessionId) => apiFetch(`/grading/sessions/${sessionId}`),
 
   /**
    * Get all grades for a session
@@ -149,8 +154,7 @@ const GradingAPI = {
    * @param {number|string} teamId - The team ID
    * @returns {Promise<Array>} Array of grading sessions for the team
    */
-  getTeamSessions: (teamId) =>
-    apiFetch(`/grading/sessions/team/${teamId}`),
+  getTeamSessions: (teamId) => apiFetch(`/grading/sessions/team/${teamId}`),
 
   /**
    * Get session summary
@@ -260,4 +264,3 @@ const GradingAPI = {
 };
 
 export default GradingAPI;
-

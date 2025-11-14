@@ -74,7 +74,8 @@ const getClosestTimeSlot = () => {
   return TIME_SLOTS[TIME_SLOTS.length - 1];
 };
 
-const getMonthStart = (date) => new Date(date.getFullYear(), date.getMonth(), 1);
+const getMonthStart = (date) =>
+  new Date(date.getFullYear(), date.getMonth(), 1);
 
 const buildCalendarDays = (monthDate) => {
   const monthStart = getMonthStart(monthDate);
@@ -104,7 +105,10 @@ const base64Decode = (value) => {
   if (typeof window !== "undefined" && typeof window.atob === "function") {
     return window.atob(value);
   }
-  if (typeof globalThis !== "undefined" && typeof globalThis.atob === "function") {
+  if (
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.atob === "function"
+  ) {
     return globalThis.atob(value);
   }
   try {
@@ -147,21 +151,17 @@ const deriveCreatedByFromToken = () => {
   if (!token) return null;
   const payload = decodeJwtPayload(token);
   if (!payload || typeof payload !== "object") return null;
-  const lecturerKeys = [
-    "LecturerId",
-    "lecturerId",
-    "LecturerID",
-    "lecturerID",
-  ];
+  const lecturerKeys = ["LecturerId", "lecturerId", "LecturerID", "lecturerID"];
   const fallbackKeys = ["AccountId", "accountId", "UserId", "userId", "sub"];
   const accountTypeFromStorage =
     window.localStorage?.getItem("accountType") ||
     window.sessionStorage?.getItem("accountType") ||
     payload?.AccountType ||
     payload?.accountType;
-  const isLecturerAccount = typeof accountTypeFromStorage === "string"
-    ? /lecturer/i.test(accountTypeFromStorage)
-    : false;
+  const isLecturerAccount =
+    typeof accountTypeFromStorage === "string"
+      ? /lecturer/i.test(accountTypeFromStorage)
+      : false;
 
   const tryParseNumeric = (value) => {
     const numeric = Number(value);
@@ -202,11 +202,7 @@ const parseInputValue = (value) => {
   const [datePart, timePart] = value.split("T");
   if (!datePart || !timePart) return null;
   const [year, month, day] = datePart.split("-").map(Number);
-  if (
-    Number.isNaN(year) ||
-    Number.isNaN(month) ||
-    Number.isNaN(day)
-  ) {
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
     return null;
   }
   const time = timePart.slice(0, 5);
@@ -244,17 +240,19 @@ export default function CreateSessionModal({
   open,
   onClose,
   defaultTeamId,
-  defaultProjectId,
   defaultCommitteeId,
   onCreated,
 }) {
-  const [projectId, setProjectId] = useState("");
   const [committeeId, setCommitteeId] = useState("");
-  const [teamId, setTeamId] = useState(defaultTeamId ? String(defaultTeamId) : "");
+  const [teamId, setTeamId] = useState(
+    defaultTeamId ? String(defaultTeamId) : ""
+  );
   const [sessionDate, setSessionDate] = useState("");
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
-  const [currentMonth, setCurrentMonth] = useState(() => getMonthStart(new Date()));
+  const [currentMonth, setCurrentMonth] = useState(() =>
+    getMonthStart(new Date())
+  );
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [createdBy] = useState(() => deriveCreatedByFromToken());
   const [sessionType, setSessionType] = useState("Mid-term Evaluation");
@@ -264,16 +262,26 @@ export default function CreateSessionModal({
   const pickerWrapperRef = React.useRef(null);
   const skipSessionSyncRef = React.useRef(false);
 
-  const calendarDays = useMemo(() => buildCalendarDays(currentMonth), [currentMonth]);
-  const monthLabel = useMemo(() => formatMonthYear(currentMonth), [currentMonth]);
+  const calendarDays = useMemo(
+    () => buildCalendarDays(currentMonth),
+    [currentMonth]
+  );
+  const monthLabel = useMemo(
+    () => formatMonthYear(currentMonth),
+    [currentMonth]
+  );
   const selectionSummary = useMemo(() => {
     if (selectedDay && selectedTime) {
-      return `${formatLongDate(selectedDay)} · ${formatTimeLabel(selectedTime)}`;
+      return `${formatLongDate(selectedDay)} · ${formatTimeLabel(
+        selectedTime
+      )}`;
     }
     if (sessionDate) {
       const parsed = parseInputValue(sessionDate);
       if (parsed) {
-        return `${formatLongDate(parsed.date)} · ${formatTimeLabel(parsed.time)}`;
+        return `${formatLongDate(parsed.date)} · ${formatTimeLabel(
+          parsed.time
+        )}`;
       }
     }
     return "Pick a date and time";
@@ -281,9 +289,8 @@ export default function CreateSessionModal({
 
   React.useEffect(() => {
     setTeamId(defaultTeamId ? String(defaultTeamId) : "");
-    setProjectId(defaultProjectId ? String(defaultProjectId) : "");
     setCommitteeId(defaultCommitteeId ? String(defaultCommitteeId) : "");
-  }, [defaultTeamId, defaultProjectId, defaultCommitteeId]);
+  }, [defaultTeamId, defaultCommitteeId]);
 
   React.useEffect(() => {
     if (skipSessionSyncRef.current) {
@@ -332,7 +339,11 @@ export default function CreateSessionModal({
 
   const setSessionDateFromPicker = (day, time) => {
     if (!day || !time) return;
-    const normalizedDay = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const normalizedDay = new Date(
+      day.getFullYear(),
+      day.getMonth(),
+      day.getDate()
+    );
     const value = formatInputValue(normalizedDay, time);
     skipSessionSyncRef.current = true;
     setSessionDate(value);
@@ -359,7 +370,11 @@ export default function CreateSessionModal({
   };
 
   const handleDaySelect = (day) => {
-    const normalizedDay = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const normalizedDay = new Date(
+      day.getFullYear(),
+      day.getMonth(),
+      day.getDate()
+    );
     const nextTime = selectedTime || getClosestTimeSlot();
     setSelectedDay(normalizedDay);
     if (!selectedTime) {
@@ -370,7 +385,11 @@ export default function CreateSessionModal({
 
   const handleTimeSelect = (slot) => {
     const baseDay = selectedDay || new Date();
-    const normalizedDay = new Date(baseDay.getFullYear(), baseDay.getMonth(), baseDay.getDate());
+    const normalizedDay = new Date(
+      baseDay.getFullYear(),
+      baseDay.getMonth(),
+      baseDay.getDate()
+    );
     setSelectedDay(normalizedDay);
     setSelectedTime(slot);
     setSessionDateFromPicker(normalizedDay, slot);
@@ -378,11 +397,15 @@ export default function CreateSessionModal({
   };
 
   const goToPreviousMonth = () => {
-    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setCurrentMonth(
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+    );
   };
 
   const goToNextMonth = () => {
-    setCurrentMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setCurrentMonth(
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+    );
   };
 
   const handleSubmit = async () => {
@@ -401,9 +424,6 @@ export default function CreateSessionModal({
         sessionType: sessionType?.trim(),
         notes: notes?.trim() || null,
       };
-      if (projectId) {
-        payload.projectId = Number(projectId);
-      }
       await GradingAPI.createSession(payload);
       if (typeof onCreated === "function") onCreated();
       handleClose();
@@ -421,7 +441,11 @@ export default function CreateSessionModal({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div className={styles.title}>Create Grading Session</div>
-          <button className={styles.closeBtn} onClick={handleClose} aria-label="Close">
+          <button
+            className={styles.closeBtn}
+            onClick={handleClose}
+            aria-label="Close"
+          >
             ×
           </button>
         </div>
@@ -432,15 +456,6 @@ export default function CreateSessionModal({
         {error ? <div className={styles.error}>{error}</div> : null}
 
         <div className={styles.grid}>
-          <div className={styles.field}>
-            <label>Project ID</label>
-            <input
-              type="number"
-              placeholder="e.g. 5"
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-            />
-          </div>
           <div className={styles.field}>
             <label>Committee ID</label>
             <input
@@ -482,10 +497,33 @@ export default function CreateSessionModal({
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <rect x="3" y="5" width="18" height="16" rx="4" stroke="currentColor" strokeWidth="1.8" />
-                  <path d="M3 10H21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  <path d="M8 3V7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                  <path d="M16 3V7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <rect
+                    x="3"
+                    y="5"
+                    width="18"
+                    height="16"
+                    rx="4"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  />
+                  <path
+                    d="M3 10H21"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M8 3V7"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M16 3V7"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
               {isPickerOpen ? (
@@ -501,7 +539,9 @@ export default function CreateSessionModal({
                         >
                           {"<"}
                         </button>
-                        <span className={styles.calendarMonth}>{monthLabel}</span>
+                        <span className={styles.calendarMonth}>
+                          {monthLabel}
+                        </span>
                         <button
                           type="button"
                           className={styles.calendarNavBtn}
@@ -520,7 +560,8 @@ export default function CreateSessionModal({
                       </div>
                       <div className={styles.calendarGrid}>
                         {calendarDays.map((day) => {
-                          const isSelected = selectedDay && isSameDay(day.date, selectedDay);
+                          const isSelected =
+                            selectedDay && isSameDay(day.date, selectedDay);
                           const dayClassNames = [
                             styles.calendarDay,
                             !day.isCurrentMonth ? styles.calendarDayMuted : "",
@@ -537,7 +578,9 @@ export default function CreateSessionModal({
                               aria-label={formatLongDate(day.date)}
                             >
                               {day.label}
-                              {day.isToday ? <span className={styles.calendarDayDot} /> : null}
+                              {day.isToday ? (
+                                <span className={styles.calendarDayDot} />
+                              ) : null}
                             </button>
                           );
                         })}
@@ -594,7 +637,11 @@ export default function CreateSessionModal({
         </div>
 
         <div className={styles.footer}>
-          <button className={styles.btn} onClick={handleClose} disabled={saving}>
+          <button
+            className={styles.btn}
+            onClick={handleClose}
+            disabled={saving}
+          >
             Cancel
           </button>
           <button

@@ -478,8 +478,69 @@ export default function GradingDetailPage({
         if (ignore) {
           return;
         }
-        setCriteria(Array.isArray(criteriaData) ? criteriaData : []);
-        setSessionDetail(sessionData ?? null);
+
+        console.log("Criteria data from API:", criteriaData);
+        console.log("Session data:", sessionData);
+        console.log("Grades data:", gradesData);
+
+        // Map criteria fields to match expected format
+        const normalizedCriteria = Array.isArray(criteriaData)
+          ? criteriaData.map((c) => ({
+              criteriaId: c.criteriaId,
+              criteriaName: c.criteriaName,
+              description: c.criteriaDescription || c.description || "",
+              weight: c.weightPercentage ?? c.weight ?? 0,
+              maxScore: c.maxScore ?? 10,
+              isActive: c.isActive ?? true,
+              isContribution:
+                c.criteriaName?.toLowerCase().includes("contribution") || false,
+            }))
+          : [];
+
+        console.log("Normalized criteria:", normalizedCriteria);
+
+        // Nếu sessionData không có students, fetch từ team
+        let finalSessionData = sessionData;
+        if (
+          sessionData &&
+          (!sessionData.students || sessionData.students.length === 0)
+        ) {
+          const teamId = sessionData.teamId || group?.teamId;
+          console.log("Fetching team data for teamId:", teamId);
+
+          if (teamId) {
+            try {
+              const teamData = await GradingAPI.getTeam(teamId);
+              console.log("Team data:", teamData);
+
+              // Map students từ team data
+              const students = (teamData?.students || []).map((student) => ({
+                studentId: student.studentId,
+                studentCode: student.studentCode,
+                fullName: student.fullName,
+                isGraded: false,
+                finalScore: null,
+                gradedDate: null,
+              }));
+
+              finalSessionData = {
+                ...sessionData,
+                students: students,
+                totalStudents: students.length,
+              };
+
+              console.log(
+                "Final session data with students:",
+                finalSessionData
+              );
+            } catch (teamError) {
+              console.error("Error fetching team:", teamError);
+            }
+          }
+        }
+
+        setCriteria(normalizedCriteria);
+        setSessionDetail(finalSessionData ?? null);
         setGrades(Array.isArray(gradesData) ? gradesData : []);
         setError("");
       } catch (err) {
@@ -506,7 +567,7 @@ export default function GradingDetailPage({
     return () => {
       ignore = true;
     };
-  }, [sessionId, forcedDemoMode, demoMode, activateDemoMode]);
+  }, [sessionId, forcedDemoMode, demoMode, activateDemoMode, group]);
 
   useEffect(() => {
     if (!criteria.length || !students.length) {
@@ -803,19 +864,33 @@ export default function GradingDetailPage({
         return;
       }
 
-      if (shouldUpdate) {
-        await GradingAPI.updateStudentGrade(
-          sessionId,
-          selectedStudentId,
-          payloads.updatePayload
+      // Submit/update từng criteria một vì API chỉ nhận single grade
+      const criteriaGrades = payloads.createPayload.criteriaGrades;
+      const evaluatorId = createdBy || 1; // Sử dụng lecturer ID từ token
+      
+      try {
+        // Submit tất cả criteria grades
+        for (const criteriaGrade of criteriaGrades) {
+          const gradePayload = {
+            gradingSessionId: Number(sessionId),
+            studentId: Number(selectedStudentId),
+            criteriaId: criteriaGrade.criteriaId,
+            evaluatorId: evaluatorId,
+            evaluatorRole: "Lecturer", // Hoặc lấy từ role
+            score: Number(criteriaGrade.score),
+            comments: criteriaGrade.comments || null
+          };
+          
+          await GradingAPI.createStudentGrade(sessionId, gradePayload);
+        }
+        
+        await refreshData();
+        setSuccessMessage(
+          `Đã lưu điểm cho ${targetStudent?.fullName ?? "sinh viên"} thành công.`
         );
-      } else {
-        await GradingAPI.createStudentGrade(sessionId, payloads.createPayload);
+      } catch (submitError) {
+        throw submitError;
       }
-      await refreshData();
-      setSuccessMessage(
-        `Đã lưu điểm cho ${targetStudent?.fullName ?? "sinh viên"} thành công.`
-      );
     } catch (err) {
       const message =
         err?.message || "Không thể lưu điểm. Vui lòng thử lại sau.";

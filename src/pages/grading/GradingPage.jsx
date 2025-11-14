@@ -16,7 +16,6 @@ const GradingPage = () => {
   const [error, setError] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [prefillTeamId, setPrefillTeamId] = useState(null);
-  const [prefillProjectId, setPrefillProjectId] = useState(null);
   const [prefillCommitteeId, setPrefillCommitteeId] = useState(null);
 
   /**
@@ -77,12 +76,16 @@ const GradingPage = () => {
     let avgScore = null;
     if (session?.gradedStudents > 0 && session?.totalStudents > 0) {
       avgScore = session?.averageScore || null;
-    } else if (Array.isArray(session?.students) && session.students.length > 0) {
+    } else if (
+      Array.isArray(session?.students) &&
+      session.students.length > 0
+    ) {
       const scores = session.students
         .map((student) => Number(student?.finalScore))
         .filter((score) => !Number.isNaN(score));
       if (scores.length > 0) {
-        avgScore = scores.reduce((sum, value) => sum + value, 0) / scores.length;
+        avgScore =
+          scores.reduce((sum, value) => sum + value, 0) / scores.length;
       }
     }
 
@@ -136,7 +139,9 @@ const GradingPage = () => {
     );
 
     return {
-      id: sessionIdentifier ? `session-${sessionIdentifier}` : `team-${baseTeamId || ""}`,
+      id: sessionIdentifier
+        ? `session-${sessionIdentifier}`
+        : `team-${baseTeamId || ""}`,
       sessionId: sessionIdentifier || null,
       team: teamCode,
       project: projectTitle,
@@ -218,44 +223,61 @@ const GradingPage = () => {
       const sessions = unwrapResponseArray(sessionsResponse, ["sessions"]);
       const sessionsIndex = sessionsByTeamId(sessions);
 
+      console.log("Proposals:", proposals);
+      console.log("Sessions:", sessions);
+      console.log("Sessions by team ID:", sessionsIndex);
+
       if (proposals.length === 0 && sessions.length === 0) {
         setGroups([]);
         return;
       }
 
-      const groupPromises = proposals
-        .filter((proposal) => proposal?.teamId || proposal?.TeamId)
-        .map(async (proposal) => {
-          const teamId = pickFirstValue(proposal?.teamId, proposal?.TeamId);
-          if (!teamId) {
-            return null;
-          }
+      // Build groups from all proposals (with or without sessions)
+      const proposalBasedGroups = await Promise.all(
+        proposals
+          .filter((proposal) => proposal?.teamId || proposal?.TeamId)
+          .map(async (proposal) => {
+            const teamId = pickFirstValue(proposal?.teamId, proposal?.TeamId);
+            if (!teamId) {
+              return null;
+            }
 
-          const teamSessions = sessionsIndex[teamId] || [];
-          let teamData = null;
+            const teamSessions = sessionsIndex[teamId] || [];
+            let teamData = null;
 
-          if (teamSessions.length === 0) {
+            // Always try to get team data
             try {
               const teamResponse = await GradingAPI.getTeam(teamId);
               teamData = teamResponse?.data || teamResponse;
             } catch (teamError) {
               console.warn(`Could not load team ${teamId}:`, teamError);
+              // Fallback to session team data if available
+              if (teamSessions.length > 0) {
+                teamData = resolveTeamContext(
+                  teamSessions[0],
+                  teamSessions[0]?.team
+                );
+              }
             }
-          } else {
-            teamData = resolveTeamContext(teamSessions[0], teamSessions[0]?.team);
-          }
 
-          if (teamSessions.length === 0) {
-            return transformToGroup(null, proposal, teamData);
-          }
+            // If no sessions, create a single group with no session
+            if (teamSessions.length === 0) {
+              return transformToGroup(null, proposal, teamData);
+            }
 
-          return teamSessions.map((session) =>
-            transformToGroup(session, proposal, resolveTeamContext(session, teamData))
-          );
-        });
+            // If there are sessions, create a group for each session
+            return teamSessions.map((session) =>
+              transformToGroup(
+                session,
+                proposal,
+                resolveTeamContext(session, teamData)
+              )
+            );
+          })
+      );
 
-      const groupResults = await Promise.all(groupPromises);
-      const flattenedGroups = groupResults.flat().filter(Boolean);
+      const flattenedGroups = proposalBasedGroups.flat().filter(Boolean);
+      console.log("Final groups:", flattenedGroups);
 
       setGroups(flattenedGroups);
     } catch (err) {
@@ -321,7 +343,6 @@ const GradingPage = () => {
     if (!group.sessionId) {
       // Mở popup tạo phiên chấm với team id được điền sẵn
       setPrefillTeamId(group.teamId || null);
-      setPrefillProjectId(group.projectId || group.proposalId || null);
       setPrefillCommitteeId(group.committeeId || null);
       setShowCreateModal(true);
       return;
@@ -333,7 +354,6 @@ const GradingPage = () => {
   const resetPrefillsAndCloseModal = () => {
     setShowCreateModal(false);
     setPrefillTeamId(null);
-    setPrefillProjectId(null);
     setPrefillCommitteeId(null);
   };
 
@@ -386,7 +406,6 @@ const GradingPage = () => {
         <CreateSessionModal
           open={showCreateModal}
           defaultTeamId={prefillTeamId}
-          defaultProjectId={prefillProjectId}
           defaultCommitteeId={prefillCommitteeId}
           onClose={resetPrefillsAndCloseModal}
           onCreated={async () => {
@@ -395,7 +414,15 @@ const GradingPage = () => {
           }}
         />
         {error && (
-          <div style={{ padding: "1rem", marginBottom: "1rem", backgroundColor: "#fee", color: "#c00", borderRadius: "4px" }}>
+          <div
+            style={{
+              padding: "1rem",
+              marginBottom: "1rem",
+              backgroundColor: "#fee",
+              color: "#c00",
+              borderRadius: "4px",
+            }}
+          >
             {error}
           </div>
         )}
@@ -411,4 +438,3 @@ const GradingPage = () => {
 };
 
 export default GradingPage;
-
