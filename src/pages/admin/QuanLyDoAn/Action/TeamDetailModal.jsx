@@ -201,13 +201,26 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
-                  <Form.Label>Leader (ID)</Form.Label>
-                  <Form.Control
-                    type="number"
+                  <Form.Label>Leader</Form.Label>
+                  <Form.Select
                     name="teamLeaderId"
                     value={formData.teamLeaderId || ""}
                     onChange={handleChange}
-                  />
+                    disabled={
+                      !formData.students || formData.students.length === 0
+                    }
+                  >
+                    <option value="">
+                      {!formData.students || formData.students.length === 0
+                        ? "Chưa có thành viên"
+                        : "-- Chọn leader --"}
+                    </option>
+                    {formData.students?.map((s) => (
+                      <option key={s.studentId} value={s.studentId}>
+                        {s.fullName} ({s.studentCode})
+                      </option>
+                    ))}
+                  </Form.Select>
                   <Form.Text>
                     Leader hiện tại: {formData.teamLeaderName || "Chưa có"}
                   </Form.Text>

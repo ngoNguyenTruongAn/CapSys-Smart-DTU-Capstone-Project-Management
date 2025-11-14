@@ -114,15 +114,7 @@ const Navbar = () => {
               Quản lý hội đồng
             </NavLink>
           </li>
-          {/* <li>
-            <NavLink
-              to="phe-duyet"
-              className={({ isActive }) => (isActive ? "active" : "")}
-            >
-              <CheckIcon className="menu-icon" />
-              Phê duyệt
-            </NavLink>
-          </li> */}
+
           <li onClick={handleLogout}>
             <LogoutIcon className="menu-icon" />
             Logout

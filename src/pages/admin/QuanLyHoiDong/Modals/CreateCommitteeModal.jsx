@@ -198,8 +198,8 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
                 style={{ width: "150px" }}
               >
                 <option value="Thành viên">Thành viên</option>
-                <option value="Thư ký">Thư ký</option>
-                <option value="Phản biện">Phản biện</option>
+                <option value="Reviewer">Thư ký</option>
+                <option value="Secretary">Phản biện</option>
               </Form.Select>
             </div>
           </Form.Group>
@@ -228,8 +228,8 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
                 style={{ width: "150px" }}
               >
                 <option value="Thành viên">Thành viên</option>
-                <option value="Thư ký">Thư ký</option>
-                <option value="Phản biện">Phản biện</option>
+                <option value="Reviewer">Thư ký</option>
+                <option value="Secretary">Phản biện</option>
               </Form.Select>
             </div>
           </Form.Group>
