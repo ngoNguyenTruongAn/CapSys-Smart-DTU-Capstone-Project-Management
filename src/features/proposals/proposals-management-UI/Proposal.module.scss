@@ -155,11 +155,11 @@
   margin-right: 3%;
   display: flex;
   flex-wrap: wrap; // Thêm thuộc tính này để tự động xuống dòng
-  gap: 16px; // Giữ nguyên khoảng cách 2% giữa các thẻ
+  gap: 42px; // Giữ nguyên khoảng cách 2% giữa các thẻ
 }
 // Card
 .Card-wrapper{
- width: 28.3333%;
+ width: 31.3333%;
  height:fit-content;
  background-color: #fff;
  padding: 10px 30px;
@@ -251,6 +251,8 @@
 }
 .Card-mentor-info-content-text {
   font-size: 1.6rem;
+  margin-bottom: 0;
+  margin-top: 5px;
   color: var(--text-color);
 }
 .Card-member-info,
@@ -341,7 +343,7 @@
 }
 .Card-button:hover {
   transform: scaleX(1.03);
-  background-color: color.scale(#1d62ed, $lightness: -6%);
+  background-color: color.scale(#d82c2c, $lightness: -6%);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 .Card-button:active {

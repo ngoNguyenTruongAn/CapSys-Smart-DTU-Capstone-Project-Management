@@ -54,7 +54,16 @@ function ProposalCard({ proposal }) {
 
   const formattedMentorName = formatName(mentor);
   const formattedMembers = members.map((m) => formatName(m));
+  const formatDate = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value); // nếu không parse được
 
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+};
   return (
     <div className={styles["Card-wrapper"]}>
       {/* Header */}
@@ -112,7 +121,7 @@ function ProposalCard({ proposal }) {
             Ngày đăng ký:
           </span>
           <div className={styles["Card-date-register-content"]}>
-            {registerDate}
+            {formatDate(proposal.registerDate)}
           </div>
         </span>
 
@@ -122,7 +131,7 @@ function ProposalCard({ proposal }) {
           </span>
           <span className={styles["Card-date-approve-text"]}>Ngày duyệt:</span>
           <div className={styles["Card-date-approve-content"]}>
-            {approveDate}
+            {formatDate(proposal.approveDate)}
           </div>
         </span>
       </div>
