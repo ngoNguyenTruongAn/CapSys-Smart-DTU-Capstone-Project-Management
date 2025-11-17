@@ -258,6 +258,21 @@ const getTeamsWithoutMentorAPI = async (capstoneType) => {
   }
 };
 
+//them thanh vien vao team
+const moveStudentToTeamAPI = async (studentId, targetTeamId) => {
+  try {
+    const response = await instance.post(`Teams/move-student`, {
+      studentId,
+      targetTeamId,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
+  }
+};
+
 export {
   getAllTeamsAPI,
   getTeamByIdAPI,
@@ -275,4 +290,5 @@ export {
   postRemoveMentorAPI,
   getMentorWorkloadAPI,
   getTeamsWithoutMentorAPI,
+  moveStudentToTeamAPI,
 };

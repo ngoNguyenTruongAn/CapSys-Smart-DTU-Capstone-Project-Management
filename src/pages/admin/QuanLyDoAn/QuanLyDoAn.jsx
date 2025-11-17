@@ -25,7 +25,7 @@ const QuanLyDoAn = () => {
 
   // Local state
   const [projects, setProjects] = useState([]);
-  const [capstoneType, setCapstoneType] = useState(2);
+  const [capstoneType, setCapstoneType] = useState(1);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [teamId, setTeamId] = useState(null);

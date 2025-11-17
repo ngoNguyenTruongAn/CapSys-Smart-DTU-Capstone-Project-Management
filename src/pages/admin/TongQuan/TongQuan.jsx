@@ -3,6 +3,7 @@ import "./TongQuan.scss";
 import file from "../../../assets/image/file.png";
 import time from "../../../assets/image/time.png";
 import what from "../../../assets/image/what.png";
+import { useNavigate } from "react-router-dom";
 import { getAllLecturersAPI } from "../../../services/LecturersAPI";
 import { getAllStudentsAPI } from "../../../services/StudentsAPI";
 import { getAllTeamsAPI } from "../../../services/TeamsAPI";
@@ -19,7 +20,109 @@ const COLORS = [
   "#FF4FC3",
 ];
 
+const extractDateInfo = (item = {}) => {
+  const rawDate =
+    item.createdAt ||
+    item.createdDate ||
+    item.CreatedDate ||
+    item.registerDate ||
+    item.RegisterDate ||
+    item.submittedDate ||
+    item.SubmittedDate ||
+    item.updatedAt ||
+    item.updatedDate ||
+    item.UpdatedDate ||
+    null;
+  const dateObj = rawDate ? new Date(rawDate) : null;
+  const timestamp =
+    dateObj && !isNaN(dateObj.getTime()) ? dateObj.getTime() : 0;
+  return { date: timestamp ? dateObj : null, timestamp };
+};
+
+const normalizeProposalListItem = (proposal = {}) => {
+  const { date, timestamp } = extractDateInfo(proposal);
+  const statusRaw = String(proposal.status || proposal.Status || "").trim();
+  return {
+    id:
+      proposal.id ||
+      proposal.Id ||
+      proposal.proposalId ||
+      proposal.ProposalID ||
+      Math.random(),
+    title:
+      proposal.title ||
+      proposal.Title ||
+      proposal.proposalTitle ||
+      proposal.ProposalTitle ||
+      "Đề tài chưa đặt tên",
+    teamName:
+      proposal.teamName ||
+      proposal.TeamName ||
+      proposal.team?.teamName ||
+      proposal.team?.TeamName ||
+      "Chưa có nhóm",
+    status: statusRaw || "Chưa cập nhật",
+    capstone:
+      proposal.capstoneType ||
+      proposal.CapstoneType ||
+      proposal.capstone ||
+      proposal.Capstone ||
+      null,
+    createdAt: date,
+    timestamp,
+  };
+};
+
+const normalizeTeamListItem = (team = {}) => {
+  const { date, timestamp } = extractDateInfo(team);
+  return {
+    id: team.teamId || team.TeamId || team.id || Math.random(),
+    teamName: team.teamName || team.TeamName || "Nhóm chưa đặt tên",
+    projectTitle: team.projectTitle || team.ProjectTitle || "Chưa có đề tài",
+    capstone:
+      team.capstoneType ||
+      team.CapstoneType ||
+      team.capstone ||
+      team.Capstone ||
+      null,
+    memberCount: Array.isArray(team.students)
+      ? team.students.length
+      : team.memberCount || 0,
+    createdAt: date,
+    timestamp,
+  };
+};
+
+const getStatusClass = (status = "") => {
+  const normalized = status.toLowerCase();
+  if (
+    normalized.includes("duyệt") ||
+    normalized.includes("approve") ||
+    normalized.includes("hoàn thành")
+  ) {
+    return "approved";
+  }
+  if (normalized.includes("từ chối") || normalized.includes("reject")) {
+    return "rejected";
+  }
+  return "pending";
+};
+
+const formatDateLabel = (date) => {
+  if (!date) return "Chưa rõ";
+  try {
+    return new Intl.DateTimeFormat("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return "Chưa rõ";
+  }
+};
+
 const TongQuan = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     lecturers: 0,
     students: 0,
@@ -30,11 +133,36 @@ const TongQuan = () => {
   });
   const [studentByMajor, setStudentByMajor] = useState([]);
   const [proposalsByStatus, setProposalsByStatus] = useState([]);
+  const [latestProposals, setLatestProposals] = useState([]);
+  const [teamsWithoutMentor, setTeamsWithoutMentor] = useState([]);
   const [activeStates, setActiveStates] = useState({
     student: { index: null, selected: null },
     proposal: { index: null, selected: null },
   });
+  const [legendExpanded, setLegendExpanded] = useState({
+    student: false,
+    proposal: false,
+  });
+  const [legendSearch, setLegendSearch] = useState({
+    student: "",
+    proposal: "",
+  });
   const [loading, setLoading] = useState(true);
+  const filteredStudentLegend = useMemo(() => {
+    const keyword = legendSearch.student.trim().toLowerCase();
+    if (!keyword) return studentByMajor;
+    return studentByMajor.filter((entry) =>
+      String(entry.name).toLowerCase().includes(keyword)
+    );
+  }, [legendSearch.student, studentByMajor]);
+
+  const filteredProposalLegend = useMemo(() => {
+    const keyword = legendSearch.proposal.trim().toLowerCase();
+    if (!keyword) return proposalsByStatus;
+    return proposalsByStatus.filter((entry) =>
+      String(entry.name).toLowerCase().includes(keyword)
+    );
+  }, [legendSearch.proposal, proposalsByStatus]);
 
   const chart1Ref = useRef(null);
   const chart2Ref = useRef(null);
@@ -172,7 +300,7 @@ const TongQuan = () => {
         const students = studentsRes.data || [];
         const teamsCap1 = teamsCap1Res.data || [];
         const teamsCap2 = teamsCap2Res.data || [];
-        const proposals = proposalsRes.data || [];
+        const proposals = proposalsRes.data || proposalsRes || [];
 
         const grouped = students.reduce((acc, s) => {
           const major = s.major || "Khác";
@@ -190,6 +318,38 @@ const TongQuan = () => {
         }, {});
         const proposalsData = Object.entries(proposalsGrouped).map(
           ([name, value]) => ({ name, value })
+        );
+
+        const proposalList = proposals.map((item) =>
+          normalizeProposalListItem(item)
+        );
+        const latestProposalList = [...proposalList]
+          .sort((a, b) => b.timestamp - a.timestamp)
+          .slice(0, 5);
+        const teamsWithoutMentorList = [...teamsCap1, ...teamsCap2]
+          .filter((team) => !team.mentorId && !team.mentorName)
+          .map((team) => ({
+            ...normalizeTeamListItem(team),
+            capstoneLabel: team.capstoneType
+              ? `Capstone ${team.capstoneType}`
+              : "—",
+          }))
+          .sort((a, b) => b.memberCount - a.memberCount)
+          .slice(0, 6);
+
+        setLatestProposals(
+          latestProposalList.map((item) => ({
+            ...item,
+            statusClass: getStatusClass(item.status),
+            dateLabel: formatDateLabel(item.createdAt),
+            capstoneLabel: item.capstone ? `Capstone ${item.capstone}` : "—",
+          }))
+        );
+        setTeamsWithoutMentor(
+          teamsWithoutMentorList.map((item) => ({
+            ...item,
+            dateLabel: formatDateLabel(item.createdAt),
+          }))
         );
 
         setStudentByMajor(majorData);
@@ -271,6 +431,84 @@ const TongQuan = () => {
             <div className="tq-stat-title">Giảng viên</div>
             <div className="tq-stat-value">{stats.lecturers}</div>
           </div>
+        </div>
+      </div>
+
+      {/* Latest lists */}
+      <div className="tq-lists">
+        <div className="tq-list-card">
+          <div className="tq-card-head">
+            <div>
+              <h4>Đề tài mới nhất</h4>
+              <p>Gần đây nhất được gửi lên hệ thống</p>
+            </div>
+            <button
+              type="button"
+              className="tq-link-btn"
+              onClick={() => navigate("/proposals")}
+            >
+              Xem tất cả
+            </button>
+          </div>
+          <ul className="tq-list-items">
+            {latestProposals.length === 0 && (
+              <li className="tq-empty">Chưa có dữ liệu đề tài.</li>
+            )}
+            {latestProposals.slice(0, 5).map((proposal) => (
+              <li className="tq-list-item" key={proposal.id}>
+                <div className="tq-list-main">
+                  <p className="tq-list-title">{proposal.title}</p>
+                  <p className="tq-list-meta">
+                    Nhóm: <strong>{proposal.teamName}</strong> ·{" "}
+                    {proposal.capstoneLabel}
+                  </p>
+                </div>
+                <div className="tq-list-extra">
+                  <span className={`tq-status-badge ${proposal.statusClass}`}>
+                    {proposal.status}
+                  </span>
+                  <span className="tq-date">{proposal.dateLabel}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="tq-list-card">
+          <div className="tq-card-head">
+            <div>
+              <h4>Nhóm chưa có mentor</h4>
+              <p>Ưu tiên phân bổ giảng viên hướng dẫn</p>
+            </div>
+            <button
+              type="button"
+              className="tq-link-btn"
+              onClick={() =>
+                navigate("/admin/quan-ly-do-an/quan-ly-nhom-do-an/mentor")
+              }
+            >
+              Quản lý mentor
+            </button>
+          </div>
+          <ul className="tq-list-items">
+            {teamsWithoutMentor.length === 0 && (
+              <li className="tq-empty">Tất cả nhóm đã có mentor.</li>
+            )}
+            {teamsWithoutMentor.slice(0, 5).map((team) => (
+              <li className="tq-list-item" key={team.id}>
+                <div className="tq-list-main">
+                  <p className="tq-list-title">{team.teamName}</p>
+                  <p className="tq-list-meta">
+                    Đề tài: <strong>{team.projectTitle}</strong> ·{" "}
+                    {team.capstoneLabel}
+                  </p>
+                </div>
+                <div className="tq-list-extra">
+                  <span className="tq-status-badge warning">Thiếu mentor</span>
+                  <span className="tq-date">{team.dateLabel}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
@@ -356,22 +594,62 @@ const TongQuan = () => {
               </div>
             </div>
             <div className="tq-custom-legend">
-              {studentByMajor.map((entry, index) => (
-                <div
-                  key={`legend-${index}`}
-                  className={`tq-legend-item ${
-                    activeStates.student?.index === index ? "active" : ""
-                  }`}
-                  onClick={() => handleLegendClick(entry, index, "student")}
+              <div className="tq-legend-controls">
+                <input
+                  type="text"
+                  className="tq-legend-search"
+                  placeholder="Tìm ngành..."
+                  value={legendSearch.student}
+                  onChange={(e) =>
+                    setLegendSearch((prev) => ({
+                      ...prev,
+                      student: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              {(legendExpanded.student
+                ? filteredStudentLegend
+                : filteredStudentLegend.slice(0, 8)
+              ).map((entry, index) => {
+                const originalIndex = studentByMajor.indexOf(entry);
+                return (
+                  <div
+                    key={`legend-student-${entry.name}-${index}`}
+                    className={`tq-legend-item ${
+                      activeStates.student?.index === originalIndex
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      handleLegendClick(entry, originalIndex, "student")
+                    }
+                  >
+                    <span
+                      className="tq-legend-color"
+                      style={{
+                        backgroundColor: COLORS[originalIndex % COLORS.length],
+                      }}
+                    ></span>
+                    <span className="tq-legend-label">{entry.name}</span>
+                    <span className="tq-legend-value">({entry.value})</span>
+                  </div>
+                );
+              })}
+              {filteredStudentLegend.length > 8 && (
+                <button
+                  type="button"
+                  className="tq-legend-toggle"
+                  onClick={() =>
+                    setLegendExpanded((prev) => ({
+                      ...prev,
+                      student: !prev.student,
+                    }))
+                  }
                 >
-                  <span
-                    className="tq-legend-color"
-                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                  ></span>
-                  <span className="tq-legend-label">{entry.name}</span>
-                  <span className="tq-legend-value">({entry.value})</span>
-                </div>
-              ))}
+                  {legendExpanded.student ? "Thu gọn" : "Xem thêm"}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -456,22 +734,49 @@ const TongQuan = () => {
               </div>
             </div>
             <div className="tq-custom-legend">
-              {proposalsByStatus.map((entry, index) => (
-                <div
-                  key={`legend-${index}`}
-                  className={`tq-legend-item ${
-                    activeStates.proposal?.index === index ? "active" : ""
-                  }`}
-                  onClick={() => handleLegendClick(entry, index, "proposal")}
+              <div className="tq-legend-controls"></div>
+              {(legendExpanded.proposal
+                ? filteredProposalLegend
+                : filteredProposalLegend.slice(0, 8)
+              ).map((entry, index) => {
+                const originalIndex = proposalsByStatus.indexOf(entry);
+                return (
+                  <div
+                    key={`legend-proposal-${entry.name}-${index}`}
+                    className={`tq-legend-item ${
+                      activeStates.proposal?.index === originalIndex
+                        ? "active"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      handleLegendClick(entry, originalIndex, "proposal")
+                    }
+                  >
+                    <span
+                      className="tq-legend-color"
+                      style={{
+                        backgroundColor: COLORS[originalIndex % COLORS.length],
+                      }}
+                    ></span>
+                    <span className="tq-legend-label">{entry.name}</span>
+                    <span className="tq-legend-value">({entry.value})</span>
+                  </div>
+                );
+              })}
+              {filteredProposalLegend.length > 8 && (
+                <button
+                  type="button"
+                  className="tq-legend-toggle"
+                  onClick={() =>
+                    setLegendExpanded((prev) => ({
+                      ...prev,
+                      proposal: !prev.proposal,
+                    }))
+                  }
                 >
-                  <span
-                    className="tq-legend-color"
-                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                  ></span>
-                  <span className="tq-legend-label">{entry.name}</span>
-                  <span className="tq-legend-value">({entry.value})</span>
-                </div>
-              ))}
+                  {legendExpanded.proposal ? "Thu gọn" : "Xem thêm"}
+                </button>
+              )}
             </div>
           </div>
         </div>

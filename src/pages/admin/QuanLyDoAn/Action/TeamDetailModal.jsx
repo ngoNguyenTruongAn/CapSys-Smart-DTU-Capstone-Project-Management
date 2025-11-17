@@ -18,6 +18,7 @@ import {
   fetchLecturers,
   getLecturerById as getLecturerByIdAction,
 } from "../../../../store/lecturerSlice";
+import { moveStudentToTeamAPI } from "../../../../services/TeamsAPI";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./ActionModal.scss";
 
@@ -36,6 +37,8 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
   const [formData, setFormData] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [mentorCache, setMentorCache] = useState({}); // Cache mentor names để tránh fetch lại
+  const [newStudentId, setNewStudentId] = useState(""); // ID sinh viên mới cần thêm
+  const [isAddingStudent, setIsAddingStudent] = useState(false); // Trạng thái đang thêm sinh viên
 
   // Memoize renderStatusBadge để tránh tính toán lại mỗi render
   const renderStatusBadge = useMemo(() => {
@@ -78,6 +81,7 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
       dispatch(getTeamByIdAction(teamId));
     } else if (!show) {
       setFormData(null);
+      setNewStudentId(""); // Reset input khi đóng modal
     }
   }, [teamId, show, dispatch]);
 
@@ -148,6 +152,30 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
   const handleClose = useCallback(() => {
     if (!isSaving) setShow(false);
   }, [isSaving, setShow]);
+
+  // Handler để thêm thành viên vào team
+  const handleAddStudent = useCallback(async () => {
+    if (!newStudentId.trim() || !teamId) {
+      alert("Vui lòng nhập ID sinh viên!");
+      return;
+    }
+
+    try {
+      setIsAddingStudent(true);
+      await moveStudentToTeamAPI(Number(newStudentId), teamId);
+      alert("Thêm thành viên thành công!");
+      // Reset input
+      setNewStudentId("");
+      // Refresh lại dữ liệu team
+      await dispatch(getTeamByIdAction(teamId));
+      // Gọi callback để refresh danh sách nếu có
+      if (onUpdated) onUpdated();
+    } catch (error) {
+      alert("Thêm thành viên thất bại: " + error.message);
+    } finally {
+      setIsAddingStudent(false);
+    }
+  }, [newStudentId, teamId, dispatch, onUpdated]);
 
   return (
     <Modal
@@ -327,6 +355,62 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
               </tbody>
             </Table>
             {/* Gợi ý: Nếu students > 50, dùng react-window để virtualize table */}
+
+            {/* Phần thêm thành viên - chỉ hiện khi chưa đủ 5 thành viên */}
+            {formData.students && formData.students.length < 5 && (
+              <>
+                <hr />
+                <div className="mt-3 p-3 bg-light rounded">
+                  <h5 className="mb-3">
+                    Thêm thành viên mới{" "}
+                    <Badge bg="info">
+                      ({formData.students.length}/5 thành viên)
+                    </Badge>
+                  </h5>
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>ID Sinh viên</Form.Label>
+                        <div className="d-flex gap-2">
+                          <Form.Control
+                            type="number"
+                            placeholder="Nhập ID sinh viên"
+                            value={newStudentId}
+                            onChange={(e) => setNewStudentId(e.target.value)}
+                            disabled={isAddingStudent}
+                            style={{ maxWidth: "200px" }}
+                          />
+                          <Button
+                            variant="success"
+                            onClick={handleAddStudent}
+                            disabled={isAddingStudent || !newStudentId.trim()}
+                          >
+                            {isAddingStudent ? (
+                              <>
+                                <Spinner
+                                  as="span"
+                                  animation="border"
+                                  size="sm"
+                                  role="status"
+                                  aria-hidden="true"
+                                />{" "}
+                                Đang thêm...
+                              </>
+                            ) : (
+                              "Thêm"
+                            )}
+                          </Button>
+                        </div>
+                        <Form.Text className="text-muted">
+                          Có thể thêm tối đa {5 - formData.students.length}{" "}
+                          thành viên nữa.
+                        </Form.Text>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </div>
+              </>
+            )}
           </Form>
         )}
       </Modal.Body>
