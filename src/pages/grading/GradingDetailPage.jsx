@@ -1,30 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingDetailPage.module.css";
-import ContributionLevelSelect from "../../components/grading/ContributionLevelSelect.jsx";
 import Toasts from "../../components/ui/Toasts.jsx";
-
-const CONTRIBUTION_LEVELS = [
-  { value: "Low", label: "Low - 0.5 điểm" },
-  { value: "Medium", label: "Medium - 1.0 điểm" },
-  { value: "High", label: "High - 1.5 điểm" },
-  { value: "Excellent", label: "Excellent - 2.0 điểm" },
-];
-
-const CONTRIBUTION_SCORES = {
-  Low: 0.5,
-  Medium: 1,
-  High: 1.5,
-  Excellent: 2,
-};
-
-const getContributionScoreLabel = (level) => {
-  const numeric = CONTRIBUTION_SCORES[level];
-  if (typeof numeric === "number") {
-    return numeric.toFixed(1);
-  }
-  return level;
-};
 
 const createDemoCriteria = () => [
   {
@@ -142,7 +119,7 @@ const createDemoGrades = (criteriaList) => {
       studentCode: "SE210001",
       fullName: "Nguyen Van A",
       gradedDate: "2024-01-15T16:45:00Z",
-      contributionLevel: "High",
+      contributionPercentage: 75,
       scores: [
         {
           criteriaId: 1,
@@ -205,17 +182,16 @@ const createDemoGrades = (criteriaList) => {
       return total + Number(grade.score ?? 0) * ((criterion.weight ?? 0) / 100);
     }, 0);
 
-    const contributionScore = CONTRIBUTION_SCORES[entry.contributionLevel] ?? 0;
-
     return {
       studentId: entry.studentId,
       studentCode: entry.studentCode,
       fullName: entry.fullName,
-      finalScore: Number((finalScore + contributionScore).toFixed(2)),
+      finalScore: Number(
+        (finalScore * (entry.contributionPercentage / 100)).toFixed(2)
+      ),
       isCompleted: true,
       gradedDate: entry.gradedDate,
-      contributionLevel: entry.contributionLevel,
-      contributionScore,
+      contributionPercentage: entry.contributionPercentage,
       criteriaGrades: normalizedGrades,
     };
   });
@@ -406,8 +382,8 @@ const normalizeStudentRecord = (student) => {
     isGraded: student.isGraded ?? student.IsGraded ?? false,
     finalScore,
     gradedDate: student.gradedDate || student.GradedDate || null,
-    contributionLevel:
-      student.contributionLevel || student.ContributionLevel || null,
+    contributionPercentage:
+      student.contributionPercentage || student.ContributionPercentage || null,
   };
 };
 
@@ -535,7 +511,7 @@ const buildEmptyForm = (criteriaList) => {
   return {
     scores,
     comments,
-    contributionLevel: "",
+    contributionPercentage: "",
   };
 };
 
@@ -555,8 +531,11 @@ const buildFormFromGrade = (criteriaList, grade) => {
     });
   }
 
-  if (grade.contributionLevel) {
-    form.contributionLevel = grade.contributionLevel;
+  if (
+    grade.contributionPercentage !== undefined &&
+    grade.contributionPercentage !== null
+  ) {
+    form.contributionPercentage = String(grade.contributionPercentage);
   }
 
   return form;
@@ -681,7 +660,7 @@ const aggregateDetailedGrades = (details) => {
       isCompleted: true,
       finalScore: null,
       gradedDate: detail?.gradedDate || detail?.GradedDate || null,
-      contributionLevel: null,
+      contributionPercentage: null,
       criteriaGrades: [],
     };
     existing.gradeId =
@@ -692,12 +671,11 @@ const aggregateDetailedGrades = (details) => {
         detail?.studentGradeId,
         detail?.StudentGradeId
       );
-    existing.contributionLevel =
-      existing.contributionLevel ??
+    existing.contributionPercentage =
+      existing.contributionPercentage ??
       pickFirstValue(
-        detail?.contributionLevel,
-        detail?.ContributionLevel,
-        detail?.contribution?.level
+        detail?.contributionPercentage,
+        detail?.ContributionPercentage
       );
     const criteriaEntry = {
       detailedGradeId: pickFirstValue(
@@ -707,7 +685,20 @@ const aggregateDetailedGrades = (details) => {
       criteriaId: pickFirstValue(detail?.criteriaId, detail?.CriteriaId),
       criteriaName:
         pickFirstValue(detail?.criteriaName, detail?.CriteriaName) || "",
-      score: detail?.score ?? detail?.Score ?? null,
+      weight: pickFirstValue(
+        detail?.weightPercentage,
+        detail?.WeightPercentage,
+        detail?.weight,
+        detail?.Weight
+      ),
+      score: pickFirstValue(
+        detail?.individualScore,
+        detail?.IndividualScore,
+        detail?.teamScore,
+        detail?.TeamScore,
+        detail?.score,
+        detail?.Score
+      ),
       comments: detail?.comments || detail?.Comments || "",
       evaluatorId: pickFirstValue(detail?.evaluatorId, detail?.EvaluatorId),
       evaluatorRole: detail?.evaluatorRole || detail?.EvaluatorRole || "",
@@ -918,44 +909,11 @@ export default function GradingDetailPage({
     return baseColumns.join(" ");
   }, [students.length]);
 
-  const studentSummaries = useMemo(() => {
-    if (!students.length) {
-      return [];
-    }
-    return students.map((student) => {
-      const grade = gradeLookup[student.studentId];
-      const formContribution =
-        forms[student.studentId]?.contributionLevel ?? "";
-      const finalScore =
-        grade?.finalScore ??
-        (typeof student.finalScore === "number" ? student.finalScore : null);
-      return {
-        ...student,
-        finalScore,
-        isCompleted: grade?.isCompleted ?? student.isGraded ?? false,
-        gradedDate: grade?.gradedDate ?? student.gradedDate ?? null,
-        contributionLevel:
-          grade?.contributionLevel ??
-          grade?.contribution?.level ??
-          formContribution,
-      };
-    });
-  }, [students, gradeLookup, forms]);
-
   const getHistoricalGrade = useCallback(
     (gradeEntry, criteriaId) =>
       gradeEntry?.criteriaGrades?.find(
         (grade) => grade.criteriaId === criteriaId
       ),
-    []
-  );
-
-  const contributionOptions = useMemo(
-    () =>
-      CONTRIBUTION_LEVELS.map((option) => ({
-        ...option,
-        displayLabel: getContributionScoreLabel(option.value),
-      })),
     []
   );
 
@@ -965,21 +923,62 @@ export default function GradingDetailPage({
       import.meta.env?.VITE_USE_GRADING_DEMO === "true");
 
   const calculateFinalScore = useCallback(
-    (criteriaGrades, contributionLevel) => {
+    (criteriaGrades, contributionPercentage) => {
       const baseScore = criteriaGrades.reduce((total, item) => {
         const criterion = criteriaMap[item.criteriaId];
         if (!criterion || criterion.isContribution) {
           return total;
         }
-        const weight = (criterion.weight ?? 0) / 100;
+        // Use weight from item if available, otherwise from criteriaMap
+        const weight = (item.weight ?? criterion.weight ?? 0) / 100;
         const score = Number(item.score ?? 0);
         return total + score * weight;
       }, 0);
-      const contributionScore = CONTRIBUTION_SCORES[contributionLevel] ?? 0;
-      return Number((baseScore + contributionScore).toFixed(2));
+      // Contribution là % (0-100), tính điểm cuối = baseScore * (contributionPercentage / 100)
+      const contributionMultiplier = contributionPercentage
+        ? Number(contributionPercentage) / 100
+        : 1;
+      return Number((baseScore * contributionMultiplier).toFixed(2));
     },
     [criteriaMap]
   );
+
+  const studentSummaries = useMemo(() => {
+    if (!students.length) {
+      return [];
+    }
+    return students.map((student) => {
+      const grade = gradeLookup[student.studentId];
+      const form = forms[student.studentId];
+      const formContribution = form?.contributionPercentage ?? "";
+
+      // Get contribution from grade or form
+      const contribution = grade?.contributionPercentage ?? formContribution;
+
+      // Calculate finalScore from current grades
+      let finalScore = null;
+      if (
+        grade?.criteriaGrades?.length &&
+        contribution &&
+        !isNaN(contribution)
+      ) {
+        finalScore = calculateFinalScore(
+          grade.criteriaGrades,
+          Number(contribution)
+        );
+      } else if (typeof student.finalScore === "number") {
+        finalScore = student.finalScore;
+      }
+
+      return {
+        ...student,
+        finalScore,
+        isCompleted: grade?.isCompleted ?? student.isGraded ?? false,
+        gradedDate: grade?.gradedDate ?? student.gradedDate ?? null,
+        contributionPercentage: contribution,
+      };
+    });
+  }, [students, gradeLookup, forms, calculateFinalScore]);
 
   const prepareSessionDetail = useCallback(
     async (rawSession) => {
@@ -1072,12 +1071,13 @@ export default function GradingDetailPage({
     return () => {
       ignore = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     sessionId,
     forcedDemoMode,
     demoMode,
-    activateDemoMode,
-    prepareSessionDetail,
+    // prepareSessionDetail removed to prevent infinite loop
+    // activateDemoMode removed to prevent infinite loop
   ]);
 
   useEffect(() => {
@@ -1113,7 +1113,10 @@ export default function GradingDetailPage({
 
     setCriterionComments(initialComments);
     setTeamScores(initialTeamScores);
-  }, [criteria, criteriaForScoring, students, gradeLookup]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [criteria, students]);
+  // Note: criteriaForScoring and gradeLookup removed from deps to prevent infinite loop
+  // They are derived from criteria/grades which are already in deps
 
   const handleBackClick = () => {
     if (typeof onBack === "function") {
@@ -1172,7 +1175,7 @@ export default function GradingDetailPage({
         ...prev,
         [targetId]: {
           ...baseForm,
-          contributionLevel: nextValue,
+          contributionPercentage: nextValue,
         },
       };
     });
@@ -1313,18 +1316,29 @@ export default function GradingDetailPage({
         messages.push(...invalidScores);
       }
 
-      const contributionLevel = form.contributionLevel;
-      if (!contributionLevel) {
-        messages.push(`Vui lòng chọn mức đóng góp cho ${student.fullName}.`);
+      const contributionPercentage = form.contributionPercentage;
+      if (!hasNumericValue(contributionPercentage)) {
+        messages.push(
+          `Vui lòng nhập phần trăm đóng góp cho ${student.fullName}.`
+        );
         invalidMap[genreKey("contribution", studentKey)] = true;
         scrollTargets.add(genreKey("contribution", studentKey));
+      } else {
+        const percentValue = Number(contributionPercentage);
+        if (percentValue < 0 || percentValue > 100) {
+          messages.push(
+            `${student.fullName}: Phần trăm đóng góp phải từ 0-100%.`
+          );
+          invalidMap[genreKey("contribution", studentKey)] = true;
+          scrollTargets.add(genreKey("contribution", studentKey));
+        }
       }
 
       payloads.push({
         studentId: student.studentId,
         student,
         criteriaGrades,
-        contributionLevel,
+        contributionPercentage: Number(contributionPercentage || 100),
         updateId: existingGradeEntry?.gradeId ?? null,
       });
     });
@@ -1397,10 +1411,8 @@ export default function GradingDetailPage({
             });
             const finalScore = calculateFinalScore(
               normalizedGrades,
-              payload.contributionLevel
+              payload.contributionPercentage
             );
-            const contributionScore =
-              CONTRIBUTION_SCORES[payload.contributionLevel] ?? 0;
             const gradeData = {
               studentId: payload.studentId,
               studentCode: payload.student?.studentCode ?? "",
@@ -1408,8 +1420,7 @@ export default function GradingDetailPage({
               finalScore,
               isCompleted: true,
               gradedDate: nowIso,
-              contributionLevel: payload.contributionLevel,
-              contributionScore,
+              contributionPercentage: payload.contributionPercentage,
               criteriaGrades: normalizedGrades,
             };
             const existingIndex = nextGrades.findIndex(
@@ -1449,7 +1460,7 @@ export default function GradingDetailPage({
             });
             const finalScore = calculateFinalScore(
               normalizedGrades,
-              payload.contributionLevel
+              payload.contributionPercentage
             );
             return {
               ...student,
@@ -1477,17 +1488,34 @@ export default function GradingDetailPage({
       }
 
       for (const payload of studentPayloads) {
+        // Map criteria grades to include TeamScore/IndividualScore based on scope
+        const mappedCriteriaGrades = payload.criteriaGrades.map((grade) => {
+          const criterion = criteriaMap[grade.criteriaId];
+          const isTeamScope = criterion?.scope === CRITERION_SCOPE.TEAM;
+
+          return {
+            criteriaId: grade.criteriaId,
+            teamScore: isTeamScope ? grade.score : null,
+            individualScore: !isTeamScope ? grade.score : null,
+            comments: grade.comments || "",
+          };
+        });
+
+        // Get current user info for evaluatorId
+        const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
+        const evaluatorId = sessionDetail?.graderId || userInfo?.accountId || 1;
+
         const body = {
+          gradingSessionId: sessionId,
           studentId: payload.studentId,
-          sessionId,
-          criteriaGrades: payload.criteriaGrades,
-          contributionLevel: payload.contributionLevel,
+          evaluatorId: evaluatorId,
+          evaluatorRole: "Secretary",
+          contributionPercentage: payload.contributionPercentage,
+          criteriaGrades: mappedCriteriaGrades,
         };
-        if (payload.updateId) {
-          await GradingAPI.updateStudentGrade(payload.updateId, body);
-        } else {
-          await GradingAPI.createStudentGrade(body);
-        }
+
+        // Use batch API for creating new grades
+        await GradingAPI.submitBatchGrades(sessionId, body);
       }
       await refreshData();
       setSuccessMessage("Đã lưu điểm cho toàn bộ nhóm thành công.");
@@ -1669,7 +1697,7 @@ export default function GradingDetailPage({
                         {criterion.description ?? "Chưa có mô tả"}
                       </div>
                       <div className={styles.gradeIPS}>
-                        <div className={styles.hint}>Trọng số:</div>
+                        <div className={styles.hint}>Grade of SEP</div>
                         <div className={styles.weight}>
                           {criterion.weight ?? 0}%
                         </div>
@@ -1765,45 +1793,41 @@ export default function GradingDetailPage({
               >
                 <div className={styles.descWrap}>
                   <div className={styles.colDesc}>
-                    Mức độ đóng góp cho từng thành viên trong nhóm
+                    Team member contributed significantly to team's success (%)
                   </div>
-                  <div className={styles.gradeIPS}>
-                    <div className={styles.hint}>Thang ?i?m:</div>
-                    <div className={styles.weight}>0.5 - 2.0</div>
-                  </div>
+                  <div className={styles.gradeIPS}></div>
                 </div>
               </div>
               <div className={`${styles.gridCell} ${styles.colIps}`}></div>
               {students.map((student) => {
                 const form = forms[student.studentId] ?? {};
-                const contributionValue = form.contributionLevel ?? "";
-                const numericContribution =
-                  CONTRIBUTION_SCORES[contributionValue];
-                const contributionScore =
-                  typeof numericContribution === "number"
-                    ? numericContribution.toFixed(1)
-                    : "--";
+                const contributionValue = form.contributionPercentage ?? "";
                 return (
                   <div
                     key={`contribution-${student.studentId}`}
                     className={`${styles.gridCell} ${styles.memberCell} ${styles.memberCellActive}`}
                   >
                     <div className={styles.memberScoreBox}>
-                      <ContributionLevelSelect
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
                         value={contributionValue}
-                        onSelect={(nextValue) =>
-                          applyContributionChange(student.studentId, nextValue)
+                        onChange={(e) =>
+                          applyContributionChange(
+                            student.studentId,
+                            e.target.value
+                          )
                         }
-                        options={contributionOptions}
                         disabled={saving}
-                        placeholder="--"
-                        width={72}
-                        scoreKey={genreKey("contribution", student.studentId)}
-                        buttonClassName={
+                        placeholder="%"
+                        className={
                           isInvalidField("contribution", student.studentId)
                             ? styles.invalidInput
                             : undefined
                         }
+                        style={{ width: "72px", textAlign: "center" }}
                       />
                     </div>
                   </div>
@@ -1934,7 +1958,11 @@ export default function GradingDetailPage({
                       : "--"}
                   </td>
                   <td>{formatDateTime(student.gradedDate)}</td>
-                  <td>{student.contributionLevel || "--"}</td>
+                  <td>
+                    {student.contributionPercentage
+                      ? `${student.contributionPercentage}%`
+                      : "--"}
+                  </td>
                 </tr>
               );
             })}

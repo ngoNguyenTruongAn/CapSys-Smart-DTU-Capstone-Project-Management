@@ -189,6 +189,18 @@ const GradingAPI = {
     }),
 
   /**
+   * Submit batch grades for a student (all criteria at once)
+   * @param {number|string} sessionId - The session ID
+   * @param {Object} payload - Batch grade payload with gradingSessionId, studentId, evaluatorId, evaluatorRole, criteriaGrades
+   * @returns {Promise<Object>} Created grades
+   */
+  submitBatchGrades: (sessionId, payload) =>
+    apiFetch(`/grading/sessions/${sessionId}/batch-grades`, {
+      method: "POST",
+      body: payload,
+    }),
+
+  /**
    * Update an existing student grade
    * @param {number|string} gradeId - The detailed grade ID
    * @param {Object} payload - Update payload with criteriaGrades, contributionLevel

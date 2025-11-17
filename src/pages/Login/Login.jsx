@@ -86,7 +86,7 @@ const Login = () => {
       <div className="particle" /> */}
       <div className="login-container">
         <h2 className={`login-title ${isLoaded ? "animate" : ""}`}>
-          CAPSY SMART DTU
+          CAPSYS SMART DTU
         </h2>
         <p className={`login-subtitle ${isLoaded ? "animate" : ""}`}>
           Welcome back. Please sign in to continue.
