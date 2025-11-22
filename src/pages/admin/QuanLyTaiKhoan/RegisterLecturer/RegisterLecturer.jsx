@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Button, Modal, Form } from "react-bootstrap";
-import "./RegisterStudent.scss";
+import "./RegisterLecturer.scss";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  registerStudent,
+  registerLecturer,
   selectAuthLoading,
 } from "../../../../store/authSlice";
-const RegisterStudent = ({ show, setShow }) => {
+
+const RegisterLecturer = ({ show, setShow }) => {
   const dispatch = useDispatch();
   const loading = useSelector(selectAuthLoading);
 
@@ -14,27 +15,47 @@ const RegisterStudent = ({ show, setShow }) => {
     email: "",
     password: "",
     fullName: "",
-    studentCode: "",
-    faculty: "",
-    major: "",
+    department: "",
     phone: "",
-    capstoneType: "",
-    gpa: "",
+    specialization: "",
+    maxStudentsSupervised: "",
+    academicTitle: "",
   };
 
   const [formData, setFormData] = useState(initialForm);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    let value = e.target.value;
+    if (e.target.type === "number") {
+      value = value === "" ? "" : parseInt(value) || 0;
+    }
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const validateForm = () => {
-    const { email, password, fullName, studentCode, phone, capstoneType, gpa } =
-      formData;
+    const {
+      email,
+      password,
+      fullName,
+      department,
+      phone,
+      specialization,
+      maxStudentsSupervised,
+      academicTitle,
+    } = formData;
 
-    // Kiểm tra điền đủ dữ liệu bắt buộc
-    if (!email || !password || !fullName || !studentCode || !capstoneType) {
-      alert("Vui lòng điền đầy đủ thông tin bắt buộc!");
+    // Kiểm tra điền đủ dữ liệu
+    if (
+      !email ||
+      !password ||
+      !fullName ||
+      !department ||
+      !phone ||
+      !specialization ||
+      maxStudentsSupervised === "" ||
+      !academicTitle
+    ) {
+      alert("Vui lòng điền đầy đủ thông tin!");
       return false;
     }
 
@@ -46,33 +67,25 @@ const RegisterStudent = ({ show, setShow }) => {
     }
 
     // Validate mật khẩu - phải đủ 4 ký tự
-    if (password.length < 6) {
-      alert("Mật khẩu phải có ít nhất 6 ký tự!");
+    if (password.length < 4) {
+      alert("Mật khẩu phải có ít nhất 4 ký tự!");
       return false;
     }
 
-    // Validate số điện thoại nếu có nhập
-    if (phone) {
-      const phoneRegex = /^0\d{9,10}$/;
-      if (!phoneRegex.test(phone)) {
-        alert(
-          "Số điện thoại không hợp lệ! Phải có 10-11 chữ số và bắt đầu bằng 0 (Ví dụ: 0912345678)"
-        );
-        return false;
-      }
+    // Validate số điện thoại - 10-11 chữ số, bắt đầu bằng 0
+    const phoneRegex = /^0\d{9,10}$/;
+    if (!phoneRegex.test(phone)) {
+      alert(
+        "Số điện thoại không hợp lệ! Phải có 10-11 chữ số và bắt đầu bằng 0 (Ví dụ: 0912345678)"
+      );
+      return false;
     }
 
-    // Validate GPA nếu có nhập - phải nhỏ hơn 4
-    if (gpa !== "" && gpa !== null && gpa !== undefined) {
-      const gpaValue = parseFloat(gpa);
-      if (isNaN(gpaValue) || gpaValue < 0) {
-        alert("GPA phải là số dương!");
-        return false;
-      }
-      if (gpaValue > 4) {
-        alert("GPA phải nhỏ hơn hoặc bằng 4!");
-        return false;
-      }
+    // Validate maxStudentsSupervised - phải là số dương
+    const maxStudents = parseInt(maxStudentsSupervised);
+    if (isNaN(maxStudents) || maxStudents < 0) {
+      alert("Số sinh viên tối đa được hướng dẫn phải là số dương!");
+      return false;
     }
 
     return true;
@@ -87,7 +100,12 @@ const RegisterStudent = ({ show, setShow }) => {
     }
 
     try {
-      const res = await dispatch(registerStudent(formData)).unwrap();
+      // Đảm bảo maxStudentsSupervised là số
+      const submitData = {
+        ...formData,
+        maxStudentsSupervised: parseInt(formData.maxStudentsSupervised) || 0,
+      };
+      const res = await dispatch(registerLecturer(submitData)).unwrap();
       // unwrap sẽ throw error nếu action bị reject
 
       if (res?.success) {
@@ -118,7 +136,7 @@ const RegisterStudent = ({ show, setShow }) => {
       dialogClassName="qltk-register-modal"
     >
       <Modal.Header closeButton>
-        <Modal.Title>Đăng ký sinh viên</Modal.Title>
+        <Modal.Title>Đăng ký giảng viên</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         <Form onSubmit={handleSubmit}>
@@ -149,17 +167,6 @@ const RegisterStudent = ({ show, setShow }) => {
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Mã sinh viên</Form.Label>
-              <Form.Control
-                type="text"
-                name="studentCode"
-                value={formData.studentCode}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
               <Form.Label>Họ tên</Form.Label>
               <Form.Control
                 type="text"
@@ -174,19 +181,10 @@ const RegisterStudent = ({ show, setShow }) => {
               <Form.Label>Khoa</Form.Label>
               <Form.Control
                 type="text"
-                name="faculty"
-                value={formData.faculty}
+                name="department"
+                value={formData.department}
                 onChange={handleChange}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Chuyên ngành</Form.Label>
-              <Form.Control
-                type="text"
-                name="major"
-                value={formData.major}
-                onChange={handleChange}
+                required
               />
             </Form.Group>
 
@@ -198,32 +196,41 @@ const RegisterStudent = ({ show, setShow }) => {
                 value={formData.phone}
                 onChange={handleChange}
                 pattern="[0-9]{10,11}"
+                required
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Capstone Type</Form.Label>
-              <Form.Select
-                name="capstoneType"
-                value={formData.capstoneType}
+              <Form.Label>Chuyên môn</Form.Label>
+              <Form.Control
+                type="text"
+                name="specialization"
+                value={formData.specialization}
                 onChange={handleChange}
-              >
-                <option value="">-- Chọn Capstone --</option>
-                <option value="1">Capstone 1</option>
-                <option value="2">Capstone 2</option>
-              </Form.Select>
+                required
+              />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>GPA</Form.Label>
+              <Form.Label>Số sinh viên tối đa được hướng dẫn</Form.Label>
               <Form.Control
                 type="number"
-                name="gpa"
-                value={formData.gpa}
+                name="maxStudentsSupervised"
+                value={formData.maxStudentsSupervised}
                 onChange={handleChange}
-                step="0.01"
                 min="0"
-                max="3.99"
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Học hàm / Học vị</Form.Label>
+              <Form.Control
+                type="text"
+                name="academicTitle"
+                value={formData.academicTitle}
+                onChange={handleChange}
+                required
               />
             </Form.Group>
           </div>
@@ -246,4 +253,4 @@ const RegisterStudent = ({ show, setShow }) => {
   );
 };
 
-export default RegisterStudent;
+export default RegisterLecturer;

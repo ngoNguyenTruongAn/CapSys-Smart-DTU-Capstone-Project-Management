@@ -4,6 +4,7 @@ import {
   forgetPassword,
   resetPassword,
   registerStudent,
+  registerLecturer,
 } from "./authSlice";
 
 export const extraReducers = (builder) => {
@@ -19,11 +20,15 @@ export const extraReducers = (builder) => {
       state.token = action.payload.token;
       state.refreshToken = action.payload.refreshToken;
       state.accountType = action.payload.account?.accountType ?? null;
+      state.email = action.payload.account?.email ?? null;
       state.account = action.payload.account ?? null;
       localStorage.setItem("token", action.payload.token);
       localStorage.setItem("refreshToken", action.payload.refreshToken);
       if (action.payload.account?.accountType) {
         localStorage.setItem("accountType", action.payload.account.accountType);
+      }
+      if (action.payload.account?.email) {
+        localStorage.setItem("email", action.payload.account.email);
       }
     })
     .addCase(login.rejected, (state, action) => {
@@ -41,9 +46,11 @@ export const extraReducers = (builder) => {
       state.token = null;
       state.refreshToken = null;
       state.accountType = null;
+      state.email = null;
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("accountType");
+      localStorage.removeItem("email");
     })
     .addCase(logoutAsync.rejected, (state, action) => {
       state.loading = false;
@@ -88,5 +95,19 @@ export const extraReducers = (builder) => {
     .addCase(registerStudent.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload || "RegisterStudent failed";
+    })
+
+    // case registerLecturer
+    .addCase(registerLecturer.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    })
+    .addCase(registerLecturer.fulfilled, (state) => {
+      state.loading = false;
+      state.error = null;
+    })
+    .addCase(registerLecturer.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || "RegisterLecturer failed";
     });
 };

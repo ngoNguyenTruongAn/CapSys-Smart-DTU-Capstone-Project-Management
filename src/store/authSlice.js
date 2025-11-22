@@ -4,6 +4,7 @@ import {
   LoginAPI,
   LogoutAPI,
   registerStudentAPI,
+  registerLecturerAPI,
   resetPasswordAPI,
 } from "../services/AuthAPI";
 import { extraReducers } from "./authReducers";
@@ -71,11 +72,24 @@ export const registerStudent = createAsyncThunk(
   }
 );
 
+export const registerLecturer = createAsyncThunk(
+  "auth/registerLecturer",
+  async (lecturerData, { rejectWithValue }) => {
+    try {
+      const res = await registerLecturerAPI(lecturerData);
+      return { success: true, message: res.message || "Đăng ký thành công" };
+    } catch (error) {
+      return rejectWithValue(error.message || "RegisterLecturer failed");
+    }
+  }
+);
+
 const initialState = {
   user: null,
   token: null,
   refreshToken: null,
   accountType: null,
+  email: null,
   loading: false,
   error: null,
 };
@@ -89,15 +103,18 @@ const authSlice = createSlice({
       state.token = null;
       state.refreshToken = null;
       state.accountType = null;
+      state.email = null;
       state.error = null;
       localStorage.removeItem("token");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("accountType");
+      localStorage.removeItem("email");
     },
     restoreSession(state) {
       const token = localStorage.getItem("token");
       const refreshToken = localStorage.getItem("refreshToken");
       const accountType = localStorage.getItem("accountType");
+      const email = localStorage.getItem("email");
       if (token) {
         state.token = token;
       }
@@ -106,6 +123,9 @@ const authSlice = createSlice({
       }
       if (accountType) {
         state.accountType = accountType;
+      }
+      if (email) {
+        state.email = email;
       }
     },
   },
@@ -119,6 +139,7 @@ export const selectAuthLoading = (state) => state.auth.loading;
 export const selectAuthError = (state) => state.auth.error;
 export const selectAuthToken = (state) => state.auth.token;
 export const selectAccountType = (state) => state.auth.accountType;
+export const selectEmail = (state) => state.auth.email;
 export const selectCurrentUser = (state) => state.auth.user;
 
 export default authSlice.reducer;

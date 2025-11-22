@@ -10,6 +10,7 @@ import { deleteStudent, fetchStudents } from "../../../store/studentSlice";
 import { deleteLecturer, fetchLecturers } from "../../../store/lecturerSlice";
 import "./QuanLyTaiKhoan.scss";
 import RegisterStudent from "./RegisterStudent/RegisterStudent";
+import RegisterLecturer from "./RegisterLecturer/RegisterLecturer";
 import ViewStudent from "./ViewStudent/ViewStudent";
 import UpdateStudent from "./UpdateStudent/UpdateStudent";
 import UpdateLecturer from "./UpdateLecturer/UpdateLecturer";
@@ -27,6 +28,7 @@ const QuanLyTaiKhoan = () => {
   const [activeTab, setActiveTab] = useState("students");
   const [search, setSearch] = useState("");
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
+  const [showRegisterLecturer, setShowRegisterLecturer] = useState(false);
   const [studentImportFile, setStudentImportFile] = useState(null);
   const [lecturerImportFile, setLecturerImportFile] = useState(null);
   const [importCapstoneType, setImportCapstoneType] = useState(1);
@@ -409,7 +411,13 @@ const QuanLyTaiKhoan = () => {
         </div>
         <button
           className="btn-primary"
-          onClick={() => setShowRegisterStudent(true)}
+          onClick={() => {
+            if (activeTab === "lecturers") {
+              setShowRegisterLecturer(true);
+            } else {
+              setShowRegisterStudent(true);
+            }
+          }}
         >
           ➕ Thêm tài khoản
         </button>
@@ -546,7 +554,15 @@ const QuanLyTaiKhoan = () => {
                   } trong hệ thống`}
             </p>
             {!search && (
-              <button onClick={() => setShowRegisterStudent(true)}>
+              <button
+                onClick={() => {
+                  if (activeTab === "lecturers") {
+                    setShowRegisterLecturer(true);
+                  } else {
+                    setShowRegisterStudent(true);
+                  }
+                }}
+              >
                 ➕ Thêm {activeTab === "students" ? "sinh viên" : "giảng viên"}{" "}
                 mới
               </button>
@@ -599,6 +615,10 @@ const QuanLyTaiKhoan = () => {
       <RegisterStudent
         show={showRegisterStudent}
         setShow={setShowRegisterStudent}
+      />
+      <RegisterLecturer
+        show={showRegisterLecturer}
+        setShow={setShowRegisterLecturer}
       />
       <ViewStudent
         show={showViewStudent}

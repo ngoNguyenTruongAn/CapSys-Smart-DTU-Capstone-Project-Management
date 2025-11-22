@@ -122,6 +122,30 @@ const registerStudentAPI = async (studentData) => {
   }
 };
 
+const registerLecturerAPI = async (lecturerData) => {
+  if (!lecturerData) {
+    throw new Error("lecturerData is required");
+  }
+
+  const data = {
+    email: lecturerData.email,
+    password: lecturerData.password,
+    fullName: lecturerData.fullName,
+    department: lecturerData.department,
+    phone: lecturerData.phone,
+    specialization: lecturerData.specialization,
+    maxStudentsSupervised: lecturerData.maxStudentsSupervised || 0,
+    academicTitle: lecturerData.academicTitle,
+  };
+
+  try {
+    const response = await instance.post("Auth/register/lecturer", data);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message);
+  }
+};
+
 export {
   LoginAPI,
   LogoutAPI,
@@ -129,4 +153,5 @@ export {
   resetPasswordAPI,
   refreshTokenAPI,
   registerStudentAPI,
+  registerLecturerAPI,
 };

@@ -1,0 +1,57 @@
+.modal-dialog.qltk-register-modal {
+  font-size: 1.8rem;
+}
+
+.modal-dialog.qltk-register-modal .modal-content {
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: none;
+}
+
+.modal-dialog.qltk-register-modal .modal-header {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-dialog.qltk-register-modal .modal-title {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.modal-dialog.qltk-register-modal .modal-body {
+  padding: 1.25rem;
+}
+
+.modal-dialog.qltk-register-modal .modal-footer {
+  border-top: 1px solid #e5e7eb;
+}
+
+.modal-dialog.qltk-register-modal .btn {
+  font-size: 1.8rem;
+}
+
+.modal-dialog.qltk-register-modal .form-label {
+  font-size: 1.7rem;
+  font-weight: 600;
+}
+.modal-dialog.qltk-register-modal .form-control,
+.modal-dialog.qltk-register-modal .form-select {
+  font-size: 1.7rem;
+  padding: 0.75rem 1rem;
+}
+
+/* Lưới 2 cột cho form đăng ký */
+.register-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+}
+
+.register-form-grid .mb-3 {
+  margin-bottom: 1rem !important;
+}
+
+@media (max-width: 768px) {
+  .register-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
