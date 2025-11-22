@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import "./Navbar.scss";
 import logoCap from "../../assets/logo/Frame41.png";
-import anh from "../../assets/image/hue.jpg";
 import Bell from "/src/assets/icon/Bell.svg?react";
 import MenuIcon from "/src/assets/icon/Menu_Alt_01.svg?react";
 import NotebookIcon from "/src/assets/icon/Notebook.svg?react";
@@ -15,11 +14,13 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { LogoutAPI } from "../../services/AuthAPI";
 import { useSelector } from "react-redux";
 import { selectEmail, selectAccountType } from "../../store/authSlice";
+import ProfileModal from "./ProfileModal/ProfileModal";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const email = useSelector(selectEmail);
   const accountType = useSelector(selectAccountType);
+  const [showProfile, setShowProfile] = useState(false);
 
   const handleLogout = async () => {
     localStorage.removeItem("token");
@@ -213,8 +214,12 @@ const Navbar = () => {
 
         <div className="navbar__user">
           <Bell className="notification" />
-          <img className="avatar" src={anh} alt="avatar" />
-          <div className="navbar__user-info">
+
+          <div
+            className="navbar__user-info"
+            onClick={() => setShowProfile(true)}
+            style={{ cursor: "pointer" }}
+          >
             <span className="name">{email}</span>
             <span className="role">{getAccountTypeLabel(accountType)}</span>
           </div>
@@ -230,6 +235,8 @@ const Navbar = () => {
           </li>
         </ul>
       </div>
+
+      <ProfileModal show={showProfile} setShow={setShowProfile} />
     </nav>
   );
 };
