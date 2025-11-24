@@ -3,72 +3,6 @@ import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingDetailPage.module.css";
 import Toasts from "../../components/ui/Toasts.jsx";
 
-const createDemoCriteria = () => [
-  {
-    criteriaId: 1,
-    criteriaName: "Technical Skills",
-    description: "Evaluate code quality, technology usage, and implementation.",
-    weight: 20,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 2,
-    criteriaName: "Problem Solving",
-    description: "Ability to analyse and solve project problems effectively.",
-    weight: 20,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 3,
-    criteriaName: "Communication",
-    description: "Presentation skill and clarity when handling Q&A.",
-    weight: 10,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 4,
-    criteriaName: "Teamwork",
-    description: "Collaboration, supportiveness, and peer interaction.",
-    weight: 20,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 5,
-    criteriaName: "Creativity",
-    description: "Innovation in solution design and approach.",
-    weight: 20,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 6,
-    criteriaName: "Project Management",
-    description: "Planning, timeline control, and deliverable tracking.",
-    weight: 10,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 7,
-    criteriaName: "Contribution",
-    description: "Auto-calculated bonus based on contribution level.",
-    weight: 0,
-    maxScore: 2,
-    isActive: true,
-    isContribution: true,
-  },
-];
-
 const createDemoStudents = () => [
   {
     studentId: 101,
@@ -840,19 +774,6 @@ export default function GradingDetailPage({
     });
   }, []);
 
-  const activateDemoMode = useCallback(() => {
-    const demoCriteria = createDemoCriteria();
-    const demoGrades = createDemoGrades(demoCriteria);
-    const demoSession = createDemoSessionDetail(demoGrades);
-    setDemoMode(true);
-    setCriteria(demoCriteria);
-    setSessionDetail(demoSession);
-    setGrades(demoGrades);
-    setError("");
-    setLoading(false);
-    setInitialised(true);
-  }, []);
-
   const criteriaForScoring = useMemo(() => {
     const filtered = criteria.filter((item) => !item.isContribution);
     return filtered.map((criterion, index) => ({
@@ -894,7 +815,10 @@ export default function GradingDetailPage({
     return lookup;
   }, [grades]);
 
-  const students = sessionDetail?.students ?? [];
+  const students = useMemo(
+    () => sessionDetail?.students ?? [],
+    [sessionDetail]
+  );
 
   const gridTemplateColumns = useMemo(() => {
     const baseColumns = [
@@ -1027,15 +951,31 @@ export default function GradingDetailPage({
 
     const load = async () => {
       setLoading(true);
+      console.log("Starting to load session data for ID:", sessionId);
+
       try {
+        // Kiểm tra sơ bộ ID
+        if (!sessionId || sessionId === "undefined" || sessionId === "null") {
+          throw new Error(`Session ID không hợp lệ: ${sessionId}`);
+        }
+
         const [criteriaData, sessionData, gradesData] = await Promise.all([
           GradingAPI.getCriteria(),
           GradingAPI.getSessionDetail(sessionId),
           GradingAPI.getSessionGrades(sessionId),
         ]);
+
         if (ignore) {
           return;
         }
+
+        // Kiểm tra dữ liệu trả về
+        if (!sessionData) {
+          throw new Error(`Không tìm thấy dữ liệu cho phiên chấm điểm ${sessionId}`);
+        }
+
+        console.log("Session data loaded successfully:", sessionData);
+
         const normalizedCriteria = normalizeCriteriaList(
           Array.isArray(criteriaData) ? criteriaData : []
         );
@@ -1048,10 +988,35 @@ export default function GradingDetailPage({
         setGrades(aggregatedGrades);
         setError("");
       } catch (err) {
+        console.error("Error loading session details:", err);
+        
         if (ignore) {
           return;
         }
+
+        // Xử lý các mã lỗi cụ thể
+        if (err?.status === 404) {
+          setError(`Không tìm thấy phiên chấm điểm (ID: ${sessionId}). Có thể phiên đã bị xóa.`);
+          return;
+        }
+        
+        if (err?.status === 400) {
+          const serverMessage = err?.message || "";
+          // Nếu lỗi do thiếu cột trong DB (lỗi backend đang gặp), hiển thị rõ hoặc fallback demo
+          if (serverMessage.includes("Invalid column name")) {
+             console.warn("Backend schema mismatch detected (Missing columns).");
+             setError(`Lỗi Backend: Database thiếu cột dữ liệu (${serverMessage}). Vui lòng cập nhật Database.`);
+             // Nếu muốn tự động chuyển sang demo mode thì uncomment dòng dưới:
+             // activateDemoMode(); 
+             return;
+          }
+
+          setError(`Lỗi từ server (400): ${serverMessage || "Yêu cầu không hợp lệ"}`);
+          return;
+        }
+
         if (!err?.status) {
+          console.warn("Network error or unknown error, falling back to demo mode if applicable");
           activateDemoMode();
           return;
         }
