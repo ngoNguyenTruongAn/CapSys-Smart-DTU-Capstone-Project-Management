@@ -146,6 +146,32 @@ const registerLecturerAPI = async (lecturerData) => {
   }
 };
 
+const getProfileAPI = async () => {
+  try {
+    const response = await instance.get("Auth/profile");
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message);
+  }
+};
+
+const changePasswordAPI = async (
+  currentPassword,
+  newPassword,
+  confirmPassword
+) => {
+  try {
+    const response = await instance.post("Auth/change-password", {
+      currentPassword,
+      newPassword,
+      confirmPassword,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message);
+  }
+};
+
 export {
   LoginAPI,
   LogoutAPI,
@@ -154,4 +180,6 @@ export {
   refreshTokenAPI,
   registerStudentAPI,
   registerLecturerAPI,
+  getProfileAPI,
+  changePasswordAPI,
 };

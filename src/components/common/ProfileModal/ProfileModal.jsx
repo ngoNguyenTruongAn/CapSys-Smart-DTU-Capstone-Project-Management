@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Button, Tab, Tabs } from "react-bootstrap";
-import { useSelector } from "react-redux";
-import { selectEmail, selectAccountType } from "../../../store/authSlice";
+import { Modal, Form, Button, Tab, Tabs, Spinner } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./ProfileModal.scss";
+import { getProfileAPI, changePasswordAPI } from "../../../services/AuthAPI";
 
 const ProfileModal = ({ show, setShow }) => {
-  const email = useSelector(selectEmail);
-  const accountType = useSelector(selectAccountType);
+  const [profile, setProfile] = useState({
+    email: "",
+    accountType: "",
+    accountId: null,
+  });
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -21,10 +26,9 @@ const ProfileModal = ({ show, setShow }) => {
     confirm: false,
   });
 
-  // Cleanup khi modal đóng - chỉ cleanup state, không manipulate DOM
+  // Cleanup khi modal đóng - chỉ cleanup state
   useEffect(() => {
     if (!show) {
-      // Reset tất cả state về giá trị ban đầu
       setActiveTab("profile");
       setPasswordForm({
         currentPassword: "",
@@ -37,6 +41,33 @@ const ProfileModal = ({ show, setShow }) => {
         new: false,
         confirm: false,
       });
+      setSubmitError("");
+      setIsChangingPassword(false);
+    }
+  }, [show]);
+
+  // Lấy thông tin hồ sơ khi mở modal
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setLoadingProfile(true);
+        const res = await getProfileAPI();
+        if (res?.data) {
+          setProfile({
+            email: res.data.email || "",
+            accountType: res.data.accountType || "",
+            accountId: res.data.accountId ?? null,
+          });
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy thông tin hồ sơ:", error);
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    if (show) {
+      fetchProfile();
     }
   }, [show]);
 
@@ -94,20 +125,38 @@ const ProfileModal = ({ show, setShow }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    if (validatePasswordForm()) {
-      // TODO: Gọi API đổi mật khẩu ở đây
-      console.log("Đổi mật khẩu:", passwordForm);
-      alert("Đổi mật khẩu thành công!");
+    if (!validatePasswordForm()) {
+      return;
+    }
+
+    try {
+      setIsChangingPassword(true);
+      setSubmitError("");
+      const res = await changePasswordAPI(
+        passwordForm.currentPassword,
+        passwordForm.newPassword,
+        passwordForm.confirmPassword
+      );
+
+      alert(res?.message || "Đổi mật khẩu thành công!");
+
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
       setErrors({});
+      setShow(false);
+    } catch (error) {
+      console.error("Đổi mật khẩu thất bại:", error);
+      setSubmitError(
+        error?.message || "Đổi mật khẩu thất bại, vui lòng thử lại."
+      );
+    } finally {
+      setIsChangingPassword(false);
     }
-    setShow(false);
   };
 
   const handleClose = () => {
@@ -136,29 +185,45 @@ const ProfileModal = ({ show, setShow }) => {
           className="profile-tabs"
         >
           <Tab eventKey="profile" title="Thông tin cá nhân">
-            <div className="profile-info">
-              <div className="profile-avatar">
-                <div className="avatar-circle">
-                  <span>{email?.charAt(0)?.toUpperCase() || "U"}</span>
-                </div>
+            {loadingProfile ? (
+              <div className="profile-loading">
+                <Spinner animation="border" role="status" />
+                <span>Đang tải thông tin...</span>
               </div>
-              <div className="profile-details">
-                <div className="profile-item">
-                  <label>Email</label>
-                  <div className="profile-value">{email || "Chưa có"}</div>
+            ) : (
+              <div className="profile-info">
+                <div className="profile-avatar">
+                  <div className="avatar-circle">
+                    <span>
+                      {profile.email?.charAt(0)?.toUpperCase() || "U"}
+                    </span>
+                  </div>
                 </div>
-                <div className="profile-item">
-                  <label>Vai trò</label>
-                  <div className="profile-value">
-                    {getAccountTypeLabel(accountType)}
+                <div className="profile-details">
+                  <div className="profile-item">
+                    <label>Email</label>
+                    <div className="profile-value">
+                      {profile.email || "Chưa có"}
+                    </div>
+                  </div>
+                  <div className="profile-item">
+                    <label>Vai trò</label>
+                    <div className="profile-value">
+                      {getAccountTypeLabel(profile.accountType) || "Chưa có"}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </Tab>
 
           <Tab eventKey="password" title="Đổi mật khẩu">
             <Form onSubmit={handlePasswordSubmit} className="password-form">
+              {submitError && (
+                <div className="password-error">
+                  <span>{submitError}</span>
+                </div>
+              )}
               <Form.Group className="mb-3">
                 <Form.Label>
                   Mật khẩu hiện tại <span className="required">*</span>
@@ -286,8 +351,12 @@ const ProfileModal = ({ show, setShow }) => {
           Đóng
         </Button>
         {activeTab === "password" && (
-          <Button variant="primary" onClick={handlePasswordSubmit}>
-            Đổi mật khẩu
+          <Button
+            variant="primary"
+            onClick={handlePasswordSubmit}
+            disabled={isChangingPassword}
+          >
+            {isChangingPassword ? "Đang đổi..." : "Đổi mật khẩu"}
           </Button>
         )}
       </Modal.Footer>

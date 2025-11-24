@@ -155,6 +155,18 @@
   // Password Change Tab
   .password-form {
     padding: 2rem;
+
+    .password-error {
+      margin-bottom: 1.5rem;
+      padding: 1rem 1.25rem;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      background: #fef2f2;
+      color: #b3080f;
+      font-size: 1.5rem;
+      font-weight: 500;
+    }
+
     .form-label {
       font-weight: 600;
       font-size: 1.7rem;

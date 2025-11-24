@@ -213,7 +213,7 @@ const Navbar = () => {
         </div>
 
         <div className="navbar__user">
-          <Bell className="notification" />
+          {/* <Bell className="notification" /> */}
 
           <div
             className="navbar__user-info"
@@ -236,7 +236,9 @@ const Navbar = () => {
         </ul>
       </div>
 
-      <ProfileModal show={showProfile} setShow={setShowProfile} />
+      {showProfile ? (
+        <ProfileModal show={showProfile} setShow={setShowProfile} />
+      ) : null}
     </nav>
   );
 };
