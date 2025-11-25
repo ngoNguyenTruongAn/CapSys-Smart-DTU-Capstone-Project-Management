@@ -2,7 +2,11 @@ import React, { useState, useEffect } from "react";
 import { Modal, Form, Button, Tab, Tabs, Spinner } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./ProfileModal.scss";
-import { getProfileAPI, changePasswordAPI } from "../../../services/AuthAPI";
+import {
+  getProfileAPI,
+  changePasswordAPI,
+  updateFullNameAPI,
+} from "../../../services/AuthAPI";
 
 const ProfileModal = ({ show, setShow }) => {
   const [profile, setProfile] = useState({
@@ -14,6 +18,7 @@ const ProfileModal = ({ show, setShow }) => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [activeTab, setActiveTab] = useState("profile");
+  const [fullName, setFullName] = useState("");
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: "",
@@ -58,6 +63,7 @@ const ProfileModal = ({ show, setShow }) => {
             accountType: res.data.accountType || "",
             accountId: res.data.accountId ?? null,
           });
+          setFullName(res.data.fullName || "");
         }
       } catch (error) {
         console.error("Lỗi khi lấy thông tin hồ sơ:", error);
@@ -159,6 +165,22 @@ const ProfileModal = ({ show, setShow }) => {
     }
   };
 
+  const handleUpdateFullName = async (fullName) => {
+    if (!fullName) {
+      alert("Vui lòng nhập họ và tên!");
+      return;
+    }
+
+    try {
+      const res = await updateFullNameAPI(fullName);
+      alert(res?.message || "Cập nhật họ và tên thành công!");
+      setFullName(fullName);
+    } catch (error) {
+      console.error("Cập nhật họ và tên thất bại:", error);
+      alert(error?.message || "Cập nhật họ và tên thất bại, vui lòng thử lại.");
+    }
+  };
+
   const handleClose = () => {
     setShow(false);
   };
@@ -210,6 +232,32 @@ const ProfileModal = ({ show, setShow }) => {
                     <label>Vai trò</label>
                     <div className="profile-value">
                       {getAccountTypeLabel(profile.accountType) || "Chưa có"}
+                    </div>
+                  </div>
+                  <div className="profile-item">
+                    <label>Họ và tên</label>
+                    <div
+                      className="profile-value"
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        className="profile-value-fullname"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                      />
+                      <div className="profile-value-update">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => handleUpdateFullName(fullName)}
+                        >
+                          Cập nhật
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>

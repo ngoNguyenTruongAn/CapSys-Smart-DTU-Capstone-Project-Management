@@ -180,11 +180,27 @@ const QuanLyHoiDong = () => {
                       <td>
                         <div className="qlda-actions">
                           <button
+                            style={{
+                              backgroundColor: "blue",
+                              color: "white",
+                              border: "none",
+                              padding: "5px 10px",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                            }}
                             onClick={() => handleView(committee.committeeId)}
                           >
                             Xem
                           </button>
                           <button
+                            style={{
+                              backgroundColor: "green",
+                              color: "white",
+                              border: "none",
+                              padding: "5px 10px",
+                              borderRadius: "5px",
+                              cursor: "pointer",
+                            }}
                             onClick={() => handleUpdate(committee.committeeId)}
                           >
                             Sửa

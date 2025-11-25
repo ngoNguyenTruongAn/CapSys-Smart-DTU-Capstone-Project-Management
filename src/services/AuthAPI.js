@@ -172,6 +172,15 @@ const changePasswordAPI = async (
   }
 };
 
+const updateFullNameAPI = async (fullName) => {
+  try {
+    const response = await instance.put("Auth/profile", { fullName });
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message);
+  }
+};
+
 export {
   LoginAPI,
   LogoutAPI,
@@ -182,4 +191,5 @@ export {
   registerLecturerAPI,
   getProfileAPI,
   changePasswordAPI,
+  updateFullNameAPI,
 };
