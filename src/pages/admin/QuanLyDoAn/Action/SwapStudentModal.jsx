@@ -1,20 +1,53 @@
-import React, { useState } from "react";
-import { Modal, Button, Table, Form, Spinner } from "react-bootstrap";
+import React, { useState, useMemo, useEffect } from "react";
+import { Modal, Button, Table, Form, Spinner, Badge } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import { swapStudents } from "../../../../store/teamSlice";
 import "./ActionModal.scss";
 
-const SwapStudentModal = ({ show, setShow, currentTeamId }) => {
+const SwapStudentModal = ({
+  show,
+  setShow,
+  currentTeamId,
+  teams = [],
+  students = [],
+  teamLeaderId,
+}) => {
   const [selectedStudentId1, setSelectedStudentId1] = useState(null);
   const [targetTeamId, setTargetTeamId] = useState("");
   const [selectedStudentId2, setSelectedStudentId2] = useState(null);
 
   const dispatch = useDispatch();
-  const { data: allTeams, loading } = useSelector((state) => state.teams);
+  const { loading } = useSelector((state) => state.teams);
+
+  const allTeams = useMemo(() => teams, [teams]);
 
   // Lấy nhóm hiện tại và nhóm đích trực tiếp từ Redux state
   const currentTeam = allTeams.find((t) => t.teamId === currentTeamId);
   const targetTeam = allTeams.find((t) => t.teamId === Number(targetTeamId));
+
+  const normalizedCurrentTeam = currentTeam || {
+    teamId: currentTeamId,
+    teamLeaderId: teamLeaderId || null,
+    students: students || [],
+  };
+
+  const currentLeaderId = normalizedCurrentTeam.teamLeaderId;
+
+  // Nếu leader bị chọn do state cũ, tự reset
+  useEffect(() => {
+    if (currentLeaderId && selectedStudentId1 === currentLeaderId) {
+      setSelectedStudentId1(null);
+    }
+  }, [currentLeaderId, selectedStudentId1]);
+
+  useEffect(() => {
+    if (
+      targetTeam?.teamLeaderId &&
+      selectedStudentId2 === targetTeam.teamLeaderId
+    ) {
+      setSelectedStudentId2(null);
+    }
+  }, [targetTeam, selectedStudentId2]);
 
   const handleSwap = async () => {
     if (!selectedStudentId1 || !selectedStudentId2) {
@@ -69,28 +102,37 @@ const SwapStudentModal = ({ show, setShow, currentTeamId }) => {
               <th>Họ tên</th>
               <th>Khoa</th>
               <th>Chuyên ngành</th>
+              <th>Ghi chú</th>
             </tr>
           </thead>
           <tbody>
-            {currentTeam?.students?.length ? (
-              currentTeam.students.map((s) => (
+            {normalizedCurrentTeam?.students?.length ? (
+              normalizedCurrentTeam.students.map((s) => (
                 <tr key={s.studentId}>
                   <td>
                     <Form.Check
                       type="radio"
                       checked={selectedStudentId1 === s.studentId}
                       onChange={() => setSelectedStudentId1(s.studentId)}
+                      disabled={currentLeaderId === s.studentId}
                     />
                   </td>
                   <td>{s.studentCode}</td>
                   <td>{s.fullName}</td>
                   <td>{s.faculty}</td>
                   <td>{s.major}</td>
+                  <td>
+                    {currentLeaderId === s.studentId ? (
+                      <Badge bg="primary">Leader</Badge>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="text-center">
+                <td colSpan={6} className="text-center">
                   Không có sinh viên trong nhóm này.
                 </td>
               </tr>
@@ -110,7 +152,9 @@ const SwapStudentModal = ({ show, setShow, currentTeamId }) => {
           >
             <option value="">-- Chọn nhóm --</option>
             {allTeams
-              .filter((t) => t.teamId !== currentTeamId && t.students?.length > 0)
+              .filter(
+                (t) => t.teamId !== currentTeamId && t.students?.length > 0
+              )
               .map((t) => (
                 <option key={t.teamId} value={t.teamId}>
                   {t.teamName} ({t.projectTitle || "Không có đề tài"}) —{" "}
@@ -118,6 +162,9 @@ const SwapStudentModal = ({ show, setShow, currentTeamId }) => {
                 </option>
               ))}
           </Form.Select>
+          <Form.Text className="text-muted">
+            Leader ở cả hai nhóm không thể tham gia hoán đổi.
+          </Form.Text>
         </Form.Group>
 
         {/* Danh sách sinh viên nhóm đích */}
@@ -133,6 +180,7 @@ const SwapStudentModal = ({ show, setShow, currentTeamId }) => {
                   <th>Họ tên</th>
                   <th>Khoa</th>
                   <th>Chuyên ngành</th>
+                  <td>Ghi chú</td>
                 </tr>
               </thead>
               <tbody>
@@ -144,17 +192,25 @@ const SwapStudentModal = ({ show, setShow, currentTeamId }) => {
                           type="radio"
                           checked={selectedStudentId2 === s.studentId}
                           onChange={() => setSelectedStudentId2(s.studentId)}
+                          disabled={targetTeam.teamLeaderId === s.studentId}
                         />
                       </td>
                       <td>{s.studentCode}</td>
                       <td>{s.fullName}</td>
                       <td>{s.faculty}</td>
                       <td>{s.major}</td>
+                      <td>
+                        {targetTeam.teamLeaderId === s.studentId ? (
+                          <Badge bg="primary">Leader</Badge>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="text-center">
+                    <td colSpan={6} className="text-center">
                       Nhóm này chưa có sinh viên.
                     </td>
                   </tr>

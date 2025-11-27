@@ -33,6 +33,7 @@ const QuanLyDoAn = () => {
   const [moveModal, setMoveModal] = useState(false);
   const [selectedTeamStudents, setSelectedTeamStudents] = useState([]);
   const [swapModal, setSwapModal] = useState(false);
+  const [selectedTeamLeaderId, setSelectedTeamLeaderId] = useState(null);
   // ---- Fetch dữ liệu từ API (dùng Redux) ----
   const fetchProjects = useCallback(async () => {
     try {
@@ -171,6 +172,7 @@ const QuanLyDoAn = () => {
                 onClick={() => {
                   setSelectedTeamStudents(team.students || []);
                   setTeamId(value);
+                  setSelectedTeamLeaderId(team.teamLeaderId || null);
                   setMoveModal(true);
                 }}
               >
@@ -181,6 +183,7 @@ const QuanLyDoAn = () => {
                 onClick={() => {
                   setTeamId(value);
                   setSelectedTeamStudents(team.students || []);
+                  setSelectedTeamLeaderId(team.teamLeaderId || null);
                   setSwapModal(true);
                 }}
               >
@@ -362,6 +365,7 @@ const QuanLyDoAn = () => {
         currentTeamId={teamId}
         students={selectedTeamStudents}
         teams={projects}
+        teamLeaderId={selectedTeamLeaderId}
       />
 
       <SwapStudentModal
@@ -370,6 +374,7 @@ const QuanLyDoAn = () => {
         currentTeamId={teamId}
         students={selectedTeamStudents}
         teams={projects}
+        teamLeaderId={selectedTeamLeaderId}
       />
     </div>
   );
