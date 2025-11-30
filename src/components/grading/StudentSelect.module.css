@@ -51,8 +51,8 @@
   
   .filterSelect__button:focus {
     outline: none;
-    border-color: var(--primary-blue);
-    box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+    border-color: var(--primary-blue, #94070d);
+    box-shadow: 0 0 0 3px rgba(148, 7, 13, .15);
   }
   
   .filterSelect__chevron {

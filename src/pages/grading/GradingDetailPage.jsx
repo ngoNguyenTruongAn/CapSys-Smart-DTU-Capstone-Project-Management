@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingDetailPage.module.css";
 import Toasts from "../../components/ui/Toasts.jsx";
+import LoadingFullScreen from "../../components/ui/LoadingFullScreen";
 
 const createDemoStudents = () => [
   {
@@ -1495,11 +1496,7 @@ export default function GradingDetailPage({
   };
 
   if (loading && !initialised) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.loadingState}>Đang tải dữ liệu chấm điểm...</div>
-      </div>
-    );
+    return <LoadingFullScreen message="Đang tải dữ liệu chấm điểm..." />;
   }
 
   if (error && !initialised) {
@@ -1529,6 +1526,7 @@ export default function GradingDetailPage({
 
   return (
     <div className={styles.page}>
+      {saving && <LoadingFullScreen message="Đang lưu điểm..." />}
       <div className={styles.headerBar}>
         <button className={styles.backLink} onClick={handleBackClick}>
           <svg
@@ -1540,7 +1538,7 @@ export default function GradingDetailPage({
           >
             <path
               d="M16 18L8 12L16 6"
-              stroke="#2563EB"
+              stroke="#94070d"
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"

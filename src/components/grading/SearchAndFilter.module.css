@@ -26,7 +26,8 @@
   display: flex;
   width: 100%;
   justify-content: flex-end;
-  gap: 100px;
+  align-items: center;
+  gap: 20px;
 }
 
 /* --- Search input --- */
@@ -58,8 +59,8 @@
 
 .searchInput__field:focus {
   outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+  border-color: #94070d;
+  box-shadow: 0 0 0 3px rgba(148, 7, 13, 0.1);
 }
 
 .searchInput__field::placeholder { color: var(--text-secondary); }
@@ -86,8 +87,8 @@
 
 .filterSelect__button:focus {
   outline: none;
-  border-color: var(--primary-blue);
-  box-shadow: 0 0 0 3px rgba(59,130,246,.1);
+  border-color: #94070d;
+  box-shadow: 0 0 0 3px rgba(148, 7, 13, 0.1);
 }
 
 .filterSelect__chevron {

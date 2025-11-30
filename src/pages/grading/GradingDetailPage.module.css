@@ -21,7 +21,7 @@ input[type="number"] {
 .backLink {
   border: 0;
   background: none;
-  color: #2563eb;
+  color: #94070d;
   cursor: pointer;
   font-size: 14px;
   padding: 0;
@@ -80,7 +80,7 @@ input[type="number"] {
   border-radius: 12px;
   padding: 40px 24px;
   text-align: center;
-  color: #2563eb;
+  color: #94070d;
   font-weight: 600;
   box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
 }
@@ -175,19 +175,19 @@ input[type="number"] {
 }
 
 .scoreInput:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: #94070d;
+  box-shadow: 0 0 0 3px rgba(148, 7, 13, 0.15);
   outline: none;
   background: #fff;
 }
 
 .gradeIPS {
-  background-color: #f9fafb;
+  background-color: #fdf2f2;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 8px 10px;
-  border-top: 2px solid #e5e7eb;
+  border-top: 2px solid #fecaca;
 }
 
 .hint {
@@ -235,8 +235,8 @@ input[type="number"] {
 }
 
 .commentInput:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: #94070d;
+  box-shadow: 0 0 0 3px rgba(148, 7, 13, 0.15);
   outline: none;
   background: #fff;
 }
@@ -302,21 +302,21 @@ input[type="number"] {
 }
 
 .personalRow .gridCell {
-  background: #f8fbff;
+  background: #fdf2f2;
 }
 
 .personalRow .memberCellActive {
-  background: #e4edff;
+  background: #fecaca;
 }
 
 .commentToggleBtn {
   border: none;
-  background: #1d4ed8;
+  background: #94070d;
   color: #fff;
   padding: 10px 18px;
   border-radius: 24px;
   font-weight: 600;
-  box-shadow: 0 8px 20px rgba(29, 78, 216, 0.3);
+  box-shadow: 0 8px 20px rgba(148, 7, 13, 0.3);
   cursor: pointer;
   transform: translateY(20%);
 }
@@ -328,7 +328,7 @@ input[type="number"] {
 }
 
 .commentToggleBtn:not(:disabled):hover {
-  background: #153d9b;
+  background: #7f060b;
 }
 
 .commentDrawerBackdrop {
@@ -430,11 +430,11 @@ input[type="number"] {
   width: 30px;
   height: 30px;
   border-radius: 999px;
-  border: 1px solid #cbd5f5;
+  border: 1px solid #fecaca;
   align-items: center;
   justify-content: center;
-  background: #eef2ff;
-  color: #1d4ed8;
+  background: #fdf2f2;
+  color: #94070d;
   font-weight: 700;
   font-size: 13px;
 }
@@ -445,7 +445,7 @@ input[type="number"] {
 }
 
 .memberCellActive {
-  background: #eef4ff;
+  background: #fdf2f2;
 }
 
 .memberScoreBox {
@@ -458,7 +458,7 @@ input[type="number"] {
 .memberScoreInput {
   width: 44px;
   padding: 5px 4px;
-  color: #1d4ed8;
+  color: #94070d;
 }
 
 .memberPlaceholder {
@@ -505,12 +505,12 @@ input[type="number"] {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #e8f1ff;
-  color: #0b3b86;
+  background: #fdf2f2;
+  color: #94070d;
   border-radius: 10px;
   padding: 12px 16px;
   margin: 16px 0;
-  border: 1px solid #cfe1ff;
+  border: 1px solid #fecaca;
   font-size: 14px;
   gap: 20px;
 }
@@ -519,16 +519,16 @@ input[type="number"] {
   min-width: 220px;
   padding: 10px 12px;
   border-radius: 10px;
-  border: 1px solid #93c5fd;
+  border: 1px solid #fecaca;
   background: #fff;
   font-weight: 600;
-  color: #0b3b86;
+  color: #94070d;
   outline: none;
 }
 
 .contributionSelect:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: #94070d;
+  box-shadow: 0 0 0 3px rgba(148, 7, 13, 0.15);
 }
 
 .groupHeader {
@@ -566,22 +566,22 @@ input[type="number"] {
   font-weight: 600;
   font-size: 14px;
   transition: background 0.2s ease, box-shadow 0.2s ease;
-  background: #1d4ed8;
+  background: #94070d;
 }
 
 .btn:disabled {
-  background: #cbd5f5;
+  background: #fecaca;
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .btnPrimary {
-  background: #2563eb;
+  background: #94070d;
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background: #1d4ed8;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  background: #7f060b;
+  box-shadow: 0 4px 12px rgba(148, 7, 13, 0.3);
 }
 
 .pendingRow {
@@ -589,8 +589,8 @@ input[type="number"] {
 }
 
 .iconBtn {
-  border: 1px solid #2563eb;
-  background: #2563eb;
+  border: 1px solid #94070d;
+  background: #94070d;
   color: #fff;
   padding: 6px 12px;
   border-radius: 8px;
@@ -601,13 +601,13 @@ input[type="number"] {
 }
 
 .iconBtn:hover {
-  background: #dbeafe;
-  color: #2563eb;
+  background: #fdf2f2;
+  color: #94070d;
 }
 
 .iconBtnActive {
-  background: #eff6ff;
-  color: #2563eb;
+  background: #fdf2f2;
+  color: #94070d;
 }
 
 @media (max-width: 992px) {
