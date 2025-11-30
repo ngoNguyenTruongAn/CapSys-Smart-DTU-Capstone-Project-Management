@@ -131,10 +131,10 @@ function Proposaldetail() {
   const title =
     selectedProposal.title ??
     selectedProposal.proposalTitle ??
-    "(Không có tiêu đề)";
+    "Proposal_Document";
 
   const mentor = selectedProposal.mentor ?? selectedProposal.mentorName ?? "";
-
+  const displayFileName = title.endsWith(".pdf") ? title : `${title}.pdf`;
   const registerDate =
     selectedProposal.registerDate ??
     selectedProposal.submittedDate ??
@@ -296,10 +296,10 @@ function Proposaldetail() {
                       Ngày đăng ký: {formatDate(registerDate)}
                     </p>
                     
-                    {/* Nếu muốn hiển thị thêm ngày duyệt thì mở dòng này */}
-                     {/* <p className={styles["DetailsCard-date"]}>
+                   
+                      <p className={styles["DetailsCard-date"]}>
                         Ngày duyệt: {formatDate(approvedDate)}
-                     </p> */}
+                     </p>
 
                   </div>
                 </span>
@@ -432,7 +432,7 @@ function Proposaldetail() {
                             ]
                           }
                         >
-                          Tài liệu đề xuất
+                          {displayFileName}
                         </p>
                         <p
                           className={
