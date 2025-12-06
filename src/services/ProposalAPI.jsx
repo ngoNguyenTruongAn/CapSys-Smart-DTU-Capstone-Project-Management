@@ -1,6 +1,6 @@
 // useProposalsStore.jsx
 import { create } from "zustand";
-import { getTeamByIdAPI,getTeamByCodeAPI } from "./TeamsAPI";
+import { getTeamByIdAPI, getTeamByCodeAPI } from "./TeamsAPI";
 
 // ====== API base ======
 const ENV_BASE = import.meta?.env?.VITE_API_URL?.replace(/\/$/, "");
@@ -11,9 +11,7 @@ const PROPOSAL_URL = `${API_BASE}/Proposal`;
 const LOGIN_URL = "http://localhost:5173/";
 
 const getToken = () =>
-  localStorage.getItem("token") ||
-  sessionStorage.getItem("token") ||
-  "";
+  localStorage.getItem("token") || sessionStorage.getItem("token") || "";
 
 const handleUnauthorized = () => {
   try {
@@ -67,12 +65,7 @@ const normalizeMember = (m) => {
     "";
 
   const studentCode =
-    m.studentCode ||
-    m.StudentCode ||
-    m.mssv ||
-    m.MSSV ||
-    m.student_code ||
-    "";
+    m.studentCode || m.StudentCode || m.mssv || m.MSSV || m.student_code || "";
 
   if (!fullName) return null;
   return { fullName, studentCode };
@@ -149,8 +142,7 @@ const toCardShape = (p) => {
     p.createdAt ||
     null;
 
-  const approveDate =
-    p.approveDate || p.approvedDate || p.ApprovedDate || null;
+  const approveDate = p.approveDate || p.approvedDate || p.ApprovedDate || null;
 
   const raw = String(p.status ?? p.Status ?? "").toLowerCase();
   let status = "Chờ duyệt";
@@ -189,8 +181,12 @@ export const useProposalsStore = create((set, get) => {
       ? mapped
       : mapped.filter(
           (x) =>
-            String(x.title || "").toLowerCase().includes(kw) ||
-            String(x.summary || "").toLowerCase().includes(kw)
+            String(x.title || "")
+              .toLowerCase()
+              .includes(kw) ||
+            String(x.summary || "")
+              .toLowerCase()
+              .includes(kw)
         );
 
     const filtered =
@@ -233,60 +229,58 @@ export const useProposalsStore = create((set, get) => {
     /* --------- Team lookup để điền form --------- */
     teamContext: null,
     isTeamLoading: false,
-    fetchTeamContext: async (teamCode) => { // Tham số là teamCode (VD: "Team1")
-      if (!teamCode) return;
-      set({ isTeamLoading: true });
-      try {
-        const res = await getTeamByCodeAPI(teamCode); // <--- Gọi hàm đã import
-        const raw = res?.data || res || {};
+    fetchTeamContext: async (teamCode) => {
+      // Tham số là teamCode (VD: "Team1")
+      if (!teamCode) return;
+      set({ isTeamLoading: true });
+      try {
+        const res = await getTeamByCodeAPI(teamCode); // <--- Gọi hàm đã import
+        const raw = res?.data || res || {}; // Lấy TeamID từ response
 
-        // Lấy TeamID từ response
-        const teamId = 
-          raw.id || 
-          raw.Id || 
-          raw.teamId || 
-          raw.TeamId || 
-          raw.data?.teamId || 
-          raw.team?.teamId;
-      
-        // Lấy teamCode CHUẨN từ response (phòng trường hợp "team1" -> "Team1")
-        const codeFromResponse =
-          raw.teamCode ||
-          raw.TeamCode ||
-          raw.data?.teamCode ||
-          raw.data?.TeamCode ||
-          raw.team?.teamCode ||
-          raw.team?.TeamCode ||
-          String(teamCode); // <-- Dùng teamCode từ tham số làm fallback
+        const teamId =
+          raw.id ||
+          raw.Id ||
+          raw.teamId ||
+          raw.TeamId ||
+          raw.data?.teamId ||
+          raw.team?.teamId; // Lấy teamCode CHUẨN từ response (phòng trường hợp "team1" -> "Team1")
+        const codeFromResponse =
+          raw.teamCode ||
+          raw.TeamCode ||
+          raw.data?.teamCode ||
+          raw.data?.TeamCode ||
+          raw.team?.teamCode ||
+          raw.team?.TeamCode ||
+          String(teamCode); // <-- Dùng teamCode từ tham số làm fallback
 
-        const existingTitle =
-          raw.proposalTitle ||
-          raw.ProposalTitle ||
-          raw.title ||
-          raw.data?.proposalTitle ||
-          raw.data?.title ||
-          raw.team?.proposalTitle ||
-          raw.team?.title ||
-          "";
+        const existingTitle =
+          raw.proposalTitle ||
+          raw.ProposalTitle ||
+          raw.title ||
+          raw.data?.proposalTitle ||
+          raw.data?.title ||
+          raw.team?.proposalTitle ||
+          raw.team?.title ||
+          "";
 
-        const members = extractMembers(raw);
-        const mentorName = extractMentorName(raw);
+        const members = extractMembers(raw);
+        const mentorName = extractMentorName(raw);
 
-        set({
-          teamContext: {
-            // Gán các biến đã được định nghĩa chính xác
-            team: { teamId: teamId, teamCode: codeFromResponse }, 
-            mentorName,
-            members,
-            existingProposal: existingTitle ? { title: existingTitle } : null,
-          },
-          isTeamLoading: false,
-        });
-      } catch (e) {
-        console.error("fetchTeamContext error:", e);
-        set({ isTeamLoading: false, teamContext: null });
-      }
-    },
+        set({
+          teamContext: {
+            // Gán các biến đã được định nghĩa chính xác
+            team: { teamId: teamId, teamCode: codeFromResponse },
+            mentorName,
+            members,
+            existingProposal: existingTitle ? { title: existingTitle } : null,
+          },
+          isTeamLoading: false,
+        });
+      } catch (e) {
+        console.error("fetchTeamContext error:", e);
+        set({ isTeamLoading: false, teamContext: null });
+      }
+    },
 
     /* --------- Proposals --------- */
     isLoading: false,
@@ -355,7 +349,8 @@ export const useProposalsStore = create((set, get) => {
           headers: authHeaders(),
         });
         const payload = await parseApiJson(res);
-        if (!res.ok) throw new Error(payload?.message || "Không tải được chi tiết");
+        if (!res.ok)
+          throw new Error(payload?.message || "Không tải được chi tiết");
 
         let detail = payload?.data || payload;
 
@@ -381,7 +376,8 @@ export const useProposalsStore = create((set, get) => {
 
         const current = get().proposals || [];
         const idx = current.findIndex(
-          (p) => String(p.id ?? p.Id ?? p.proposalId ?? p.ProposalID) === String(id)
+          (p) =>
+            String(p.id ?? p.Id ?? p.proposalId ?? p.ProposalID) === String(id)
         );
 
         let next;
@@ -410,9 +406,7 @@ export const useProposalsStore = create((set, get) => {
         const payload = await parseApiJson(res);
         if (!res.ok) {
           const msg =
-            payload?.message ||
-            payload?.errors?.[0] ||
-            "Không thể thêm đề tài";
+            payload?.message || payload?.errors?.[0] || "Không thể thêm đề tài";
           throw new Error(msg);
         }
 
@@ -495,7 +489,64 @@ export const useProposalsStore = create((set, get) => {
         console.error("deleteProposal error:", e);
         set({ isLoading: false });
         return { success: false, message: e.message || "Xóa thất bại" };
+      }
+    },
 
+    // AI Summarize Proposal - Check cache first, then call AI if needed
+    summarizeProposal: async (id, forceRefresh = false) => {
+      set({ isLoading: true });
+      try {
+        // Step 1: Check if cached summary exists (unless forceRefresh)
+        if (!forceRefresh) {
+          const cacheRes = await fetchSafe(`${PROPOSAL_URL}/${id}/summary`, {
+            method: "GET",
+            headers: authHeaders(),
+          });
+          const cachePayload = await parseApiJson(cacheRes);
+
+          if (cacheRes.ok && cachePayload?.cached && cachePayload?.data) {
+            console.log("Using cached AI summary from database");
+            set({ isLoading: false });
+            return {
+              success: true,
+              cached: true,
+              data: cachePayload.data,
+            };
+          }
+        }
+
+        // Step 2: No cache or forceRefresh - call AI to generate summary
+        console.log("Generating new AI summary...");
+        const res = await fetchSafe(
+          `${PROPOSAL_URL}/${id}/summarize?forceRefresh=${forceRefresh}`,
+          {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({
+              maxWordsPerSection: 150,
+              language: "vi",
+            }),
+          }
+        );
+        const payload = await parseApiJson(res);
+        set({ isLoading: false });
+
+        if (!res.ok) {
+          throw new Error(payload?.message || "Không thể tóm tắt đề tài");
+        }
+
+        return {
+          success: true,
+          cached: false,
+          data: payload?.data ?? payload,
+        };
+      } catch (e) {
+        console.error("summarizeProposal error:", e);
+        set({ isLoading: false });
+        return {
+          success: false,
+          message: e.message || "Không thể tóm tắt đề tài",
+        };
       }
     },
   };
