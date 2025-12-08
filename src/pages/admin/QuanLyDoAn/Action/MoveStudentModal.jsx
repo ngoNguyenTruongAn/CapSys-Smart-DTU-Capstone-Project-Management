@@ -1,36 +1,65 @@
-import React, { useState } from "react";
-import { Modal, Button, Table, Form, Spinner } from "react-bootstrap";
+import React, { useState, useEffect, useMemo } from "react";
+import { Modal, Button, Table, Form, Spinner, Badge } from "react-bootstrap";
 import { useDispatch, useSelector } from "react-redux";
 import { moveStudents } from "../../../../store/teamSlice";
 import "./ActionModal.scss";
 
-const MoveStudentModal = ({ show, setShow, currentTeamId, students, teams }) => {
+const MoveStudentModal = ({
+  show,
+  setShow,
+  currentTeamId,
+  students,
+  teams,
+  teamLeaderId,
+}) => {
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   const [targetTeamId, setTargetTeamId] = useState("");
   const dispatch = useDispatch();
   const { loading } = useSelector((state) => state.teams);
 
   const toggleStudent = (id) => {
+    if (teamLeaderId && id === teamLeaderId) return;
     setSelectedStudentIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
   };
 
+  // Loại bỏ leader khỏi danh sách được chọn nếu dữ liệu thay đổi
+  useEffect(() => {
+    if (!teamLeaderId) return;
+    setSelectedStudentIds((prev) => prev.filter((id) => id !== teamLeaderId));
+  }, [teamLeaderId]);
+
+  // Danh sách team đích hợp lệ
+  const filteredTeams = useMemo(
+    () =>
+      teams
+        ?.filter(
+          (t) => t.teamId !== currentTeamId && (t.students?.length || 0) < 5
+        )
+        ?.map((t) => ({
+          ...t,
+          currentCount: t.students?.length || 0,
+        })) || [],
+    [teams, currentTeamId]
+  );
+
   const handleMove = async () => {
-    if (!targetTeamId || selectedStudentIds.length === 0) {
+    const movableIds = selectedStudentIds.filter((id) => id !== teamLeaderId);
+    if (!targetTeamId || movableIds.length === 0) {
       alert("Vui lòng chọn sinh viên và nhóm đích!");
       return;
     }
 
     const result = await dispatch(
-      moveStudents({ studentIds: selectedStudentIds, targetTeamId })
+      moveStudents({ studentIds: movableIds, targetTeamId })
     );
 
     if (moveStudents.fulfilled.match(result)) {
       alert("Di chuyển sinh viên thành công!");
       setShow(false);
     } else {
-      alert("Lỗi khi di chuyển sinh viên!");
+      alert(result.payload);
     }
   };
 
@@ -54,6 +83,7 @@ const MoveStudentModal = ({ show, setShow, currentTeamId, students, teams }) => 
               <th>Họ tên</th>
               <th>Khoa</th>
               <th>Chuyên ngành</th>
+              <th>Ghi chú</th>
             </tr>
           </thead>
           <tbody>
@@ -65,17 +95,25 @@ const MoveStudentModal = ({ show, setShow, currentTeamId, students, teams }) => 
                       type="checkbox"
                       checked={selectedStudentIds.includes(s.studentId)}
                       onChange={() => toggleStudent(s.studentId)}
+                      disabled={teamLeaderId === s.studentId}
                     />
                   </td>
                   <td>{s.studentCode}</td>
                   <td>{s.fullName}</td>
                   <td>{s.faculty}</td>
                   <td>{s.major}</td>
+                  <td>
+                    {teamLeaderId === s.studentId ? (
+                      <Badge bg="primary">Leader</Badge>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="text-center">
+                <td colSpan={6} className="text-center">
                   Không có sinh viên trong nhóm này.
                 </td>
               </tr>
@@ -84,22 +122,22 @@ const MoveStudentModal = ({ show, setShow, currentTeamId, students, teams }) => 
         </Table>
 
         <Form.Group>
-            <Form.Label>Chọn nhóm đích</Form.Label>
-            <Form.Select
-                value={targetTeamId}
-                onChange={(e) => setTargetTeamId(e.target.value)}
-            >
-                <option value="">-- Chọn nhóm --</option>
-                {teams
-                // chỉ nhóm khác + có <5 sinh viên
-                .filter((t) => t.teamId !== currentTeamId && t.students?.length < 5)
-                .map((t) => (
-                    <option key={t.teamId} value={t.teamId}>
-                    {t.teamName} ({t.projectTitle || "Không có đề tài"}) —{" "}
-                    {t.students?.length || 0}/5 SV
-                    </option>
-                ))}
-            </Form.Select>
+          <Form.Label>Chọn nhóm đích</Form.Label>
+          <Form.Select
+            value={targetTeamId}
+            onChange={(e) => setTargetTeamId(e.target.value)}
+          >
+            <option value="">-- Chọn nhóm --</option>
+            {filteredTeams.map((t) => (
+              <option key={t.teamId} value={t.teamId}>
+                {t.teamName} ({t.projectTitle || "Không có đề tài"}) —{" "}
+                {t.currentCount}/5 SV
+              </option>
+            ))}
+          </Form.Select>
+          <Form.Text className="text-muted">
+            Leader không thể được chuyển sang nhóm khác.
+          </Form.Text>
         </Form.Group>
       </Modal.Body>
       <Modal.Footer>
