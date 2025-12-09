@@ -175,7 +175,7 @@ const Navbar = () => {
       </li>
       <li>
         <NavLink
-          to="/proposals"
+          to="/student/my-proposal"
           className={({ isActive }) => (isActive ? "active" : "")}
         >
           <Proposal className="menu-icon" />

@@ -551,3 +551,20 @@ export const useProposalsStore = create((set, get) => {
     },
   };
 });
+
+export const uploadStudentProposalAPI = async (formData) => {
+  const res = await fetch(`${API_BASE}/student-portal/upload-proposal`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${getToken()}`,
+      // Không set Content-Type để browser tự set multipart/form-data
+    },
+    body: formData,
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.message || json.title || "Lỗi khi upload proposal");
+  }
+  return json; // Trả về data thành công
+};

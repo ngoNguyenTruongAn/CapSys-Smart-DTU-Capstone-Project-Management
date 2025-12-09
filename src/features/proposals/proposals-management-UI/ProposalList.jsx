@@ -1,13 +1,21 @@
-// ProposalList.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import styles from "./Proposal.module.scss";
 import ProposalCard from "./ProposalCard";
 import ProposalTabs from "./ProposalTabs";
 import { useProposalsStore } from "../../../services/ProposalAPI";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faChevronLeft,
+  faChevronRight,
+  faFolderOpen, // <--- Import thêm icon Folder
+} from "@fortawesome/free-solid-svg-icons";
+
+// Cấu hình số lượng hiển thị trên 1 trang
+const ITEMS_PER_PAGE = 9;
 
 export default function ProposalList() {
   const {
-    finalProposals, // Sử dụng finalProposals thay vì proposals
+    finalProposals,
     counts,
     setFilterStatus,
     setSearchTerm,
@@ -17,27 +25,46 @@ export default function ProposalList() {
     error,
   } = useProposalsStore();
 
-  // Tự động fetch data khi load trang
+  const [currentPage, setCurrentPage] = useState(1);
+
   useEffect(() => {
     fetchProposals();
   }, [fetchProposals]);
 
-  // Debug tạm thời để xem dữ liệu và lọc
   useEffect(() => {
-    console.log("📦 finalProposals:", finalProposals);
-  }, [finalProposals]);
+    setCurrentPage(1);
+  }, [finalProposals, counts]);
 
-  // Bảo vệ: luôn có mảng để map
   const list = Array.isArray(finalProposals) ? finalProposals : [];
 
-  // Nếu đang tải dữ liệu
+  const totalPages = Math.ceil(list.length / ITEMS_PER_PAGE) || 1;
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentItems = list.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber < 1 || pageNumber > totalPages) return;
+    setCurrentPage(pageNumber);
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
   if (isLoading) {
-    return <p style={{ padding: 16 }}>Đang tải danh sách đề tài...</p>;
+    return (
+      <div className={styles["empty-state-container"]}>
+        <p>Đang tải danh sách đề tài...</p>
+      </div>
+    );
   }
 
-  // Nếu xảy ra lỗi
   if (error) {
-    return <p style={{ padding: 16, color: "red" }}>Lỗi: {error}</p>;
+    return (
+      <div className={styles["empty-state-container"]}>
+        <p style={{ color: "#d82c2c" }}>Lỗi: {error}</p>
+      </div>
+    );
   }
 
   return (
@@ -49,10 +76,26 @@ export default function ProposalList() {
       />
 
       <div className={styles["List-wrapper"]}>
-        {list.length === 0 ? (
-          <p style={{ padding: 16 }}>Không có đề tài nào phù hợp.</p>
+        {currentItems.length === 0 ? (
+          // --- GIAO DIỆN EMPTY STATE MỚI ---
+          <div className={styles["empty-state-container"]}>
+            <div className={styles["empty-icon-wrapper"]}>
+              <FontAwesomeIcon
+                icon={faFolderOpen}
+                className={styles["empty-icon"]}
+              />
+            </div>
+            <h3 className={styles["empty-title"]}>
+              Không tìm thấy đề tài nào
+            </h3>
+            <p className={styles["empty-desc"]}>
+              Hiện chưa có dữ liệu hoặc không tìm thấy kết quả phù hợp với bộ
+              lọc hiện tại.
+            </p>
+          </div>
         ) : (
-          list.map((p) => (
+          // --- DANH SÁCH ĐỀ TÀI ---
+          currentItems.map((p) => (
             <ProposalCard
               key={p.id}
               proposal={p}
@@ -61,6 +104,43 @@ export default function ProposalList() {
           ))
         )}
       </div>
+
+      {/* --- FOOTER PHÂN TRANG --- */}
+      {/* Chỉ hiện phân trang nếu có dữ liệu */}
+      {list.length > 0 && (
+        <div className={styles["pagination-container"]}>
+          <button
+            className={styles["pagination-btn"]}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <FontAwesomeIcon icon={faChevronLeft} /> Trước
+          </button>
+
+          {Array.from({ length: totalPages }, (_, index) => {
+            const pageNum = index + 1;
+            return (
+              <button
+                key={pageNum}
+                className={`${styles["pagination-number"]} ${
+                  currentPage === pageNum ? styles["active"] : ""
+                }`}
+                onClick={() => handlePageChange(pageNum)}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
+
+          <button
+            className={styles["pagination-btn"]}
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Sau <FontAwesomeIcon icon={faChevronRight} />
+          </button>
+        </div>
+      )}
     </>
   );
 }

@@ -8,11 +8,10 @@ import { faFile } from "@fortawesome/free-regular-svg-icons";
 import {
   faDownload,
   faSpinner,
-  faRobot,
   faChevronDown,
   faChevronUp,
 } from "@fortawesome/free-solid-svg-icons";
-
+import ConfirmationDelModal from "../layout-proposal-common/Modal/ConfirmationDelModal";
 import DeleteButton from "../layout-proposal-common/Button/DeleteButton";
 import ApprovedButton from "../layout-proposal-common/Button/ApprovedButton";
 import React, { useEffect, useMemo, useState } from "react";
@@ -20,14 +19,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getStatusKey, getStatusLabel } from "../proposals-logic/status.utils";
 import RejectButton from "../layout-proposal-common/Button/RejectButton";
 import AddProposalModal from "../layout-proposal-common/Modal/AddProposalModal";
+// 1. IMPORT LOGIC TÌM KIẾM
+import { searchProposals } from "../proposals-logic/ProposalSearch-logic"; 
 
 // ==========================================
-// 1. Thêm các hàm Helper (Format) từ CardDetails sang
+// CÁC HÀM HELPER
 // ==========================================
 
 const formatName = (fullName) => {
   if (!fullName) return "---";
-  // Xử lý nếu data là object thay vì string
   if (typeof fullName !== "string") {
     try {
       fullName = String(
@@ -41,7 +41,6 @@ const formatName = (fullName) => {
   fullName = fullName.trim();
   const parts = fullName.split(/\s+/);
 
-  // Logic viết tắt: Nguyễn Văn A -> N. V. A
   if (parts.length > 2) {
     const lastName = parts[parts.length - 1];
     const middleName = parts[parts.length - 2];
@@ -67,6 +66,9 @@ const formatDate = (value) => {
   const yyyy = d.getFullYear();
   return `${dd}/${mm}/${yyyy}`;
 };
+
+// ==========================================
+// COMPONENT CHÍNH
 // ==========================================
 
 function Proposaldetail() {
@@ -77,7 +79,7 @@ function Proposaldetail() {
     proposals,
     fetchProposals,
     fetchProposalById,
-    setSearchTerm,
+    // setSearchTerm, // Note: Ta dùng local state cho search ở trang này thay vì store
     approveProposal,
     rejectProposal,
     deleteProposal,
@@ -87,13 +89,18 @@ function Proposaldetail() {
     isLoading,
   } = useProposalsStore();
 
+  // --- STATE QUẢN LÝ ---
   const [selectedId, setSelectedId] = useState(id ? Number(id) : null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  
+  // 2. STATE CHO TÌM KIẾM
+  const [searchTerm, setSearchTerm] = useState("");
 
   // AI Summary state
   const [aiSummary, setAiSummary] = useState(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
-  const summarizeCalledRef = React.useRef(null); // Track which proposal was summarized
+  const summarizeCalledRef = React.useRef(null);
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -104,6 +111,93 @@ function Proposaldetail() {
     researchAreas: false,
   });
 
+  // --- USE EFFECTS ---
+  useEffect(() => {
+    setSelectedId(id ? Number(id) : null);
+  }, [id]);
+
+  useEffect(() => {
+    if (!proposals || proposals.length === 0) fetchProposals();
+  }, [proposals, fetchProposals]);
+
+  useEffect(() => {
+    if (id) fetchProposalById(id);
+  }, [id, fetchProposalById]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, []);
+
+  // --- TÍNH TOÁN DỮ LIỆU ---
+
+  // 3. TẠO DANH SÁCH ĐÃ LỌC (FILTERED LIST)
+  // Dùng useMemo để tối ưu hiệu năng, chỉ lọc lại khi proposals hoặc searchTerm thay đổi
+  const filteredProposals = useMemo(() => {
+    return searchProposals(proposals, searchTerm);
+  }, [proposals, searchTerm]);
+
+  // Tìm Proposal đang được chọn từ danh sách gốc
+  const selectedProposal = useMemo(() => {
+    if (!proposals || !id) return null;
+    const pidString = String(id);
+    return proposals.find(
+      (p) => String(p.id ?? p.proposalId ?? p.ProposalID) === pidString
+    );
+  }, [proposals, id]);
+
+  // Lấy PID an toàn
+  const pid =
+    selectedProposal?.id ??
+    selectedProposal?.proposalId ??
+    selectedProposal?.ProposalID;
+
+  // --- LOGIC AI ---
+  const handleSummarize = async (forceRefresh = false) => {
+    if (isSummarizing || !pid) return;
+
+    setIsSummarizing(true);
+    setSummaryError(null);
+
+    try {
+      const result = await summarizeProposal(pid, forceRefresh);
+      if (result.success && result.data) {
+        setAiSummary(result.data);
+      } else {
+        setSummaryError(result.message || "Không thể tóm tắt đề tài");
+      }
+    } catch (error) {
+      console.error("AI Summary Error:", error);
+      setSummaryError(error.message || "Có lỗi xảy ra khi tóm tắt");
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (summarizeCalledRef.current !== null && summarizeCalledRef.current !== pid) {
+      summarizeCalledRef.current = null;
+      setAiSummary(null);
+      setSummaryError(null);
+    }
+
+    if (summarizeCalledRef.current === pid || isSummarizing || !pid) {
+      return;
+    }
+
+    if (pid && selectedProposal) {
+      summarizeCalledRef.current = pid;
+      handleSummarize();
+    }
+  }, [pid, selectedProposal?.id]);
+
+  // --- HANDLERS ---
+  const handleSetSelectedProposalId = (newId) => {
+    setSelectedId(newId);
+    navigate(`/proposal-detail/${newId}`);
+  };
+
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -111,40 +205,9 @@ function Proposaldetail() {
     }));
   };
 
-  useEffect(() => {
-    setSelectedId(id ? Number(id) : null);
-  }, [id]);
-
-  // danh sách
-  useEffect(() => {
-    if (!proposals || proposals.length === 0) fetchProposals();
-  }, [proposals, fetchProposals]);
-
-  // 🔎 chi tiết
-  useEffect(() => {
-    if (id) fetchProposalById(id);
-  }, [id, fetchProposalById]);
-
-  // scroll top
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, []);
-
-  const selectedProposal = useMemo(() => {
-    if (!proposals || !id) return null;
-    const pid = String(id);
-    return proposals.find(
-      (p) => String(p.id ?? p.proposalId ?? p.ProposalID) === pid
-    );
-  }, [proposals, id]);
-
-  const handleSetSelectedProposalId = (newId) => {
-    setSelectedId(newId);
-    navigate(`/proposal-detail/${newId}`);
-  };
-
+  // =========================================================
+  // EARLY RETURN (Nếu chưa chọn đề tài)
+  // =========================================================
   if (!selectedProposal) {
     return (
       <div style={{ padding: "20px", textAlign: "center" }}>
@@ -153,18 +216,18 @@ function Proposaldetail() {
     );
   }
 
-  const pid =
-    selectedProposal.id ??
-    selectedProposal.proposalId ??
-    selectedProposal.ProposalID;
+  // =========================================================
+  // CHUẨN BỊ DỮ LIỆU HIỂN THỊ CHI TIẾT
+  // =========================================================
 
   const title =
     selectedProposal.title ??
     selectedProposal.proposalTitle ??
-    "(Không có tiêu đề)";
+    "Proposal_Document";
 
   const mentor = selectedProposal.mentor ?? selectedProposal.mentorName ?? "";
-
+  const displayFileName = title.endsWith(".pdf") ? title : `${title}.pdf`;
+  
   const registerDate =
     selectedProposal.registerDate ??
     selectedProposal.submittedDate ??
@@ -173,7 +236,6 @@ function Proposaldetail() {
     selectedProposal.createdAt ??
     "";
 
-  // Thêm approvedDate nếu cần hiển thị ngày duyệt
   const approvedDate =
     selectedProposal.approveDate ||
     selectedProposal.approvedDate ||
@@ -184,18 +246,13 @@ function Proposaldetail() {
   const goals = Array.isArray(selectedProposal.goals)
     ? selectedProposal.goals
     : [];
-  const technologies = Array.isArray(selectedProposal.technologies)
-    ? selectedProposal.technologies
-    : [];
-
+  
   const members =
     (Array.isArray(selectedProposal.members) && selectedProposal.members) ||
-    (Array.isArray(selectedProposal.teamMembers) &&
-      selectedProposal.teamMembers) ||
+    (Array.isArray(selectedProposal.teamMembers) && selectedProposal.teamMembers) ||
     (Array.isArray(selectedProposal.students) && selectedProposal.students) ||
     [];
 
-  // 🔗 PDF URL
   const rawDriveUrl =
     selectedProposal.GoogleDriveUrl ||
     selectedProposal.googleDriveUrl ||
@@ -219,6 +276,7 @@ function Proposaldetail() {
   const isApproved = statusKey === "approved";
   const isRejected = statusKey === "reject";
 
+  // --- BUTTON ACTIONS ---
   const handleApprove = () => {
     if (typeof approveProposal === "function") {
       approveProposal(pid).then(() => navigate("/proposals"));
@@ -231,8 +289,12 @@ function Proposaldetail() {
     }
   };
 
-  const handleDelete = () => {
-    if (!confirm("Bạn có chắc chắn muốn xóa?")) return;
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    setIsDeleteModalOpen(false);
     if (typeof deleteProposal === "function") {
       deleteProposal(pid).then((result) => {
         if (result.success) {
@@ -243,56 +305,6 @@ function Proposaldetail() {
       });
     }
   };
-
-  // Handle AI Summarize
-  const handleSummarize = async (forceRefresh = false) => {
-    if (isSummarizing) return;
-
-    setIsSummarizing(true);
-    setSummaryError(null);
-
-    try {
-      const result = await summarizeProposal(pid, forceRefresh);
-      console.log("AI Summary API Response:", result);
-      console.log("AI Summary Data:", result.data);
-      console.log("From cache:", result.cached);
-
-      if (result.success && result.data) {
-        setAiSummary(result.data);
-      } else {
-        setSummaryError(result.message || "Không thể tóm tắt đề tài");
-      }
-    } catch (error) {
-      console.error("AI Summary Error:", error);
-      setSummaryError(error.message || "Có lỗi xảy ra khi tóm tắt");
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
-
-  // Auto-summarize when proposal changes (has valid pid)
-  useEffect(() => {
-    // Reset ref when pid changes to a different proposal
-    if (
-      summarizeCalledRef.current !== null &&
-      summarizeCalledRef.current !== pid
-    ) {
-      summarizeCalledRef.current = null;
-      setAiSummary(null);
-      setSummaryError(null);
-    }
-
-    // Skip if already called for this proposal or currently summarizing
-    if (summarizeCalledRef.current === pid || isSummarizing) {
-      return;
-    }
-
-    // Auto-trigger summarization when proposal is loaded
-    if (pid && selectedProposal) {
-      summarizeCalledRef.current = pid; // Mark as called
-      handleSummarize();
-    }
-  }, [pid, selectedProposal?.id]);
 
   return (
     <>
@@ -307,10 +319,14 @@ function Proposaldetail() {
         <HeaderDetail />
         <div className={styles["container"]}>
           <div className={styles["left-content"]}>
+            
+            {/* 4. TRUYỀN HÀM setSearchTerm VÀO COMPONENT TÌM KIẾM */}
             <ProposalSearch onSearch={setSearchTerm} />
+            
             <div className={styles["Proposal-details-card"]}>
+              {/* 5. TRUYỀN filteredProposals VÀO LIST THAY VÌ proposals GỐC */}
               <CardDetailsList
-                proposals={proposals}
+                proposals={filteredProposals}
                 selectedProposalId={selectedId}
                 setSelectedProposalId={handleSetSelectedProposalId}
               />
@@ -320,36 +336,24 @@ function Proposaldetail() {
           <div className={styles["right-content"]}>
             <div className={styles["right-content-overview-card"]}>
               <div className={styles["right-content-overview-card-header"]}>
-                <div
-                  className={styles["right-content-overview-card-header-left"]}
-                >
-                  <span
-                    className={styles["DetailsCard-id"]}
-                    style={{ marginRight: "10px" }}
-                  >
+                <div className={styles["right-content-overview-card-header-left"]}>
+                  <span className={styles["DetailsCard-id"]} style={{ marginRight: "10px" }}>
                     {pid}
                   </span>
-                  <span
-                    className={`${styles["DetailsCard-status"]} ${badgeClass}`}
-                  >
+                  <span className={`${styles["DetailsCard-status"]} ${badgeClass}`}>
                     {statusLabel}
                   </span>
                 </div>
 
-                <div
-                  className={styles["right-content-overview-card-header-right"]}
-                >
+                <div className={styles["right-content-overview-card-header-right"]}>
                   {isWaiting && (
-                    <ApprovedButton
-                      onClick={handleApprove}
-                      disabled={isLoading}
-                    />
+                    <ApprovedButton onClick={handleApprove} disabled={isLoading} />
                   )}
                   {isWaiting && (
                     <RejectButton onClick={handleReject} disabled={isLoading} />
                   )}
                   {(isApproved || isRejected) && (
-                    <DeleteButton onClick={handleDelete} disabled={isLoading} />
+                    <DeleteButton onClick={handleDeleteClick} disabled={isLoading} />
                   )}
                 </div>
               </div>
@@ -363,26 +367,19 @@ function Proposaldetail() {
                     className={styles["DetailsCard-avatar"]}
                   />
                   <div className={styles["overview-card-wrapper-info-text"]}>
-                    {/* 2. Áp dụng formatName cho Mentor */}
-                    <p
-                      className={styles["DetailsCard-mentor"]}
-                      style={{ color: "#000" }}
-                    >
+                    <p className={styles["DetailsCard-mentor"]} style={{ color: "#000" }}>
                       GVHD: {formatName(mentor)}
                     </p>
 
-                    {/* 3. Áp dụng formatDate cho ngày đăng ký */}
-                    <p
-                      className={styles["DetailsCard-date"]}
-                      style={{ marginBottom: 0 }}
-                    >
+                    <p className={styles["DetailsCard-date"]} style={{ marginBottom: 0 }}>
                       Ngày đăng ký: {formatDate(registerDate)}
                     </p>
-
-                    {/* Nếu muốn hiển thị thêm ngày duyệt thì mở dòng này */}
-                    {/* <p className={styles["DetailsCard-date"]}>
-                        Ngày duyệt: {formatDate(approvedDate)}
-                     </p> */}
+                    
+                    {approvedDate && !String(approvedDate).startsWith("0001") && (
+                       <p className={styles["DetailsCard-date"]}>
+                          Ngày duyệt: {formatDate(approvedDate)}
+                       </p>
+                    )}
                   </div>
                 </span>
 
@@ -391,44 +388,19 @@ function Proposaldetail() {
                 </h1>
                 <ul className={styles["overview-card-member-info-list"]}>
                   {members.map((m, index) => {
-                    // 4. Áp dụng formatName cho từng thành viên
                     const name = formatName(m);
-
-                    const code =
-                      typeof m === "string"
-                        ? ""
-                        : m.studentCode || m.mssv || "";
+                    const code = typeof m === "string" ? "" : m.studentCode || m.mssv || "";
                     return (
-                      <li
-                        key={index}
-                        className={styles["overview-card-member-info-item"]}
-                      >
+                      <li key={index} className={styles["overview-card-member-info-item"]}>
                         <img
-                          src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${
-                            (index % 5) + 1
-                          }.png`}
+                          src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${(index % 5) + 1}.png`}
                           alt="avatar-member"
                           className={styles["overview-card-member-info-avatar"]}
                         />
-                        <div
-                          className={
-                            styles["overview-card-member-info-item-text"]
-                          }
-                        >
-                          <p
-                            className={styles["overview-card-member-info-name"]}
-                          >
-                            {name}
-                          </p>
-                          <p
-                            className={
-                              styles["overview-card-member-student-id"]
-                            }
-                          >
-                            {code ||
-                              `28211134${(100 + index)
-                                .toString()
-                                .padStart(3, "0")}`}
+                        <div className={styles["overview-card-member-info-item-text"]}>
+                          <p className={styles["overview-card-member-info-name"]}>{name}</p>
+                          <p className={styles["overview-card-member-student-id"]}>
+                            {code || `28211134${(100 + index).toString().padStart(3, "0")}`}
                           </p>
                         </div>
                       </li>
@@ -438,78 +410,46 @@ function Proposaldetail() {
               </div>
             </div>
 
-            {/* Loading state when summarizing */}
+            {/* AI Summary Section */}
             {isSummarizing && (
               <div className={styles["ai-summary-loading-card"]}>
-                <FontAwesomeIcon
-                  icon={faSpinner}
-                  spin
-                  size="2x"
-                  className={styles["ai-loading-icon"]}
-                />
+                <FontAwesomeIcon icon={faSpinner} spin size="2x" className={styles["ai-loading-icon"]} />
                 <p>Đang đọc và phân tích file PDF bằng AI...</p>
-                <p className={styles["ai-loading-hint"]}>
-                  Quá trình này có thể mất vài giây
-                </p>
+                <p className={styles["ai-loading-hint"]}>Quá trình này có thể mất vài giây</p>
               </div>
             )}
 
-            {/* Error state */}
             {summaryError && (
               <div className={styles["ai-summary-error-card"]}>
                 <p>⚠️ {summaryError}</p>
-                <button
-                  onClick={handleSummarize}
-                  className={styles["retry-btn"]}
-                >
+                <button onClick={handleSummarize} className={styles["retry-btn"]}>
                   Thử lại
                 </button>
               </div>
             )}
 
-            {/* Collapsible Sections - Show when AI summary is ready */}
             {!isSummarizing && !summaryError && (
               <>
-                {/* Mô tả đồ án */}
                 <div className={styles["collapsible-card"]}>
-                  <div
-                    className={styles["collapsible-header"]}
-                    onClick={() => toggleSection("description")}
-                  >
+                  <div className={styles["collapsible-header"]} onClick={() => toggleSection("description")}>
                     <h3>Mô tả đồ án</h3>
                     <FontAwesomeIcon
-                      icon={
-                        expandedSections.description
-                          ? faChevronUp
-                          : faChevronDown
-                      }
+                      icon={expandedSections.description ? faChevronUp : faChevronDown}
                       className={styles["collapse-icon"]}
                     />
                   </div>
                   {expandedSections.description && (
                     <div className={styles["collapsible-content"]}>
-                      <p>
-                        {aiSummary?.summaries?.Abstract ||
-                          summary ||
-                          "Đang chờ phân tích từ AI..."}
-                      </p>
+                      <p>{aiSummary?.summaries?.Abstract || summary || "Đang chờ phân tích từ AI..."}</p>
                     </div>
                   )}
                 </div>
 
-                {/* Mục tiêu đồ án */}
                 <div className={styles["collapsible-card"]}>
-                  <div
-                    className={styles["collapsible-header"]}
-                    onClick={() => toggleSection("objectives")}
-                  >
+                  <div className={styles["collapsible-header"]} onClick={() => toggleSection("objectives")}>
                     <h3>Mục tiêu đồ án</h3>
                     <FontAwesomeIcon
-                      icon={
-                        expandedSections.objectives
-                          ? faChevronUp
-                          : faChevronDown
-                      }
+                      icon={expandedSections.objectives ? faChevronUp : faChevronDown}
                       className={styles["collapse-icon"]}
                     />
                   </div>
@@ -517,51 +457,32 @@ function Proposaldetail() {
                     <div className={styles["collapsible-content"]}>
                       <p>
                         {aiSummary?.summaries?.Objectives ||
-                          (goals.length > 0
-                            ? goals.join(", ")
-                            : "Đang chờ phân tích từ AI...")}
+                          (goals.length > 0 ? goals.join(", ") : "Đang chờ phân tích từ AI...")}
                       </p>
                     </div>
                   )}
                 </div>
 
-                {/* Phương pháp */}
                 <div className={styles["collapsible-card"]}>
-                  <div
-                    className={styles["collapsible-header"]}
-                    onClick={() => toggleSection("methodology")}
-                  >
+                  <div className={styles["collapsible-header"]} onClick={() => toggleSection("methodology")}>
                     <h3>Phương pháp</h3>
                     <FontAwesomeIcon
-                      icon={
-                        expandedSections.methodology
-                          ? faChevronUp
-                          : faChevronDown
-                      }
+                      icon={expandedSections.methodology ? faChevronUp : faChevronDown}
                       className={styles["collapse-icon"]}
                     />
                   </div>
                   {expandedSections.methodology && (
                     <div className={styles["collapsible-content"]}>
-                      <p>
-                        {aiSummary?.summaries?.Methodology ||
-                          "Đang chờ phân tích từ AI..."}
-                      </p>
+                      <p>{aiSummary?.summaries?.Methodology || "Đang chờ phân tích từ AI..."}</p>
                     </div>
                   )}
                 </div>
 
-                {/* Từ khóa */}
                 <div className={styles["collapsible-card"]}>
-                  <div
-                    className={styles["collapsible-header"]}
-                    onClick={() => toggleSection("keywords")}
-                  >
+                  <div className={styles["collapsible-header"]} onClick={() => toggleSection("keywords")}>
                     <h3>Từ khóa</h3>
                     <FontAwesomeIcon
-                      icon={
-                        expandedSections.keywords ? faChevronUp : faChevronDown
-                      }
+                      icon={expandedSections.keywords ? faChevronUp : faChevronDown}
                       className={styles["collapse-icon"]}
                     />
                   </div>
@@ -582,26 +503,17 @@ function Proposaldetail() {
                   )}
                 </div>
 
-                {/* Lĩnh vực nghiên cứu */}
                 <div className={styles["collapsible-card"]}>
-                  <div
-                    className={styles["collapsible-header"]}
-                    onClick={() => toggleSection("researchAreas")}
-                  >
+                  <div className={styles["collapsible-header"]} onClick={() => toggleSection("researchAreas")}>
                     <h3>Lĩnh vực nghiên cứu</h3>
                     <FontAwesomeIcon
-                      icon={
-                        expandedSections.researchAreas
-                          ? faChevronUp
-                          : faChevronDown
-                      }
+                      icon={expandedSections.researchAreas ? faChevronUp : faChevronDown}
                       className={styles["collapse-icon"]}
                     />
                   </div>
                   {expandedSections.researchAreas && (
                     <div className={styles["collapsible-content"]}>
-                      {aiSummary?.researchAreas &&
-                      aiSummary.researchAreas.length > 0 ? (
+                      {aiSummary?.researchAreas && aiSummary.researchAreas.length > 0 ? (
                         <div className={styles["area-tags"]}>
                           {aiSummary.researchAreas.map((area, index) => (
                             <span key={index} className={styles["area-tag"]}>
@@ -619,52 +531,20 @@ function Proposaldetail() {
             )}
 
             <div className={styles["right-content-document-card"]}>
-              <h3 className={styles["right-content-document-card-title"]}>
-                Tài liệu đính kèm
-              </h3>
+              <h3 className={styles["right-content-document-card-title"]}>Tài liệu đính kèm</h3>
               <ul className={styles["right-content-document-card-list"]}>
                 {pdfUrl ? (
                   <li className={styles["right-content-document-card-item"]}>
-                    <div
-                      className={
-                        styles["right-content-document-card-item-content"]
-                      }
-                    >
-                      <span
-                        className={
-                          styles[
-                            "right-content-document-card-item-content-icon"
-                          ]
-                        }
-                      >
+                    <div className={styles["right-content-document-card-item-content"]}>
+                      <span className={styles["right-content-document-card-item-content-icon"]}>
                         <FontAwesomeIcon icon={faFile} />
                       </span>
-                      <span
-                        className={
-                          styles[
-                            "right-content-document-card-item-content-wrapper"
-                          ]
-                        }
-                      >
-                        <p
-                          className={
-                            styles[
-                              "right-content-document-card-item-content-text"
-                            ]
-                          }
-                        >
-                          Tài liệu đề xuất
+                      <span className={styles["right-content-document-card-item-content-wrapper"]}>
+                        <p className={styles["right-content-document-card-item-content-text"]}>
+                          {displayFileName}
                         </p>
-                        <p
-                          className={
-                            styles[
-                              "right-content-document-card-item-content-number"
-                            ]
-                          }
-                        >
-                          {String(pdfUrl).toLowerCase().includes("/file/d/")
-                            ? "PDF"
-                            : "File"}
+                        <p className={styles["right-content-document-card-item-content-number"]}>
+                          {String(pdfUrl).toLowerCase().includes("/file/d/") ? "PDF" : "File"}
                         </p>
                       </span>
                     </div>
@@ -672,24 +552,14 @@ function Proposaldetail() {
                       href={pdfUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={
-                        styles["right-content-document-card-item-button"]
-                      }
+                      className={styles["right-content-document-card-item-button"]}
                     >
                       <FontAwesomeIcon icon={faDownload} />
-                      <p
-                        className={
-                          styles["right-content-document-card-item-button-text"]
-                        }
-                      >
-                        Mở/Tải
-                      </p>
+                      <p className={styles["right-content-document-card-item-button-text"]}>Mở/Tải</p>
                     </a>
                   </li>
                 ) : (
-                  <p className={styles["no-document"]}>
-                    Chưa có tài liệu đính kèm.
-                  </p>
+                  <p className={styles["no-document"]}>Chưa có tài liệu đính kèm.</p>
                 )}
               </ul>
             </div>
@@ -697,6 +567,14 @@ function Proposaldetail() {
         </div>
         <AddProposalModal isOpen={isModalOpen} onClose={closeModal} />
       </div>
+
+      <ConfirmationDelModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Xóa Đề Tài?"
+        message="Bạn có chắc chắn muốn xóa đề tài này không? Dữ liệu sẽ bị mất vĩnh viễn."
+      />
     </>
   );
 }

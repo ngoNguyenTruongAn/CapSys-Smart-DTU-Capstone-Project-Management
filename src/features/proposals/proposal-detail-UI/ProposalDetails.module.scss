@@ -28,18 +28,50 @@
   gap: 12px;
 }
 
-/* Card nhỏ */
 .DetailsCard-wrapper {
-  background: #f9fbff;
+  background: #FFFFFF;
   border-radius: 8px;
   padding: 14px;
-  border-left: 4px solid transparent;
-  transition: 0.2s;
+  margin-bottom: 12px;
+  
+  /* Mặc định: Viền phải trong suốt (để giữ chỗ) */
+  border-right: 4px solid transparent; 
+  border-left: none; 
+  
+  /* Viền mờ xung quanh */
+  border-top: 1px solid #F3F4F6;
+  border-bottom: 1px solid #F3F4F6;
+  border-left: 1px solid #F3F4F6;
+  
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative; 
 }
 
+/* HIỆU ỨNG HOVER */
 .DetailsCard-wrapper:hover {
-  background: #eef4ff;
+  background: #FFF5F5; /* Nền ửng hồng */
+  border-right-color: #d82c2c; /* Hiện viền đỏ bên phải */
+  
+  /* Dịch chuyển sang phải 4px */
   transform: translateX(4px);
+  
+  box-shadow: 0 4px 12px rgba(216, 44, 44, 0.1); 
+}
+
+/* TRẠNG THÁI ACTIVE (Đang được chọn) */
+.DetailsCard-wrapper.active {
+  background: #FFF5F5; /* Giữ nền hồng */
+  
+  /* 1. Giữ viền đỏ bên phải */
+  border-right-color: #d82c2c; 
+  
+  /* 2. QUAN TRỌNG: Phải có dòng này để giữ thẻ nằm lệch sang phải */
+  transform: translateX(4px); 
+  
+  /* 3. Shadow đậm hơn chút để nhấn mạnh */
+  box-shadow: 0 4px 12px rgba(216, 44, 44, 0.15);
+  font-weight: 600; 
 }
 
 .DetailsCard-header {
@@ -69,7 +101,7 @@
 
 .status-approved {
   color: #26c55e;
-  background: #e6f9ed;
+  background: #cbe5d5;
   border-left-color: #26c55e;
   height: fit-content;
   width: fit-content;
@@ -125,7 +157,7 @@
 .right-content-goal-card,
 .right-content-technology-card,
 .right-content-document-card {
-  background-color: #d8e9fb;
+  
   padding: 32px;
   border-radius: 14px;
   box-shadow: 0px 4px 16px rgba(0, 0, 0, 0.12);
@@ -304,7 +336,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   color: var(--primary-color);
   cursor: pointer;
 }
@@ -630,109 +662,140 @@
   background: #b71c1c;
 }
 
+/* KHUNG BAO NGOÀI */
 .collapsible-card {
-  background: #e8f4fc;
-  margin: 0 0px 12px 0px;
-  border-radius: 12px;
+  background: #FFFFFF; /* ĐỔI: Chuyển hẳn sang trắng, bỏ màu xanh #e8f4fc cũ */
+  margin: 0 0 16px 0; /* Tăng khoảng cách dưới một chút cho thoáng */
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: none;
+  /* Viền mờ xung quanh để tạo khối rõ ràng trên nền nhạt */
+  border: 1px solid #F3F4F6; 
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
 }
 
 .collapsible-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px rgba(216, 44, 44, 0.1); /* Đổ bóng nhẹ màu đỏ khi hover card */
+  transform: translateY(-2px); /* Hiệu ứng nhấc nhẹ thẻ lên */
 }
 
+/* 1. KHUNG BAO NGOÀI (WRAPPER) */
+.collapsible-card {
+  background: #FFFFFF;
+  margin: 0 0 16px 0;
+  border-radius: 8px;
+  overflow: hidden; /* Quan trọng để bo góc không bị lòi */
+  
+  /* --- KEY CHANGE: Đưa viền đỏ ra đây --- */
+  border-left: 4px solid #d82c2c; 
+  
+  /* Viền mờ 3 cạnh còn lại */
+  border-top: 1px solid #F3F4F6;
+  border-right: 1px solid #F3F4F6;
+  border-bottom: 1px solid #F3F4F6;
+  
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.collapsible-card:hover {
+  box-shadow: 0 8px 16px rgba(216, 44, 44, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 2. TIÊU ĐỀ (HEADER) */
 .collapsible-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 18px 24px;
+  padding: 16px 24px;
   cursor: pointer;
-  background: #e8f4fc;
-  transition: background 0.2s;
+  background-color: #FFFFFF;
+  
+  /* --- Đã XÓA border-left ở đây để tránh bị trùng --- */
+  
+  /* Chỉ giữ border-bottom để ngăn cách với nội dung */
+  border-bottom: 1px solid #F3F4F6; 
+  transition: background 0.2s ease;
 }
 
 .collapsible-header:hover {
-  background: #d6ebf7;
+  background-color: #FFF5F5;
 }
 
 .collapsible-header h3 {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 600;
-  color: #333;
+  color: #d82c2c;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .collapse-icon {
-  color: #1a73e8;
+  color: #d82c2c; /* Đổi icon sang đỏ luôn cho đồng bộ */
   font-size: 1.2rem;
   transition: transform 0.3s ease;
 }
 
+/* 3. NỘI DUNG BÊN TRONG (BODY) */
+/* Đã gộp 2 đoạn code cũ của bạn thành 1 đoạn chuẩn duy nhất */
 .collapsible-content {
+  background-color: #FFFFFF; /* Màu trắng sạch */
   padding: 20px 24px;
-  background: #e8f4fc;
-  border-top: 1px solid #cce5f0;
+  
+  /* Animation trượt xuống */
   animation: slideDown 0.3s ease;
+  
+  /* Flexbox cho nội dung bên trong */
+  display: flex;
+  flex-direction: column; /* Xếp dọc (text ở trên, tags ở dưới) */
+  gap: 16px;
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .collapsible-content p {
-  font-size: 1.4rem;
-  line-height: 1.8;
-  color: #444;
+  font-size: 1.4rem; 
+  line-height: 1.6;
+  color: #4b5563; /* Màu xám đậm dễ đọc hơn đen tuyền */
   margin: 0;
 }
 
-.tech-tags,
-.keyword-tags,
+/* 4. CÁC TAGS (HIỂN THỊ DẠNG CHIP) */
+/* Class chung cho vùng chứa tags */
+.tech-tags, 
+.keyword-tags, 
 .area-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.tech-tag {
-  background-color: #d8e9fb;
-  color: #1565c0;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 1.3rem;
+
+.tag-chip, .tech-tag, .keyword-tag, .area-tag {
+  background-color: #FEF2F2; /* Nền đỏ nhạt */
+  color: #991B1B; 
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 0.9rem;
   font-weight: 500;
-  border: 1px solid #90caf9;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: default;
+  display: inline-block; /* Đảm bảo không bị vỡ layout */
+  font-size: 1.4rem;
 }
 
-.keyword-tag {
-  background-color: #d8e9fb;
-  color: black;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 1.3rem;
-  font-weight: 500;
-}
-
-.area-tag {
-  background-color: #d8e9fb;
-  color: black;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 1.3rem;
-  font-weight: 500;
+.tag-chip:hover, .tech-tag:hover, .keyword-tag:hover, .area-tag:hover {
+  background-color: #d82c2c;
+  color: #FFFFFF;
+  box-shadow: 0 2px 4px rgba(216, 44, 44, 0.3);
+  border-color: #d82c2c;
 }
 
 .refresh-summary-wrapper {
@@ -768,3 +831,7 @@
   box-shadow: none;
 }
 
+.right-content-document-card-item-button-text{
+  margin-bottom: 0;
+  font-size: 1.6rem;
+}
