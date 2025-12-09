@@ -18,7 +18,11 @@ import {
   fetchLecturers,
   getLecturerById as getLecturerByIdAction,
 } from "../../../../store/lecturerSlice";
-import { moveStudentToTeamAPI } from "../../../../services/TeamsAPI";
+import {
+  moveStudentToTeamAPI,
+  postRemoveStudentAPI,
+} from "../../../../services/TeamsAPI";
+import { getStudentByIdAPI } from "../../../../services/StudentsAPI";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./ActionModal.scss";
 
@@ -39,6 +43,10 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
   const [mentorCache, setMentorCache] = useState({}); // Cache mentor names để tránh fetch lại
   const [newStudentId, setNewStudentId] = useState(""); // ID sinh viên mới cần thêm
   const [isAddingStudent, setIsAddingStudent] = useState(false); // Trạng thái đang thêm sinh viên
+  const [studentPreview, setStudentPreview] = useState(null); // Thông tin sinh viên mới
+  const [studentLookupError, setStudentLookupError] = useState(""); // Lỗi khi tìm sinh viên
+  const [isCheckingStudent, setIsCheckingStudent] = useState(false); // Trạng thái kiểm tra ID
+  const [removingStudentId, setRemovingStudentId] = useState(null); // ID sinh viên đang xoá
 
   // Memoize renderStatusBadge để tránh tính toán lại mỗi render
   const renderStatusBadge = useMemo(() => {
@@ -82,6 +90,9 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
     } else if (!show) {
       setFormData(null);
       setNewStudentId(""); // Reset input khi đóng modal
+      setStudentPreview(null);
+      setStudentLookupError("");
+      setRemovingStudentId(null);
     }
   }, [teamId, show, dispatch]);
 
@@ -153,6 +164,54 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
     if (!isSaving) setShow(false);
   }, [isSaving, setShow]);
 
+  // Tự động tìm thông tin sinh viên khi nhập ID
+  useEffect(() => {
+    if (!newStudentId.trim()) {
+      setStudentPreview(null);
+      setRemovingStudentId(null);
+      setStudentLookupError("");
+      setIsCheckingStudent(false);
+      return;
+    }
+
+    const normalizedId = Number(newStudentId.trim());
+    if (Number.isNaN(normalizedId)) {
+      setStudentPreview(null);
+      setStudentLookupError("ID không hợp lệ");
+      setIsCheckingStudent(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setIsCheckingStudent(true);
+    setStudentLookupError("");
+    setStudentPreview(null);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const res = await getStudentByIdAPI(normalizedId);
+        if (!isCancelled) {
+          setStudentPreview(res.data || null);
+          setStudentLookupError("");
+        }
+      } catch (error) {
+        if (!isCancelled) {
+          setStudentPreview(null);
+          setStudentLookupError(error.message || "Không tìm thấy sinh viên");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsCheckingStudent(false);
+        }
+      }
+    }, 400); // debounce để tránh gọi API liên tục khi gõ
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [newStudentId]);
+
   // Handler để thêm thành viên vào team
   const handleAddStudent = useCallback(async () => {
     if (!newStudentId.trim() || !teamId) {
@@ -166,6 +225,8 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
       alert("Thêm thành viên thành công!");
       // Reset input
       setNewStudentId("");
+      setStudentPreview(null);
+      setStudentLookupError("");
       // Refresh lại dữ liệu team
       await dispatch(getTeamByIdAction(teamId));
       // Gọi callback để refresh danh sách nếu có
@@ -176,6 +237,30 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
       setIsAddingStudent(false);
     }
   }, [newStudentId, teamId, dispatch, onUpdated]);
+
+  // Xoá sinh viên khỏi nhóm
+  const handleRemoveStudent = useCallback(
+    async (studentId) => {
+      if (!teamId || !studentId) return;
+      const confirmRemove = window.confirm(
+        "Bạn có chắc muốn xoá sinh viên này khỏi nhóm?"
+      );
+      if (!confirmRemove) return;
+
+      try {
+        setRemovingStudentId(studentId);
+        await postRemoveStudentAPI(studentId);
+        alert("Đã xoá sinh viên khỏi nhóm!");
+        await dispatch(getTeamByIdAction(teamId));
+        if (onUpdated) onUpdated();
+      } catch (error) {
+        alert("Xoá thất bại: " + (error.message || "Lỗi không xác định"));
+      } finally {
+        setRemovingStudentId(null);
+      }
+    },
+    [teamId, dispatch, onUpdated]
+  );
 
   return (
     <Modal
@@ -330,6 +415,7 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
                   <th>Chuyên ngành</th>
                   <th>GPA</th>
                   <th>Email</th>
+                  <th>Hành động</th>
                 </tr>
               </thead>
               <tbody>
@@ -343,11 +429,35 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
                       <td>{s.major}</td>
                       <td>{s.gpa}</td>
                       <td>{s.email}</td>
+                      <td>
+                        {formData.teamLeaderId === s.studentId ? (
+                          <Badge bg="primary">Leader</Badge>
+                        ) : (
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            disabled={removingStudentId === s.studentId}
+                            onClick={() => handleRemoveStudent(s.studentId)}
+                          >
+                            {removingStudentId === s.studentId ? (
+                              <Spinner
+                                as="span"
+                                animation="border"
+                                size="sm"
+                                role="status"
+                                aria-hidden="true"
+                              />
+                            ) : (
+                              "Xoá"
+                            )}
+                          </Button>
+                        )}
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="text-center">
+                    <td colSpan={8} className="text-center">
                       Chưa có sinh viên nào trong nhóm.
                     </td>
                   </tr>
@@ -405,6 +515,24 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
                           Có thể thêm tối đa {5 - formData.students.length}{" "}
                           thành viên nữa.
                         </Form.Text>
+                        <div className="mt-1 small">
+                          {isCheckingStudent && (
+                            <span className="text-primary">
+                              Đang kiểm tra thông tin sinh viên...
+                            </span>
+                          )}
+                          {!isCheckingStudent && studentPreview && (
+                            <span className="text-success">
+                              {studentPreview.fullName || "Chưa rõ tên"} -{" "}
+                              {studentPreview.faculty || "Chưa rõ khoa"}
+                            </span>
+                          )}
+                          {!isCheckingStudent && studentLookupError && (
+                            <span className="text-danger">
+                              {studentLookupError}
+                            </span>
+                          )}
+                        </div>
                       </Form.Group>
                     </Col>
                   </Row>

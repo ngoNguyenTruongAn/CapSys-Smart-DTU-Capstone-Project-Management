@@ -28,18 +28,50 @@
   gap: 12px;
 }
 
-/* Card nhỏ */
 .DetailsCard-wrapper {
-  background: #f9fbff;
+  background: #FFFFFF;
   border-radius: 8px;
   padding: 14px;
-  border-left: 4px solid transparent;
-  transition: 0.2s;
+  margin-bottom: 12px;
+  
+  /* Mặc định: Viền phải trong suốt (để giữ chỗ) */
+  border-right: 4px solid transparent; 
+  border-left: none; 
+  
+  /* Viền mờ xung quanh */
+  border-top: 1px solid #F3F4F6;
+  border-bottom: 1px solid #F3F4F6;
+  border-left: 1px solid #F3F4F6;
+  
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative; 
 }
 
+/* HIỆU ỨNG HOVER */
 .DetailsCard-wrapper:hover {
-  background: #eef4ff;
+  background: #FFF5F5; /* Nền ửng hồng */
+  border-right-color: #d82c2c; /* Hiện viền đỏ bên phải */
+  
+  /* Dịch chuyển sang phải 4px */
   transform: translateX(4px);
+  
+  box-shadow: 0 4px 12px rgba(216, 44, 44, 0.1); 
+}
+
+/* TRẠNG THÁI ACTIVE (Đang được chọn) */
+.DetailsCard-wrapper.active {
+  background: #FFF5F5; /* Giữ nền hồng */
+  
+  /* 1. Giữ viền đỏ bên phải */
+  border-right-color: #d82c2c; 
+  
+  /* 2. QUAN TRỌNG: Phải có dòng này để giữ thẻ nằm lệch sang phải */
+  transform: translateX(4px); 
+  
+  /* 3. Shadow đậm hơn chút để nhấn mạnh */
+  box-shadow: 0 4px 12px rgba(216, 44, 44, 0.15);
+  font-weight: 600; 
 }
 
 .DetailsCard-header {
@@ -304,7 +336,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   color: var(--primary-color);
   cursor: pointer;
 }
@@ -375,7 +407,6 @@
   }
 }
 
-/* ========== Modal loading lock for form ========== */
 .formFieldset:disabled {
   cursor: progress;
 }
@@ -383,73 +414,424 @@
 .formFieldset:disabled * {
   pointer-events: none !important;
 }
-.right-content-document-card-item-button-text{
-  margin-bottom: 0;
-}
-/* --- Thêm vào cuối file ProposalDetails.module.scss --- */
 
-.DetailsList-container {
+.right-content-ai-summary-card {
+  background-color: #d8e9fb;
+  margin: 0 60px 20px 20px;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8f4fd;
+}
+
+.ai-summary-header {
   display: flex;
-  flex-direction: column;
-  height: 100%; /* Chiếm hết chiều cao cho phép */
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
 }
 
-.DetailsList-wrapper {
-  /* Cho phép danh sách cuộn nếu quá dài, nhưng ưu tiên phân trang hơn */
-  flex: 1; 
+.ai-summary-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #1a73e8;
   display: flex;
-  flex-direction: column;
-  gap: 15px; /* Khoảng cách giữa các card nhỏ */
-  margin-bottom: 20px;
+  align-items: center;
+  gap: 8px;
 }
 
-.empty-text {
-  padding: 20px;
+.ai-icon {
+  color: #1a73e8;
+}
+
+.ai-summarize-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #1a73e8 0%, #4285f4 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.3);
+}
+
+.ai-summarize-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1557b0 0%, #1a73e8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+}
+
+.ai-summarize-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.ai-summary-error {
+  background: #ffebee;
+  color: #c62828;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+  border-left: 4px solid #c62828;
+}
+
+.ai-summary-content {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.ai-summary-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: #333;
+  transition: background 0.2s;
+}
+
+.ai-summary-toggle:hover {
+  background: #e8f0fe;
+}
+
+.ai-summary-details {
+  margin-top: 16px;
+}
+
+.ai-summary-section {
+  background: #f8fbff;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border-left: 3px solid #1a73e8;
+}
+
+.ai-summary-section h4 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #1a73e8;
+  margin-bottom: 8px;
+}
+
+.ai-summary-section p {
+  font-size: 1.3rem;
+  line-height: 1.6;
+  color: #333;
+}
+
+.ai-keywords-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-keyword-tag {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1565c0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 1.2rem;
+  font-weight: 500;
+  border: 1px solid #90caf9;
+}
+
+.ai-area-tag {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: #2e7d32;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 1.2rem;
+  font-weight: 500;
+  border: 1px solid #a5d6a7;
+}
+
+.ai-summary-placeholder {
   text-align: center;
+  padding: 24px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+}
+
+.ai-summary-placeholder p {
+  font-size: 1.3rem;
   color: #666;
 }
 
-/* Style cho footer phân trang nhỏ gọn */
-.mini-pagination {
+/* AI Loading States */
+.ai-loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+  font-size: 1.2rem;
+  color: #1a73e8;
+  font-weight: 400;
+}
+
+.ai-summary-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background: linear-gradient(135deg, #f8fbff 0%, #e8f4fd 100%);
+  border-radius: 12px;
+  color: #1a73e8;
+}
+
+.ai-summary-loading p {
+  margin-top: 16px;
+  font-size: 1.4rem;
+  font-weight: 500;
+}
+
+.ai-loading-hint {
+  font-size: 1.2rem !important;
+  color: #666 !important;
+  font-weight: 400 !important;
+  margin-top: 8px !important;
+}
+
+/* ========== Collapsible Cards ========== */
+.ai-summary-loading-card {
+  background: linear-gradient(135deg, #f8fbff 0%, #e8f4fd 100%);
+  margin: 0 60px 20px 20px;
+  border-radius: 12px;
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.ai-summary-loading-card .ai-loading-icon {
+  color: #1a73e8;
+  margin-bottom: 16px;
+}
+
+.ai-summary-loading-card p {
+  font-size: 1.4rem;
+  color: #1a73e8;
+  font-weight: 500;
+  margin: 0;
+}
+
+.ai-summary-error-card {
+  background: #ffebee;
+  margin: 0 60px 20px 20px;
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 4px solid #c62828;
+}
+
+.ai-summary-error-card p {
+  font-size: 1.3rem;
+  color: #c62828;
+  margin: 0;
+}
+
+.retry-btn {
+  padding: 8px 16px;
+  background: #c62828;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: background 0.2s;
+}
+
+.retry-btn:hover {
+  background: #b71c1c;
+}
+
+/* KHUNG BAO NGOÀI */
+.collapsible-card {
+  background: #FFFFFF; /* ĐỔI: Chuyển hẳn sang trắng, bỏ màu xanh #e8f4fc cũ */
+  margin: 0 0 16px 0; /* Tăng khoảng cách dưới một chút cho thoáng */
+  border-radius: 8px;
+  overflow: hidden;
+  /* Viền mờ xung quanh để tạo khối rõ ràng trên nền nhạt */
+  border: 1px solid #F3F4F6; 
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.collapsible-card:hover {
+  box-shadow: 0 8px 16px rgba(216, 44, 44, 0.1); /* Đổ bóng nhẹ màu đỏ khi hover card */
+  transform: translateY(-2px); /* Hiệu ứng nhấc nhẹ thẻ lên */
+}
+
+/* 1. KHUNG BAO NGOÀI (WRAPPER) */
+.collapsible-card {
+  background: #FFFFFF;
+  margin: 0 0 16px 0;
+  border-radius: 8px;
+  overflow: hidden; /* Quan trọng để bo góc không bị lòi */
+  
+  /* --- KEY CHANGE: Đưa viền đỏ ra đây --- */
+  border-left: 4px solid #d82c2c; 
+  
+  /* Viền mờ 3 cạnh còn lại */
+  border-top: 1px solid #F3F4F6;
+  border-right: 1px solid #F3F4F6;
+  border-bottom: 1px solid #F3F4F6;
+  
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.collapsible-card:hover {
+  box-shadow: 0 8px 16px rgba(216, 44, 44, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 2. TIÊU ĐỀ (HEADER) */
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  cursor: pointer;
+  background-color: #FFFFFF;
+  
+  /* --- Đã XÓA border-left ở đây để tránh bị trùng --- */
+  
+  /* Chỉ giữ border-bottom để ngăn cách với nội dung */
+  border-bottom: 1px solid #F3F4F6; 
+  transition: background 0.2s ease;
+}
+
+.collapsible-header:hover {
+  background-color: #FFF5F5;
+}
+
+.collapsible-header h3 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #d82c2c;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.collapse-icon {
+  color: #d82c2c; /* Đổi icon sang đỏ luôn cho đồng bộ */
+  font-size: 1.2rem;
+  transition: transform 0.3s ease;
+}
+
+/* 3. NỘI DUNG BÊN TRONG (BODY) */
+/* Đã gộp 2 đoạn code cũ của bạn thành 1 đoạn chuẩn duy nhất */
+.collapsible-content {
+  background-color: #FFFFFF; /* Màu trắng sạch */
+  padding: 20px 24px;
+  
+  /* Animation trượt xuống */
+  animation: slideDown 0.3s ease;
+  
+  /* Flexbox cho nội dung bên trong */
+  display: flex;
+  flex-direction: column; /* Xếp dọc (text ở trên, tags ở dưới) */
+  gap: 16px;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.collapsible-content p {
+  font-size: 1.4rem; 
+  line-height: 1.6;
+  color: #4b5563; /* Màu xám đậm dễ đọc hơn đen tuyền */
+  margin: 0;
+}
+
+/* 4. CÁC TAGS (HIỂN THỊ DẠNG CHIP) */
+/* Class chung cho vùng chứa tags */
+.tech-tags, 
+.keyword-tags, 
+.area-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+
+.tag-chip, .tech-tag, .keyword-tag, .area-tag {
+  background-color: #FEF2F2; /* Nền đỏ nhạt */
+  color: #991B1B; 
+  padding: 6px 14px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: default;
+  display: inline-block; /* Đảm bảo không bị vỡ layout */
+  font-size: 1.4rem;
+}
+
+.tag-chip:hover, .tech-tag:hover, .keyword-tag:hover, .area-tag:hover {
+  background-color: #d82c2c;
+  color: #FFFFFF;
+  box-shadow: 0 2px 4px rgba(216, 44, 44, 0.3);
+  border-color: #d82c2c;
+}
+
+.refresh-summary-wrapper {
+  margin: 0 60px 20px 20px;
   display: flex;
   justify-content: center;
+}
+
+.refresh-summary-btn {
+  display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 10px 0;
-  border-top: 1px solid #eee; /* Đường kẻ ngăn cách với list */
-  margin-top: auto; /* Đẩy xuống đáy container */
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 25px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
 
-  .mini-btn {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #fff;
-    border: 1px solid #d9d9d9;
-    border-radius: 50%; /* Nút tròn cho đẹp */
-    cursor: pointer;
-    color: #555;
-    transition: all 0.2s;
+.refresh-summary-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
 
-    &:hover:not(:disabled) {
-      background-color: var(--primary-color);
-      color: #fff;
-      border-color: var(--primary-color);
-    }
+.refresh-summary-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  box-shadow: none;
+}
 
-    &:disabled {
-      background-color: #f5f5f5;
-      color: #ccc;
-      cursor: not-allowed;
-      border-color: #eee;
-    }
-  }
-
-  .mini-info {
-    font-size: 14px;
-    font-weight: 600;
-    color: #333;
-    user-select: none;
-  }
+.right-content-document-card-item-button-text{
+  margin-bottom: 0;
+  font-size: 1.6rem;
 }

@@ -7,6 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faChevronLeft,
   faChevronRight,
+  faFolderOpen, // <--- Import thêm icon Folder
 } from "@fortawesome/free-solid-svg-icons";
 
 // Cấu hình số lượng hiển thị trên 1 trang
@@ -24,33 +25,23 @@ export default function ProposalList() {
     error,
   } = useProposalsStore();
 
-  // State lưu trang hiện tại
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Tự động fetch data khi load trang
   useEffect(() => {
     fetchProposals();
   }, [fetchProposals]);
 
-  // Reset về trang 1 mỗi khi danh sách thay đổi
   useEffect(() => {
     setCurrentPage(1);
   }, [finalProposals, counts]);
 
-  // Bảo vệ: luôn đảm bảo là mảng
   const list = Array.isArray(finalProposals) ? finalProposals : [];
 
-  // --- LOGIC TÍNH TOÁN PHÂN TRANG ---
-  // Thêm "|| 1" để nếu list rỗng (0 item) thì vẫn tính là 1 trang => Footer luôn hiện số 1
   const totalPages = Math.ceil(list.length / ITEMS_PER_PAGE) || 1;
-  
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
-  
-  // Cắt danh sách
   const currentItems = list.slice(indexOfFirstItem, indexOfLastItem);
 
-  // Hàm chuyển trang
   const handlePageChange = (pageNumber) => {
     if (pageNumber < 1 || pageNumber > totalPages) return;
     setCurrentPage(pageNumber);
@@ -60,14 +51,20 @@ export default function ProposalList() {
     });
   };
 
-  // --- RENDER ---
-
   if (isLoading) {
-    return <p style={{ padding: 16 }}>Đang tải danh sách đề tài...</p>;
+    return (
+      <div className={styles["empty-state-container"]}>
+        <p>Đang tải danh sách đề tài...</p>
+      </div>
+    );
   }
 
   if (error) {
-    return <p style={{ padding: 16, color: "red" }}>Lỗi: {error}</p>;
+    return (
+      <div className={styles["empty-state-container"]}>
+        <p style={{ color: "#d82c2c" }}>Lỗi: {error}</p>
+      </div>
+    );
   }
 
   return (
@@ -80,8 +77,24 @@ export default function ProposalList() {
 
       <div className={styles["List-wrapper"]}>
         {currentItems.length === 0 ? (
-          <p style={{ padding: 16 }}>Không có đề tài nào phù hợp.</p>
+          // --- GIAO DIỆN EMPTY STATE MỚI ---
+          <div className={styles["empty-state-container"]}>
+            <div className={styles["empty-icon-wrapper"]}>
+              <FontAwesomeIcon
+                icon={faFolderOpen}
+                className={styles["empty-icon"]}
+              />
+            </div>
+            <h3 className={styles["empty-title"]}>
+              Không tìm thấy đề tài nào
+            </h3>
+            <p className={styles["empty-desc"]}>
+              Hiện chưa có dữ liệu hoặc không tìm thấy kết quả phù hợp với bộ
+              lọc hiện tại.
+            </p>
+          </div>
         ) : (
+          // --- DANH SÁCH ĐỀ TÀI ---
           currentItems.map((p) => (
             <ProposalCard
               key={p.id}
@@ -92,42 +105,42 @@ export default function ProposalList() {
         )}
       </div>
 
-      {/* --- FOOTER PHÂN TRANG (LUÔN HIỆN) --- */}
-      <div className={styles["pagination-container"]}>
-        {/* Nút Previous */}
-        <button
-          className={styles["pagination-btn"]}
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          <FontAwesomeIcon icon={faChevronLeft} /> Trước
-        </button>
+      {/* --- FOOTER PHÂN TRANG --- */}
+      {/* Chỉ hiện phân trang nếu có dữ liệu */}
+      {list.length > 0 && (
+        <div className={styles["pagination-container"]}>
+          <button
+            className={styles["pagination-btn"]}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <FontAwesomeIcon icon={faChevronLeft} /> Trước
+          </button>
 
-        {/* Danh sách số trang */}
-        {Array.from({ length: totalPages }, (_, index) => {
-          const pageNum = index + 1;
-          return (
-            <button
-              key={pageNum}
-              className={`${styles["pagination-number"]} ${
-                currentPage === pageNum ? styles["active"] : ""
-              }`}
-              onClick={() => handlePageChange(pageNum)}
-            >
-              {pageNum}
-            </button>
-          );
-        })}
+          {Array.from({ length: totalPages }, (_, index) => {
+            const pageNum = index + 1;
+            return (
+              <button
+                key={pageNum}
+                className={`${styles["pagination-number"]} ${
+                  currentPage === pageNum ? styles["active"] : ""
+                }`}
+                onClick={() => handlePageChange(pageNum)}
+              >
+                {pageNum}
+              </button>
+            );
+          })}
 
-        {/* Nút Next */}
-        <button
-          className={styles["pagination-btn"]}
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          Sau <FontAwesomeIcon icon={faChevronRight} />
-        </button>
-      </div>
+          <button
+            className={styles["pagination-btn"]}
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Sau <FontAwesomeIcon icon={faChevronRight} />
+          </button>
+        </div>
+      )}
     </>
   );
 }

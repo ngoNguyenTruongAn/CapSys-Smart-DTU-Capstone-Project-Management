@@ -28,9 +28,7 @@ function CardDetailsList({
   }
 
   // --- LOGIC PHÂN TRANG ---
-  // Luôn tính là ít nhất 1 trang để footer luôn hiện
   const totalPages = Math.ceil(proposals.length / ITEMS_PER_PAGE) || 1;
-  
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
   const currentItems = proposals.slice(indexOfFirstItem, indexOfLastItem);
@@ -38,46 +36,52 @@ function CardDetailsList({
   const handlePageChange = (pageNumber) => {
     if (pageNumber < 1 || pageNumber > totalPages) return;
     setCurrentPage(pageNumber);
-    // Với list bên cạnh (sidebar), thường không cần scroll window lên top
-    // hoặc có thể scroll container nếu cần.
   };
 
   return (
     <div className={styles["DetailsList-container"]}>
-      {/* Wrapper danh sách card */}
+      {/* Wrapper danh sách card: CHỈ LÀM NHIỆM VỤ CHỨA, KHÔNG XỬ LÝ CLICK */}
       <div className={styles["DetailsList-wrapper"]}>
-        {currentItems.map((p) => (
-          <CardDetails
-            key={p.id}
-            proposal={p}
-            selectedProposalId={selectedProposalId}
-            setSelectedProposalId={setSelectedProposalId}
-          />
-        ))}
+        {currentItems.map((p, index) => {
+          // Xử lý ID an toàn để làm key
+          const uniqueKey = p.id ?? p.proposalId ?? p.ProposalID ?? index;
+
+          return (
+            <CardDetails
+              key={uniqueKey}
+              proposal={p}
+              // Truyền props xuống để thằng con tự xử lý việc Active
+              selectedProposalId={selectedProposalId}
+              setSelectedProposalId={setSelectedProposalId}
+            />
+          );
+        })}
       </div>
 
-      {/* --- FOOTER PHÂN TRANG (SIDEBAR) --- */}
-      <div className={styles["mini-pagination"]}>
-        <button
-          className={styles["mini-btn"]}
-          onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          <FontAwesomeIcon icon={faChevronLeft} />
-        </button>
+      {/* --- FOOTER PHÂN TRANG --- */}
+      {totalPages > 1 && (
+        <div className={styles["mini-pagination"]}>
+          <button
+            className={styles["mini-btn"]}
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <FontAwesomeIcon icon={faChevronLeft} />
+          </button>
 
-        <span className={styles["mini-info"]}>
-          {currentPage} / {totalPages}
-        </span>
+          <span className={styles["mini-info"]}>
+            {currentPage} / {totalPages}
+          </span>
 
-        <button
-          className={styles["mini-btn"]}
-          onClick={() => handlePageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          <FontAwesomeIcon icon={faChevronRight} />
-        </button>
-      </div>
+          <button
+            className={styles["mini-btn"]}
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <FontAwesomeIcon icon={faChevronRight} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

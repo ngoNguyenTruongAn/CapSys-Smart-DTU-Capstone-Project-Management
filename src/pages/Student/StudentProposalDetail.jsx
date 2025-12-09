@@ -7,7 +7,6 @@ import { getStatusKey, getStatusLabel } from "../../features/proposals/proposals
 import StudentAddProposalModal from "../../features/proposals/layout-proposal-common/Modal/StudentAddProposalModal";
 import { useProposalsStore } from "../../services/ProposalAPI";
 
-// --- Helper Functions ---
 const formatName = (fullName) => {
   if (!fullName) return "---";
   if (typeof fullName !== "string") {
@@ -25,6 +24,19 @@ const formatDate = (value) => {
   if (!value || String(value).startsWith("0001-01-01")) return "---";
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? "---" : `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+};
+
+// Hàm parse keywords từ JSON string hoặc mảng
+const parseKeywords = (keywordsData) => {
+    if (!keywordsData) return [];
+    if (Array.isArray(keywordsData)) return keywordsData;
+    try {
+        // Nếu là string dạng '["A", "B"]' thì parse ra
+        return JSON.parse(keywordsData);
+    } catch (e) {
+        // Nếu là string thường ngăn cách dấu phẩy
+        return String(keywordsData).split(",").map(k => k.trim());
+    }
 };
 
 // --- API Calls ---
@@ -50,9 +62,10 @@ function StudentProposalDetail() {
   const [error, setError] = useState(null);
   const [isLeader, setIsLeader] = useState(false);
   const [isEmpty, setIsEmpty] = useState(false);
-const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  
   // Store để điều khiển Modal
-  const { isModalOpen, openModal, closeModal } = useProposalsStore();
+  const { isModalOpen, closeModal } = useProposalsStore();
 
   const loadData = async () => {
     try {
@@ -76,22 +89,8 @@ const [showModal, setShowModal] = useState(false);
       // Xử lý Team & Check Leader
       if (teamData) {
           setTeamInfo(teamData);
-          // Tìm user hiện tại trong list students để check role
-          // (API my-team thường trả về danh sách students kèm cờ isTeamLeader)
-          // Tuy nhiên ta cần biết user đang login là ai. 
-          // Cách đơn giản nhất: Check nếu email trong localStorage khớp với student nào đó trong list
-          const currentUserEmail = localStorage.getItem("email"); 
-          // Hoặc dựa vào logic Backend đã trả về flag isTeamLeader cho từng student
-          // Ta cần tìm student ứng với user hiện tại. 
-          // Tạm thời ta duyệt qua list, nếu thấy ai là leader thì bật flag cho phép hiện nút (nếu muốn Leader nào cũng thấy)
-          // NHƯNG ĐÚNG LOGIC: Chỉ user đang login LÀ Leader mới thấy.
-          
-          // Giả sử API my-profile trả về info của user đang login. 
-          // Để đơn giản, ta cho phép hiển thị nút nếu user thuộc nhóm (vì backend sẽ chặn khi upload nếu ko phải leader).
-          // Hoặc chính xác hơn:
           const myProfile = await fetchSafe("/student-portal/my-profile");
           if(myProfile && myProfile.team){
-             // Tìm bản thân trong team
              const me = myProfile.team.students.find(s => s.studentCode === myProfile.studentCode);
              if(me && me.isTeamLeader) setIsLeader(true);
           }
@@ -109,20 +108,19 @@ const [showModal, setShowModal] = useState(false);
     loadData();
   }, []);
 
-  // Callback khi tạo thành công để reload lại trang
+  // Reload khi đóng modal từ store (nếu dùng)
   useEffect(() => {
     if (!isModalOpen) {
-       // Khi đóng modal (có thể đã tạo xong), reload data
-       // Để tối ưu, có thể check flag success, nhưng reload đơn giản hơn
        loadData(); 
     }
   }, [isModalOpen]);
 
- const handleOpenModal = () => setShowModal(true);
+  const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
   const handleSuccess = () => {
-      loadData(); // Reload lại dữ liệu sau khi upload thành công
+      loadData(); 
   };
+
   if (loading) return (
     <div className={styles.loadingFullScreen} style={{color: "#333"}}>
       <FontAwesomeIcon icon={faSpinner} spin size="3x" /> <br/> Đang tải...
@@ -143,7 +141,7 @@ const [showModal, setShowModal] = useState(false);
                     onClick={handleOpenModal}
                     style={{
                         padding: "10px 20px", 
-                        backgroundColor: "var(--primary-color)", 
+                        backgroundColor: "#d82c2c", 
                         color: "white", 
                         border: "none", 
                         borderRadius: "6px",
@@ -161,11 +159,10 @@ const [showModal, setShowModal] = useState(false);
             <p>Vui lòng nhắc Trưởng nhóm đăng ký đề tài.</p>
         )}
 
-        {/* Modal Component */}
         <StudentAddProposalModal 
             isOpen={showModal} 
             onClose={handleCloseModal}
-            teamInfo={teamInfo} // Truyền thông tin nhóm vào để hiển thị
+            teamInfo={teamInfo}
             onSuccess={handleSuccess}
         />
       </div>
@@ -183,17 +180,29 @@ const [showModal, setShowModal] = useState(false);
   const { 
     id, title, status, createdDate, approvedDate, 
     description, rejectionReason, 
-    googleDriveUrl, googleDriveFileId 
+    googleDriveUrl, googleDriveFileId,
+    // Lấy dữ liệu AI (Check cả camelCase và PascalCase)
+    aiAbstract, AiAbstract,
+    aiObjectives, AiObjectives,
+    aiMethodology, AiMethodology,
+    aiExpectedResults, AiExpectedResults,
+    aiKeywords, AiKeywords
   } = proposal;
+
   const safeTitle = title || "Proposal_Document";
   const displayFileName = safeTitle.endsWith(".pdf") ? safeTitle : `${safeTitle}.pdf`;
   const mentorName = teamInfo?.mentorName || "---";
   const members = teamInfo?.students || [];
   
-  // Xử lý Công nghệ (Technologies)
-  // Backend hiện tại chưa trả về trường 'technologies'.
-  // Tạm thời lấy từ description hoặc ẩn đi.
-  const technologies = []; // Để trống để ẩn section này đi, tránh hiển thị lỗi.
+  // --- Ưu tiên hiển thị dữ liệu AI nếu có ---
+  const displayAbstract = AiAbstract || aiAbstract || description || "Chưa có mô tả chi tiết.";
+  const displayObjectives = AiObjectives || aiObjectives || "";
+  const displayMethodology = AiMethodology || aiMethodology || "";
+  const displayExpectedResults = AiExpectedResults || aiExpectedResults || "";
+  
+  // Xử lý Công nghệ (Từ khóa AI)
+  const rawKeywords = AiKeywords || aiKeywords;
+  const technologies = parseKeywords(rawKeywords);
 
   const pdfUrl = googleDriveUrl || (googleDriveFileId ? `https://drive.google.com/file/d/${googleDriveFileId}/view` : "");
   const statusKey = getStatusKey(status);
@@ -204,6 +213,7 @@ const [showModal, setShowModal] = useState(false);
     <div style={{ backgroundColor: "#EAF2FD", minHeight: "100vh", padding: "20px" }}>
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         
+        {/* Card Overview */}
         <div className={styles["right-content-overview-card"]}>
           <div className={styles["right-content-overview-card-header"]}>
             <div className={styles["right-content-overview-card-header-left"]}>
@@ -252,16 +262,50 @@ const [showModal, setShowModal] = useState(false);
           </div>
         </div>
 
+        {/* --- Card: Mô tả / Tóm tắt AI --- */}
         <div className={styles["right-content-discribe-card"]}>
-          <h3 className={styles["right-content-discribe-card-title"]}>Mô tả đồ án</h3>
-          <p className={styles["right-content-discribe-card-description"]}>{description || "Chưa có mô tả"}</p>
+          <h3 className={styles["right-content-discribe-card-title"]}>
+             Mô tả & Tóm tắt {AiAbstract && <span style={{fontSize: "0.8em", color: "#1677ff", marginLeft: "5px"}}><FontAwesomeIcon icon={faRobot} /> AI Generated</span>}
+          </h3>
+          <p className={styles["right-content-discribe-card-description"]} style={{whiteSpace: 'pre-line'}}>
+            {displayAbstract}
+          </p>
         </div>
+
+        {/* --- Card: Mục tiêu (Hiển thị nếu có) --- */}
+        {displayObjectives && (
+            <div className={styles["right-content-goal-card"]}>
+              <h3 className={styles["right-content-goal-card-title"]}>Mục tiêu đồ án</h3>
+              <p className={styles["right-content-discribe-card-description"]} style={{whiteSpace: 'pre-line'}}>
+                {displayObjectives}
+              </p>
+            </div>
+        )}
+
+        {/* --- Card: Phương pháp & Kết quả (Hiển thị nếu có) --- */}
+        {(displayMethodology || displayExpectedResults) && (
+            <div className={styles["right-content-discribe-card"]}>
+               <h3 className={styles["right-content-discribe-card-title"]}>Phương pháp & Kết quả</h3>
+               {displayMethodology && (
+                   <div style={{marginBottom: "15px"}}>
+                       <strong>Phương pháp:</strong>
+                       <p className={styles["right-content-discribe-card-description"]}>{displayMethodology}</p>
+                   </div>
+               )}
+               {displayExpectedResults && (
+                   <div>
+                       <strong>Kết quả mong đợi:</strong>
+                       <p className={styles["right-content-discribe-card-description"]}>{displayExpectedResults}</p>
+                   </div>
+               )}
+            </div>
+        )}
         
-        {/* Chỉ hiển thị Công nghệ nếu có dữ liệu */}
+        {/* --- Card: Công nghệ / Từ khóa AI --- */}
         {technologies.length > 0 && (
             <div className={styles["right-content-technology-card"]}>
               <h3 className={styles["right-content-technology-card-title"]}>
-                Công nghệ sử dụng
+                Công nghệ & Từ khóa
               </h3>
               <ul className={styles["right-content-technology-card-list"]}>
                 {technologies.map((tech, index) => (
@@ -273,6 +317,7 @@ const [showModal, setShowModal] = useState(false);
             </div>
         )}
 
+        {/* --- Card: Tài liệu --- */}
         <div className={styles["right-content-document-card"]}>
           <h3 className={styles["right-content-document-card-title"]}>Tài liệu đính kèm</h3>
           <ul className={styles["right-content-document-card-list"]}>

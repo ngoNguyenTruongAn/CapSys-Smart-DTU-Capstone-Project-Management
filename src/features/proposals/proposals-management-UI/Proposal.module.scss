@@ -390,3 +390,47 @@
     &:hover:not(.active) { border-color: var(--primary-color); color: var(--primary-color); }
   }
 }
+/* Empty State Container */
+.empty-state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background-color: #fff; /* Hoặc để trong suốt nếu muốn */
+  border-radius: 8px;
+  /* border: 1px dashed #e5e7eb;  Viền đứt nét tạo cảm giác "chờ điền vào" */
+  width: 100%;
+}
+
+.empty-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  background-color: #FFF5F5; /* Nền đỏ nhạt */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.empty-icon {
+  font-size: 5.5rem;
+  color: #d82c2c; /* Màu đỏ chủ đạo */
+  opacity: 0.8;
+}
+
+.empty-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.empty-desc {
+  font-size: 1.6rem;
+  color: #6B7280;
+  max-width: 400px;
+  line-height: 1.5;
+}

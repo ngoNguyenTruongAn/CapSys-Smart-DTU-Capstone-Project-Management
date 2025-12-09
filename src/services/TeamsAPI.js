@@ -169,11 +169,7 @@ const postMoveStudentAPI = async (studentIds, targetTeamId) => {
   } catch (error) {
     console.error("Error moving student:", error);
     // Nếu một yêu cầu thất bại, Promise.all sẽ reject
-    throw new Error(
-      error.response?.data?.message ||
-        error.message ||
-        "Lỗi khi di chuyển sinh viên."
-    );
+    throw new Error(error.response?.data?.message);
   }
 };
 
@@ -195,7 +191,9 @@ const postSwapStudentAPI = async (studentId1, studentId2) => {
 //Xóa SV khỏi team
 const postRemoveStudentAPI = async (studentId) => {
   try {
-    const response = await instance.post(`Teams/remove-student/${studentId}`);
+    const response = await instance.post(`Teams/remove-student`, {
+      studentId,
+    });
     return response.data;
   } catch (error) {
     throw new Error(
