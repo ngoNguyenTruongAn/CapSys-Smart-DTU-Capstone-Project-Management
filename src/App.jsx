@@ -21,6 +21,7 @@ import QuanLyHoiDong from "./pages/admin/QuanLyHoiDong/QuanLyHoiDong";
 import LecturersLayout from "./pages/Lecturers/LecturersLayout";
 import StudentLayout from "./pages/Student/StudentLayout";
 import StudentProposalDetail from "./pages/Student/StudentProposalDetail";
+import StudentDashboard from "./pages/Student/StudentDashboard";
 function App() {
   const dispatch = useDispatch();
 
@@ -59,6 +60,7 @@ function App() {
       </Route>
       <Route path="/student" element={<StudentLayout />}>
         {/* <Route index element={<Students />} /> */}
+        <Route index element={<StudentDashboard />} />
         <Route path="my-proposal" element={<StudentProposalDetail />} />
       </Route>
     </Routes>

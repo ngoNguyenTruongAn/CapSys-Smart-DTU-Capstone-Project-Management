@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import "./Navbar.scss";
-import logoCap from "../../assets/logo/Frame41.png";
+import logoCap from "../../assets/logo/logoDT-70.png";
 import Bell from "/src/assets/icon/Bell.svg?react";
 import MenuIcon from "/src/assets/icon/Menu_Alt_01.svg?react";
 import NotebookIcon from "/src/assets/icon/Notebook.svg?react";
