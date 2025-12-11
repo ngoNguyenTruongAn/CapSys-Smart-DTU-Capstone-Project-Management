@@ -20,6 +20,7 @@ import GradingPage from "./pages/grading/GradingPage";
 import QuanLyHoiDong from "./pages/admin/QuanLyHoiDong/QuanLyHoiDong";
 import LecturersLayout from "./pages/Lecturers/LecturersLayout";
 import StudentLayout from "./pages/Student/StudentLayout";
+import StudentTeamDetail from "./pages/Student/StudentTeamDetail";
 import StudentProposalDetail from "./pages/Student/StudentProposalDetail";
 import StudentDashboard from "./pages/Student/StudentDashboard";
 function App() {
@@ -61,7 +62,8 @@ function App() {
       <Route path="/student" element={<StudentLayout />}>
         {/* <Route index element={<Students />} /> */}
         <Route index element={<StudentDashboard />} />
-        <Route path="my-proposal" element={<StudentProposalDetail />} />
+        <Route path="do-an-cua-toi" element={<StudentTeamDetail />} />
+        
       </Route>
     </Routes>
   );

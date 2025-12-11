@@ -12,7 +12,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 // 1. Import Store mới
-import { useStudentPortalStore } from "../../services/StudentPortalStore";
+import { useStudentPortalStore } from "../../store/StudentPortalStore";
 
 export default function StudentDashboard() {
   // Lấy data từ Store
