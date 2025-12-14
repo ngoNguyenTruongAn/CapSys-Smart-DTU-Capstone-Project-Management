@@ -56,6 +56,7 @@ function App() {
 
       <Route path="/lecturer" element={<LecturersLayout />}>
         {/* <Route index element={<Lecturers />} /> */}
+        <Route path="cham-diem" element={<GradingPage />} />
       </Route>
       <Route path="/student" element={<StudentLayout />}>
         {/* <Route index element={<Students />} /> */}

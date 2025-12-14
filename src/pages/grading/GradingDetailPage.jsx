@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingDetailPage.module.css";
 import Toasts from "../../components/ui/Toasts.jsx";
@@ -130,40 +132,6 @@ const createDemoGrades = (criteriaList) => {
       criteriaGrades: normalizedGrades,
     };
   });
-};
-
-const createDemoSessionDetail = (grades = []) => {
-  const students = createDemoStudents().map((student) => {
-    const grade = grades.find((item) => item.studentId === student.studentId);
-    if (!grade) {
-      return student;
-    }
-    return {
-      ...student,
-      isGraded: true,
-      finalScore: grade.finalScore,
-      gradedDate: grade.gradedDate,
-    };
-  });
-
-  const gradedStudents = students.filter((student) => student.isGraded).length;
-
-  return {
-    sessionId: "demo-session",
-    sessionName: "Capstone Defense Demo",
-    description: "Demo grading session for TEAM_CAP2_005",
-    teamId: 203,
-    teamName: "TEAM_CAP2_005",
-    graderId: 5,
-    graderName: "Dr. Nguyen Van A",
-    sessionDate: "2024-01-15T14:30:00Z",
-    status: gradedStudents === students.length ? "Completed" : "Active",
-    isCompleted: gradedStudents === students.length,
-    createdDate: "2024-01-10T09:00:00Z",
-    totalStudents: students.length,
-    gradedStudents,
-    students,
-  };
 };
 
 const toScoreValue = (value) =>
@@ -1090,6 +1058,217 @@ export default function GradingDetailPage({
     }
   };
 
+  // ===================== EXPORT EXCEL FUNCTION =====================
+  const handleExportExcel = async () => {
+    try {
+      setSaving(true);
+      setError("");
+
+      // 1. Fetch the template file from public folder
+      const response = await fetch("/templates/GradingTemplate.xlsx");
+      if (!response.ok) {
+        throw new Error("Không thể tải file mẫu Excel.");
+      }
+      const templateBuffer = await response.arrayBuffer();
+
+      // 2. Load workbook from template
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(templateBuffer);
+
+      // 3. Get worksheets
+      const evalSheet = workbook.getWorksheet("EvaluationForm") || workbook.getWorksheet(1);
+      const mentorSheet = workbook.getWorksheet("Mentor comments") || workbook.getWorksheet(2);
+
+      if (!evalSheet) {
+        throw new Error("Không tìm thấy sheet EvaluationForm trong file mẫu.");
+      }
+
+      // ==================== SHEET 1: EvaluationForm ====================
+      // Header information
+      const projectName = sessionDetail?.sessionName || group?.project || sessionDetail?.description || "";
+      const mentorName = sessionDetail?.graderName || sessionDetail?.mentorName || "";
+      const teamName = sessionDetail?.teamName || group?.team || "";
+
+      // Row 6: Project name
+      evalSheet.getCell("C6").value = projectName;
+      // Row 8: Evaluator/Mentor
+      evalSheet.getCell("C8").value = mentorName;
+
+      // Team Members (rows 9-13)
+      const memberRows = [9, 10, 11, 12, 13];
+      students.forEach((student, index) => {
+        if (index < 5) {
+          const row = memberRows[index];
+          evalSheet.getCell(`C${row}`).value = student.fullName || "";
+          evalSheet.getCell(`F${row}`).value = student.studentCode || "";
+        }
+      });
+
+      // ==================== GRADING DATA ====================
+      // Map criteria to Excel rows based on the template structure
+      // The template has specific rows for each criterion
+      
+      // Helper function to get score for a criterion
+      const getTeamScore = (criteriaId) => {
+        const raw = teamScores[criteriaId];
+        if (hasNumericValue(raw)) return Number(raw);
+        // Try to get from gradeLookup
+        const firstStudentGrade = grades[0];
+        if (firstStudentGrade?.criteriaGrades) {
+          const found = firstStudentGrade.criteriaGrades.find(g => g.criteriaId === criteriaId);
+          if (found) return found.score;
+        }
+        return "";
+      };
+
+      const getPersonalScore = (studentId, criteriaId) => {
+        const form = forms[studentId];
+        if (form?.scores?.[criteriaId] && hasNumericValue(form.scores[criteriaId])) {
+          return Number(form.scores[criteriaId]);
+        }
+        const grade = gradeLookup[studentId];
+        if (grade?.criteriaGrades) {
+          const found = grade.criteriaGrades.find(g => g.criteriaId === criteriaId);
+          if (found) return found.score;
+        }
+        return "";
+      };
+
+      // Column mapping for team members (F=1, G=2, H=3, I=4, J=5)
+      const memberColumns = ["F", "G", "H", "I", "J"];
+
+      // Process criteria and fill scores
+      // Based on template structure from the image:
+      // Row 17: Software Engineering Practices - Team score in E, personal scores optional
+      // Row 18: Grade of SEP (weighted) - E column
+      // Row 19-21: Ideas and proposed solutions - E column for team
+      // Row 22: Grade of IPS - E column
+      // Row 23: Software process - E column
+      // Row 24: Grade of SP - E column
+      // Row 25-27: Artifacts - E column
+      // Row 28: Grade of Artifacts - E column
+      // Row 29-32: Teamwork and Communication - F,G,H,I,J for each member
+      // Row 33: Grades of Communication - F,G,H,I,J
+      // Row 34: Presentation - F,G,H,I,J
+      // Row 35: Grade of Presentation - F,G,H,I,J
+      // Row 36: Contribution % - F,G,H,I,J
+      // Row 38: Final Grade - F,G,H,I,J
+
+      // Map criteriaForScoring to template rows
+      criteriaForScoring.forEach((criterion) => {
+        const criteriaName = normalizeText(criterion.criteriaName);
+        const isTeamScope = criterion.scope !== CRITERION_SCOPE.PERSONAL;
+
+        // Determine which row to fill based on criteria name
+        let targetRow = null;
+        let isTeamColumn = isTeamScope;
+
+        if (criteriaName.includes("software engineering") || criteriaName.includes("sep")) {
+          targetRow = 17;
+        } else if (criteriaName.includes("ideas") || criteriaName.includes("proposed solution") || criteriaName.includes("ips")) {
+          targetRow = 19;
+        } else if (criteriaName.includes("software process") || criteriaName.includes("sp")) {
+          targetRow = 23;
+        } else if (criteriaName.includes("artifact")) {
+          targetRow = 25;
+        } else if (criteriaName.includes("teamwork") || criteriaName.includes("communication")) {
+          targetRow = 29;
+          isTeamColumn = false; // Personal scores
+        } else if (criteriaName.includes("presentation")) {
+          targetRow = 34;
+          isTeamColumn = false; // Personal scores
+        }
+
+        if (targetRow) {
+          if (isTeamColumn) {
+            // Fill team score in column E
+            const score = getTeamScore(criterion.criteriaId);
+            evalSheet.getCell(`E${targetRow}`).value = score;
+          } else {
+            // Fill personal scores for each member
+            students.forEach((student, idx) => {
+              if (idx < 5) {
+                const score = getPersonalScore(student.studentId, criterion.criteriaId);
+                evalSheet.getCell(`${memberColumns[idx]}${targetRow}`).value = score;
+              }
+            });
+          }
+        }
+      });
+
+      // Fill Contribution row (row 36)
+      students.forEach((student, idx) => {
+        if (idx < 5) {
+          const form = forms[student.studentId];
+          const contribution = form?.contributionPercentage || 
+            gradeLookup[student.studentId]?.contributionPercentage || "";
+          if (contribution) {
+            evalSheet.getCell(`${memberColumns[idx]}36`).value = `${contribution}%`;
+          }
+        }
+      });
+
+      // Fill Final Grade row (row 38)
+      studentSummaries.forEach((student, idx) => {
+        if (idx < 5 && typeof student.finalScore === "number") {
+          evalSheet.getCell(`${memberColumns[idx]}38`).value = student.finalScore;
+        }
+      });
+
+      // Fill Comments section (starting row 40)
+      const allComments = Object.entries(criterionComments)
+        .filter(([, comment]) => comment && comment.trim())
+        .map(([criteriaId, comment]) => {
+          const criterion = criteriaMap[criteriaId];
+          return `${criterion?.criteriaName || "Tiêu chí"}: ${comment}`;
+        })
+        .join("\n");
+      if (allComments) {
+        evalSheet.getCell("A40").value = allComments;
+      }
+
+      // ==================== SHEET 2: Mentor Comments ====================
+      if (mentorSheet) {
+        // Row 2: Group code
+        mentorSheet.getCell("B2").value = teamName;
+
+        // Student rows start at row 5
+        const commentStartRow = 5;
+        students.forEach((student, idx) => {
+          const row = commentStartRow + idx;
+          mentorSheet.getCell(`A${row}`).value = idx + 1; // STT
+          mentorSheet.getCell(`B${row}`).value = student.fullName || "";
+          // Comments column C - leave empty or fill if you have individual comments
+          // mentorSheet.getCell(`C${row}`).value = "";
+        });
+
+        // Date row (approximately row 11 based on template)
+        const today = new Date();
+        const dateStr = `${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
+        mentorSheet.getCell("C11").value = `Date: ${dateStr}`;
+
+        // Signature row (row 13)
+        mentorSheet.getCell("C13").value = mentorName;
+      }
+
+      // 4. Generate and download the file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const fileName = `KetQuaCham_${teamName || "Nhom"}_${formatDate(new Date()).replace(/\//g, "-")}.xlsx`;
+      saveAs(blob, fileName);
+
+      setSuccessMessage("Xuất file Excel thành công!");
+    } catch (err) {
+      console.error("Export Excel error:", err);
+      setErrors([err.message || "Không thể xuất file Excel. Vui lòng thử lại."]);
+    } finally {
+      setSaving(false);
+    }
+  };
+  // ===================== END EXPORT EXCEL =====================
+
   const handleScoreChange =
     (criteriaId, targetStudentId = null) =>
     (event) => {
@@ -1758,7 +1937,6 @@ export default function GradingDetailPage({
                   <div className={styles.colDesc}>
                     Team member contributed significantly to team's success (%)
                   </div>
-                  <div className={styles.gradeIPS}></div>
                 </div>
               </div>
               <div className={`${styles.gridCell} ${styles.colIps}`}></div>
@@ -1875,6 +2053,16 @@ export default function GradingDetailPage({
               disabled={saving}
             >
               Nhận xét
+            </button>
+          </div>
+          <div>
+            <button
+              className={`${styles.btn} ${styles.btnSecondary}`}
+              type="button"
+              onClick={handleExportExcel}
+              disabled={saving || !students.length}
+            >
+              Xuất Excel
             </button>
           </div>
           <div>
