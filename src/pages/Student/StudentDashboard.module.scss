@@ -1,0 +1,292 @@
+/* Container chính */
+.dashboard-wrapper {
+  padding: 24px 0;
+  font-family: 'Inter', sans-serif;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Header chào mừng */
+.welcome-section {
+  margin-bottom: 32px;
+  
+  h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 4px;
+
+    span {
+      color: #d82c2c; /* Tên sinh viên màu đỏ */
+    }
+  }
+
+  p {
+    color: #6b7280;
+    font-size: 1.4rem;
+  }
+}
+
+/* Grid Layout: Trái 2.5 phần - Phải 1 phần */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2.5fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 992px) {
+    grid-template-columns: 1fr; /* Mobile/Tablet về 1 cột */
+  }
+}
+
+/* --- COMMON CARD STYLE --- */
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  margin-bottom: 15px;
+  border: 1px solid #f3f4f6;
+  transition: transform 0.2s;
+
+  &:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #e5e7eb;
+
+  h3 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+  }
+
+  .icon-wrapper {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    
+    &.red { background: #FFF5F5; color: #d82c2c;font-size: 2rem; }
+    &.blue { background: #EFF6FF; color: #3B82F6; ; font-size: 2rem; }
+    &.yellow { background: #FFFBEB; color: #D97706; font-size: 2rem;  }
+  }
+}
+
+/* --- LEFT COLUMN: TIMELINE & NOTIFICATIONS --- */
+.timeline-steps {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-top: 20px;
+  font-size: 1.6rem;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #e5e7eb;
+    z-index: 0;
+  }
+}
+
+.step-item {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  flex: 1;
+
+
+  .step-circle {
+    width: 32px;
+    height: 32px;
+    background: #e5e7eb;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #6b7280;
+    border: 3px solid #fff;
+    transition: all 0.3s;
+  }
+
+  .step-label {
+    font-size: 1.2rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  /* Active State */
+  &.active {
+    .step-circle {
+      background: #d82c2c;
+      color: white;
+      box-shadow: 0 0 0 3px rgba(216, 44, 44, 0.2);
+      padding: auto;
+    }
+    .step-label {
+      color: #d82c2c;
+      font-weight: 700;
+      padding: auto;
+    }
+  }
+
+  /* Completed State */
+  &.completed {
+    .step-circle {
+      background: #10B981;
+      color: white;
+      padding: auto;
+    }
+  }
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.noti-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #fff;
+    border-left-color: #d82c2c;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  }
+
+  .noti-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    min-width: 60px;
+    height: fit-content;
+
+    .day { font-size: 1.2rem; font-weight: 800; color: #d82c2c; }
+    .month { font-size: 0.75rem; text-transform: uppercase; color: #6b7280; }
+  }
+
+  .noti-content {
+    h4 { margin: 0 0 4px 0; font-size: 1rem; color: #111827; }
+    p { margin: 0; font-size: 0.9rem; color: #4b5563; line-height: 1.4; }
+  }
+}
+
+/* --- RIGHT COLUMN: STATUS CARDS --- */
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* 4 cột cho avatar */
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.member-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  
+  img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 4px;
+  }
+  
+  span {
+    font-size: 1.2rem;
+    color: #4b5563;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+}
+
+.empty-slot {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px dashed #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  background: #f9fafb;
+}
+
+.proposal-info {
+  margin-top: 10px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  
+  .label { color: #6b7280; }
+  .value { font-weight: 600; color: #111827; text-align: right; }
+}
+
+.status-badge {
+  padding: 8px 10px;
+  border-radius: 20px;
+  font-size: 1.2rem;
+  font-weight: 600;
+
+  &.pending { background: #FEF3C7; color: #D97706; }
+  &.approved { background: #D1FAE5; color: #059669; }
+  &.rejected { background: #FEE2E2; color: #DC2626; }
+}
+
+.action-btn {
+  width: 100%;
+  padding: 10px;
+  background-color: #d82c2c;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 12px;
+  transition: background 0.2s;
+
+  &:hover {
+    background-color: #b91c1c;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

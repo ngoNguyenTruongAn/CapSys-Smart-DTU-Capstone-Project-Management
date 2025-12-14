@@ -7,6 +7,9 @@ import { useNavigate } from "react-router-dom";
 import { getAllLecturersAPI } from "../../../services/LecturersAPI";
 import { getAllStudentsAPI } from "../../../services/StudentsAPI";
 import { getAllTeamsAPI } from "../../../services/TeamsAPI";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPeopleLine,faPeopleRoof } from "@fortawesome/free-solid-svg-icons";
+import { faFile,faFolder } from "@fortawesome/free-regular-svg-icons";
 // import chart
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { TimelineLite, Power3 } from "gsap";
@@ -389,8 +392,8 @@ const TongQuan = () => {
       {/* Stats cards */}
       <div className="tq-stats">
         <div className="tq-stat-card">
-          <div className="tq-icon">
-            <img src={what} alt="students" />
+          <div className="tq-icon students">
+            <FontAwesomeIcon icon={faPeopleRoof} />
           </div>
           <div className="tq-info">
             <div className="tq-stat-title">Tổng sinh viên</div>
@@ -398,8 +401,8 @@ const TongQuan = () => {
           </div>
         </div>
         <div className="tq-stat-card">
-          <div className="tq-icon">
-            <img src={time} alt="teams" />
+          <div className="tq-icon capstone1">
+            <FontAwesomeIcon icon={faFile} />
           </div>
           <div className="tq-info">
             <div className="tq-stat-title">Tổng nhóm (Cap1)</div>
@@ -411,8 +414,8 @@ const TongQuan = () => {
           </div>
         </div>
         <div className="tq-stat-card">
-          <div className="tq-icon">
-            <img src={file} alt="teams" />
+          <div className="tq-icon capstone2">
+            <FontAwesomeIcon icon={faFolder} />
           </div>
           <div className="tq-info">
             <div className="tq-stat-title">Tổng nhóm (Cap2)</div>
@@ -424,8 +427,9 @@ const TongQuan = () => {
           </div>
         </div>
         <div className="tq-stat-card">
-          <div className="tq-icon">
-            <img src={what} alt="lecturers" />
+          <div className="tq-icon lecturers">
+            <FontAwesomeIcon icon={faPeopleLine} />
+            
           </div>
           <div className="tq-info">
             <div className="tq-stat-title">Giảng viên</div>
