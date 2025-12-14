@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Navbar.scss";
 import logoCap from "../../assets/logo/logoDT-70.png";
 import Bell from "/src/assets/icon/Bell.svg?react";
@@ -12,15 +12,78 @@ import ManageAcc from "/src/assets/icon/users.svg?react";
 import Proposal from "/src/assets/icon/check-square.svg?react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { LogoutAPI } from "../../services/AuthAPI";
-import { useSelector } from "react-redux";
-import { selectEmail, selectAccountType } from "../../store/authSlice";
+import {
+  getAdminProfileAPI,
+  getStudentProfileAPI,
+  getLecturerProfileAPI,
+} from "../../services/ProfileAPI";
+import { getUserIdFromToken } from "./ProfileModal/utils";
 import ProfileModal from "./ProfileModal/ProfileModal";
+import LecturerProfileModal from "./LecturerProfileModal/LecturerProfileModal";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const email = useSelector(selectEmail);
-  const accountType = useSelector(selectAccountType);
+  // eslint-disable-next-line no-unused-vars
+  const [email, setEmail] = useState("");
+  const [accountType, setAccountType] = useState("");
   const [showProfile, setShowProfile] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [showLecturerProfile, setShowLecturerProfile] = useState(false);
+  // Lấy thông tin profile từ API khi component mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const storedAccountType =
+          localStorage.getItem("accountType") ||
+          sessionStorage.getItem("accountType");
+
+        if (!storedAccountType) {
+          return;
+        }
+
+        let profileData = null;
+
+        if (storedAccountType === "Admin") {
+          const accountId = getUserIdFromToken("Admin");
+          if (accountId) {
+            const response = await getAdminProfileAPI(accountId);
+            profileData = response?.data || response;
+          }
+        } else if (storedAccountType === "Student") {
+          const studentId = getUserIdFromToken("Student");
+          if (studentId) {
+            const response = await getStudentProfileAPI(studentId);
+            profileData = response?.data || response;
+          }
+        } else if (storedAccountType === "Lecturer") {
+          const lecturerId = getUserIdFromToken("Lecturer");
+          if (lecturerId) {
+            const response = await getLecturerProfileAPI(lecturerId);
+            profileData = response?.data || response;
+          }
+        }
+
+        if (profileData) {
+          setEmail(profileData.email || "");
+          setAccountType(profileData.accountType || storedAccountType);
+          setFullName(profileData.fullName || "");
+        } else {
+          setAccountType(storedAccountType);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải thông tin profile:", error);
+        // Fallback về localStorage nếu có lỗi
+        setEmail(localStorage.getItem("email") || "");
+        setAccountType(
+          localStorage.getItem("accountType") ||
+            sessionStorage.getItem("accountType") ||
+            ""
+        );
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   const handleLogout = async () => {
     localStorage.removeItem("token");
@@ -217,10 +280,16 @@ const Navbar = () => {
 
           <div
             className="navbar__user-info"
-            onClick={() => setShowProfile(true)}
+            onClick={() => {
+              if (accountType === "Lecturer") {
+                setShowLecturerProfile(true);
+              } else {
+                setShowProfile(true);
+              }
+            }}
             style={{ cursor: "pointer" }}
           >
-            <span className="name">{email}</span>
+            <span className="name">{fullName}</span>
             <span className="role">{getAccountTypeLabel(accountType)}</span>
           </div>
         </div>
@@ -237,7 +306,22 @@ const Navbar = () => {
       </div>
 
       {showProfile ? (
-        <ProfileModal show={showProfile} setShow={setShowProfile} />
+        <ProfileModal
+          show={showProfile}
+          setShow={setShowProfile}
+          onProfileUpdate={(newFullName) => {
+            setFullName(newFullName);
+          }}
+        />
+      ) : null}
+      {showLecturerProfile ? (
+        <LecturerProfileModal
+          show={showLecturerProfile}
+          setShow={setShowLecturerProfile}
+          onProfileUpdate={(newFullName) => {
+            setFullName(newFullName);
+          }}
+        />
       ) : null}
     </nav>
   );

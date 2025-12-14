@@ -3,16 +3,24 @@ import { Modal, Form, Button, Tab, Tabs, Spinner } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./ProfileModal.scss";
 import {
-  getProfileAPI,
-  changePasswordAPI,
-  updateFullNameAPI,
-} from "../../../services/AuthAPI";
+  getAdminProfileAPI,
+  updateAdminProfileAPI,
+} from "../../../services/ProfileAPI";
+import { getUserIdFromToken } from "./utils";
 
-const ProfileModal = ({ show, setShow }) => {
+const ProfileModal = ({ show, setShow, onProfileUpdate }) => {
   const [profile, setProfile] = useState({
     email: "",
     accountType: "",
     accountId: null,
+    fullName: "",
+    createdDate: "",
+    adminInfo: {
+      adminId: null,
+      department: "",
+      phone: "",
+      position: "",
+    },
   });
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -53,28 +61,61 @@ const ProfileModal = ({ show, setShow }) => {
 
   // Lấy thông tin hồ sơ khi mở modal
   useEffect(() => {
-    const fetchProfile = async () => {
+    const loadProfile = async () => {
+      if (!show) return;
+
       try {
         setLoadingProfile(true);
-        const res = await getProfileAPI();
-        if (res?.data) {
+        const accountType =
+          localStorage.getItem("accountType") ||
+          sessionStorage.getItem("accountType");
+
+        if (accountType === "Admin") {
+          const accountId = getUserIdFromToken("Admin");
+          if (!accountId) {
+            throw new Error("Không thể lấy thông tin tài khoản");
+          }
+
+          const response = await getAdminProfileAPI(accountId);
+          // API trả về { success, message, data: { accountId, email, accountType, fullName, createdDate, adminInfo: {...} } }
+          const profileData = response?.data || response;
+          const adminInfo = profileData.adminInfo || {};
+
           setProfile({
-            email: res.data.email || "",
-            accountType: res.data.accountType || "",
-            accountId: res.data.accountId ?? null,
+            email: profileData.email || "",
+            accountType: profileData.accountType || accountType,
+            accountId: profileData.accountId || accountId,
+            fullName: profileData.fullName || "",
+            createdDate: profileData.createdDate || "",
+            adminInfo: {
+              adminId: adminInfo.adminId || null,
+              department: adminInfo.department || "",
+              phone: adminInfo.phone || "",
+              position: adminInfo.position || "",
+            },
           });
-          setFullName(res.data.fullName || "");
+          setFullName(profileData.fullName || "");
+        } else {
+          // Nếu không phải Admin, vẫn hiển thị thông tin cơ bản từ localStorage
+          const email = localStorage.getItem("email") || "";
+          setProfile({
+            email: email,
+            accountType: accountType || "",
+            accountId: null,
+            fullName: "",
+          });
         }
       } catch (error) {
-        console.error("Lỗi khi lấy thông tin hồ sơ:", error);
+        console.error("Lỗi khi tải thông tin hồ sơ:", error);
+        setSubmitError(
+          error.message || "Không thể tải thông tin hồ sơ. Vui lòng thử lại."
+        );
       } finally {
         setLoadingProfile(false);
       }
     };
 
-    if (show) {
-      fetchProfile();
-    }
+    loadProfile();
   }, [show]);
 
   // Hàm chuyển đổi accountType sang tiếng Việt
@@ -137,32 +178,8 @@ const ProfileModal = ({ show, setShow }) => {
       return;
     }
 
-    try {
-      setIsChangingPassword(true);
-      setSubmitError("");
-      const res = await changePasswordAPI(
-        passwordForm.currentPassword,
-        passwordForm.newPassword,
-        passwordForm.confirmPassword
-      );
-
-      alert(res?.message || "Đổi mật khẩu thành công!");
-
-      setPasswordForm({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-      setErrors({});
-      setShow(false);
-    } catch (error) {
-      console.error("Đổi mật khẩu thất bại:", error);
-      setSubmitError(
-        error?.message || "Đổi mật khẩu thất bại, vui lòng thử lại."
-      );
-    } finally {
-      setIsChangingPassword(false);
-    }
+    // API call đã được loại bỏ
+    alert("Chức năng đổi mật khẩu đã được vô hiệu hóa.");
   };
 
   const handleUpdateFullName = async (fullName) => {
@@ -171,13 +188,32 @@ const ProfileModal = ({ show, setShow }) => {
       return;
     }
 
+    if (!profile.accountId) {
+      alert("Không thể xác định tài khoản. Vui lòng thử lại.");
+      return;
+    }
+
     try {
-      const res = await updateFullNameAPI(fullName);
-      alert(res?.message || "Cập nhật họ và tên thành công!");
-      setFullName(fullName);
+      setLoadingProfile(true);
+      setSubmitError("");
+      await updateAdminProfileAPI(profile.accountId, fullName);
+
+      // Cập nhật state sau khi cập nhật thành công
+      setProfile({ ...profile, fullName: fullName });
+
+      // Gọi callback để cập nhật Navbar nếu có
+      if (onProfileUpdate) {
+        onProfileUpdate(fullName);
+      }
+
+      alert("Cập nhật họ và tên thành công!");
     } catch (error) {
-      console.error("Cập nhật họ và tên thất bại:", error);
-      alert(error?.message || "Cập nhật họ và tên thất bại, vui lòng thử lại.");
+      console.error("Lỗi khi cập nhật họ và tên:", error);
+      setSubmitError(
+        error.message || "Không thể cập nhật họ và tên. Vui lòng thử lại."
+      );
+    } finally {
+      setLoadingProfile(false);
     }
   };
 
@@ -207,62 +243,99 @@ const ProfileModal = ({ show, setShow }) => {
           className="profile-tabs"
         >
           <Tab eventKey="profile" title="Thông tin cá nhân">
-            {loadingProfile ? (
-              <div className="profile-loading">
-                <Spinner animation="border" role="status" />
-                <span>Đang tải thông tin...</span>
+            <div className="profile-info">
+              <div className="profile-avatar">
+                <div className="avatar-circle">
+                  <span>{profile.email?.charAt(0)?.toUpperCase() || "U"}</span>
+                </div>
               </div>
-            ) : (
-              <div className="profile-info">
-                <div className="profile-avatar">
-                  <div className="avatar-circle">
-                    <span>
-                      {profile.email?.charAt(0)?.toUpperCase() || "U"}
-                    </span>
+              <div className="profile-details">
+                <div className="profile-item">
+                  <label>Email</label>
+                  <div className="profile-value">
+                    {profile.email || "Chưa có"}
                   </div>
                 </div>
-                <div className="profile-details">
+                <div className="profile-item">
+                  <label>Vai trò</label>
+                  <div className="profile-value">
+                    {getAccountTypeLabel(profile.accountType) || "Chưa có"}
+                  </div>
+                </div>
+                {profile.createdDate && (
                   <div className="profile-item">
-                    <label>Email</label>
+                    <label>Ngày tạo tài khoản</label>
                     <div className="profile-value">
-                      {profile.email || "Chưa có"}
+                      {new Date(profile.createdDate).toLocaleDateString(
+                        "vi-VN"
+                      )}
                     </div>
                   </div>
+                )}
+                {profile.adminInfo?.department && (
                   <div className="profile-item">
-                    <label>Vai trò</label>
+                    <label>Khoa/Bộ môn</label>
                     <div className="profile-value">
-                      {getAccountTypeLabel(profile.accountType) || "Chưa có"}
+                      {profile.adminInfo.department}
                     </div>
                   </div>
+                )}
+                {profile.adminInfo?.phone && (
                   <div className="profile-item">
-                    <label>Họ và tên</label>
+                    <label>Số điện thoại</label>
+                    <div className="profile-value">
+                      {profile.adminInfo.phone}
+                    </div>
+                  </div>
+                )}
+
+                {profile.adminInfo?.position && (
+                  <div className="profile-item">
+                    <label>Chức vụ</label>
+                    <div className="profile-value">
+                      {profile.adminInfo.position}
+                    </div>
+                  </div>
+                )}
+
+                <div className="profile-item">
+                  <label>Họ và tên</label>
+                  <div
+                    className="profile-value"
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <input
+                      type="text"
+                      className="profile-value-fullname"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      disabled={loadingProfile}
+                    />
+                    <div className="profile-value-update">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleUpdateFullName(fullName)}
+                        disabled={loadingProfile}
+                      >
+                        {loadingProfile ? "Đang cập nhật..." : "Cập nhật"}
+                      </Button>
+                    </div>
+                  </div>
+                  {submitError && profile.accountType === "Admin" && (
                     <div
-                      className="profile-value"
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
+                      className="text-danger mt-2"
+                      style={{ fontSize: "0.875rem" }}
                     >
-                      <input
-                        type="text"
-                        className="profile-value-fullname"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                      />
-                      <div className="profile-value-update">
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleUpdateFullName(fullName)}
-                        >
-                          Cập nhật
-                        </Button>
-                      </div>
+                      {submitError}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
           </Tab>
 
           <Tab eventKey="password" title="Đổi mật khẩu">
