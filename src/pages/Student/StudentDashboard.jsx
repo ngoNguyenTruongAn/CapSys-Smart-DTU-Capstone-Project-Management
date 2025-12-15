@@ -10,7 +10,7 @@ import {
   faPlus,
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
-
+import { NavLink } from 'react-router-dom';
 // 1. Import Store mới
 import { useStudentPortalStore } from "../../store/StudentPortalStore";
 
@@ -32,6 +32,13 @@ export default function StudentDashboard() {
       </div>
     );
   }
+  const handleDisabledClick = (e) => {
+    if (!team) {
+      // Ngăn chặn chuyển hướng của NavLink khi chưa có nhóm
+      e.preventDefault(); 
+      console.log("Cần có nhóm trước mới được đăng ký!");
+    }
+  };
 
   // --- LOGIC XỬ LÝ DỮ LIỆU ---
 
@@ -174,9 +181,23 @@ export default function StudentDashboard() {
                   ))}
                 </div>
 
-                <button className={styles["action-btn"]} style={{ background: "white", color: "#d82c2c", border: "1px solid #d82c2c", fontSize:"1.2rem" }}>
-                  Xem chi tiết nhóm
-                </button>
+                <NavLink
+  to="do-an-cua-toi"
+  className={styles["action-btn"]} // Giữ lại các class của button
+  style={{
+    background: "white",
+    color: "#d82c2c",
+    border: "1px solid #d82c2c",
+    fontSize: "1.2rem",
+    // Các style khác nếu cần để nó trông giống button
+    display: "inline-block", // Đảm bảo style của button được áp dụng đúng
+    padding: "8px 12px",
+    textAlign: "center",
+    textDecoration: "none" // Quan trọng: Bỏ gạch chân nếu dùng NavLink/Link
+  }}
+>
+  Xem chi tiết nhóm
+</NavLink>
               </>
             ) : (
               <div style={{ textAlign: "center", padding: "10px" }}>
@@ -218,21 +239,36 @@ export default function StudentDashboard() {
                     {team.mentorName || "Chưa phân công"}
                   </span>
                 </div>
-                
-                <button className={styles["action-btn"]} style={{ marginTop: "8px", fontSize: "1.2rem" }}>
+
+                <NavLink to="my-proposal" className={styles["action-btn"]} style={{ marginTop: "8px", fontSize: "1.2rem", display: "flex", width: "100%", alignItems: "center", justifyContent: "center" }}>
                   Quản lý đề tài
-                </button>
+                </NavLink>
               </div>
             ) : (
-              <div style={{ textAlign: "center", padding: "10px" }}>
+             <div style={{ textAlign: "center", padding: "10px" }}>
                 <p style={{ color: "#6b7280", marginBottom: "16px" }}>Nhóm chưa đăng ký đề tài.</p>
-                <button 
+                
+                {/* NavLink đã được sửa: Sử dụng hàm handleDisabledClick */}
+                <NavLink 
+                  to={team ? "my-proposal" : "#"} // Chỉ điều hướng khi có team, ngược lại trỏ về #
                   className={styles["action-btn"]} 
-                  disabled={!team}
-                  style={{ opacity: !team ? 0.6 : 1, cursor: !team ? 'not-allowed' : 'pointer' }}
+                  onClick={handleDisabledClick} // Lỗi đã được khắc phục do hàm đã được định nghĩa
+                  style={{ 
+                    // Mô phỏng style disabled:
+                    opacity: !team ? 0.6 : 1, 
+                    cursor: !team ? 'not-allowed' : 'pointer',
+                    // Đảm bảo NavLink trông giống button:
+                    display: 'inline-block',
+                    padding: '8px 16px',
+                    textDecoration: 'none', // Bỏ gạch chân
+                    textAlign: 'center',
+                    lineHeight: 'normal',
+                    fontSize: '1.2rem',
+                  }}
                 >
+                  {/* Nội dung vẫn giữ nguyên logic */}
                   {team ? "Đăng ký ngay" : "Cần có nhóm trước"}
-                </button>
+                </NavLink>
               </div>
             )}
           </div>
