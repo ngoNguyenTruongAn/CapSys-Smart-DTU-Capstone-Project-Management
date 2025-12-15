@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import styles from "./CreateSessionModal.module.css";
 import GradingAPI from "../../services/GradingAPI";
+import LoadingFullScreen from "../ui/LoadingFullScreen";
 
 const TIME_SLOTS = [
   "08:00",
@@ -438,6 +439,7 @@ export default function CreateSessionModal({
 
   return (
     <div className={styles.overlay} onClick={handleClose}>
+      {saving && <LoadingFullScreen message="Đang tạo phiên chấm điểm..." />}
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <div className={styles.title}>Create Grading Session</div>

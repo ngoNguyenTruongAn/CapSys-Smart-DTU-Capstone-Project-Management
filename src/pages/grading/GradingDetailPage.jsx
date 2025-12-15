@@ -1,73 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingDetailPage.module.css";
 import Toasts from "../../components/ui/Toasts.jsx";
-
-const createDemoCriteria = () => [
-  {
-    criteriaId: 1,
-    criteriaName: "Technical Skills",
-    description: "Evaluate code quality, technology usage, and implementation.",
-    weight: 20,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 2,
-    criteriaName: "Problem Solving",
-    description: "Ability to analyse and solve project problems effectively.",
-    weight: 20,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 3,
-    criteriaName: "Communication",
-    description: "Presentation skill and clarity when handling Q&A.",
-    weight: 10,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 4,
-    criteriaName: "Teamwork",
-    description: "Collaboration, supportiveness, and peer interaction.",
-    weight: 20,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 5,
-    criteriaName: "Creativity",
-    description: "Innovation in solution design and approach.",
-    weight: 20,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 6,
-    criteriaName: "Project Management",
-    description: "Planning, timeline control, and deliverable tracking.",
-    weight: 10,
-    maxScore: 10,
-    isActive: true,
-    isContribution: false,
-  },
-  {
-    criteriaId: 7,
-    criteriaName: "Contribution",
-    description: "Auto-calculated bonus based on contribution level.",
-    weight: 0,
-    maxScore: 2,
-    isActive: true,
-    isContribution: true,
-  },
-];
+import LoadingFullScreen from "../../components/ui/LoadingFullScreen";
 
 const createDemoStudents = () => [
   {
@@ -195,40 +132,6 @@ const createDemoGrades = (criteriaList) => {
       criteriaGrades: normalizedGrades,
     };
   });
-};
-
-const createDemoSessionDetail = (grades = []) => {
-  const students = createDemoStudents().map((student) => {
-    const grade = grades.find((item) => item.studentId === student.studentId);
-    if (!grade) {
-      return student;
-    }
-    return {
-      ...student,
-      isGraded: true,
-      finalScore: grade.finalScore,
-      gradedDate: grade.gradedDate,
-    };
-  });
-
-  const gradedStudents = students.filter((student) => student.isGraded).length;
-
-  return {
-    sessionId: "demo-session",
-    sessionName: "Capstone Defense Demo",
-    description: "Demo grading session for TEAM_CAP2_005",
-    teamId: 203,
-    teamName: "TEAM_CAP2_005",
-    graderId: 5,
-    graderName: "Dr. Nguyen Van A",
-    sessionDate: "2024-01-15T14:30:00Z",
-    status: gradedStudents === students.length ? "Completed" : "Active",
-    isCompleted: gradedStudents === students.length,
-    createdDate: "2024-01-10T09:00:00Z",
-    totalStudents: students.length,
-    gradedStudents,
-    students,
-  };
 };
 
 const toScoreValue = (value) =>
@@ -840,19 +743,6 @@ export default function GradingDetailPage({
     });
   }, []);
 
-  const activateDemoMode = useCallback(() => {
-    const demoCriteria = createDemoCriteria();
-    const demoGrades = createDemoGrades(demoCriteria);
-    const demoSession = createDemoSessionDetail(demoGrades);
-    setDemoMode(true);
-    setCriteria(demoCriteria);
-    setSessionDetail(demoSession);
-    setGrades(demoGrades);
-    setError("");
-    setLoading(false);
-    setInitialised(true);
-  }, []);
-
   const criteriaForScoring = useMemo(() => {
     const filtered = criteria.filter((item) => !item.isContribution);
     return filtered.map((criterion, index) => ({
@@ -894,7 +784,10 @@ export default function GradingDetailPage({
     return lookup;
   }, [grades]);
 
-  const students = sessionDetail?.students ?? [];
+  const students = useMemo(
+    () => sessionDetail?.students ?? [],
+    [sessionDetail]
+  );
 
   const gridTemplateColumns = useMemo(() => {
     const baseColumns = [
@@ -1027,15 +920,31 @@ export default function GradingDetailPage({
 
     const load = async () => {
       setLoading(true);
+      console.log("Starting to load session data for ID:", sessionId);
+
       try {
+        // Kiểm tra sơ bộ ID
+        if (!sessionId || sessionId === "undefined" || sessionId === "null") {
+          throw new Error(`Session ID không hợp lệ: ${sessionId}`);
+        }
+
         const [criteriaData, sessionData, gradesData] = await Promise.all([
           GradingAPI.getCriteria(),
           GradingAPI.getSessionDetail(sessionId),
           GradingAPI.getSessionGrades(sessionId),
         ]);
+
         if (ignore) {
           return;
         }
+
+        // Kiểm tra dữ liệu trả về
+        if (!sessionData) {
+          throw new Error(`Không tìm thấy dữ liệu cho phiên chấm điểm ${sessionId}`);
+        }
+
+        console.log("Session data loaded successfully:", sessionData);
+
         const normalizedCriteria = normalizeCriteriaList(
           Array.isArray(criteriaData) ? criteriaData : []
         );
@@ -1048,10 +957,35 @@ export default function GradingDetailPage({
         setGrades(aggregatedGrades);
         setError("");
       } catch (err) {
+        console.error("Error loading session details:", err);
+        
         if (ignore) {
           return;
         }
+
+        // Xử lý các mã lỗi cụ thể
+        if (err?.status === 404) {
+          setError(`Không tìm thấy phiên chấm điểm (ID: ${sessionId}). Có thể phiên đã bị xóa.`);
+          return;
+        }
+        
+        if (err?.status === 400) {
+          const serverMessage = err?.message || "";
+          // Nếu lỗi do thiếu cột trong DB (lỗi backend đang gặp), hiển thị rõ hoặc fallback demo
+          if (serverMessage.includes("Invalid column name")) {
+             console.warn("Backend schema mismatch detected (Missing columns).");
+             setError(`Lỗi Backend: Database thiếu cột dữ liệu (${serverMessage}). Vui lòng cập nhật Database.`);
+             // Nếu muốn tự động chuyển sang demo mode thì uncomment dòng dưới:
+             // activateDemoMode(); 
+             return;
+          }
+
+          setError(`Lỗi từ server (400): ${serverMessage || "Yêu cầu không hợp lệ"}`);
+          return;
+        }
+
         if (!err?.status) {
+          console.warn("Network error or unknown error, falling back to demo mode if applicable");
           activateDemoMode();
           return;
         }
@@ -1123,6 +1057,217 @@ export default function GradingDetailPage({
       onBack();
     }
   };
+
+  // ===================== EXPORT EXCEL FUNCTION =====================
+  const handleExportExcel = async () => {
+    try {
+      setSaving(true);
+      setError("");
+
+      // 1. Fetch the template file from public folder
+      const response = await fetch("/templates/GradingTemplate.xlsx");
+      if (!response.ok) {
+        throw new Error("Không thể tải file mẫu Excel.");
+      }
+      const templateBuffer = await response.arrayBuffer();
+
+      // 2. Load workbook from template
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(templateBuffer);
+
+      // 3. Get worksheets
+      const evalSheet = workbook.getWorksheet("EvaluationForm") || workbook.getWorksheet(1);
+      const mentorSheet = workbook.getWorksheet("Mentor comments") || workbook.getWorksheet(2);
+
+      if (!evalSheet) {
+        throw new Error("Không tìm thấy sheet EvaluationForm trong file mẫu.");
+      }
+
+      // ==================== SHEET 1: EvaluationForm ====================
+      // Header information
+      const projectName = sessionDetail?.sessionName || group?.project || sessionDetail?.description || "";
+      const mentorName = sessionDetail?.graderName || sessionDetail?.mentorName || "";
+      const teamName = sessionDetail?.teamName || group?.team || "";
+
+      // Row 6: Project name
+      evalSheet.getCell("C6").value = projectName;
+      // Row 8: Evaluator/Mentor
+      evalSheet.getCell("C8").value = mentorName;
+
+      // Team Members (rows 9-13)
+      const memberRows = [9, 10, 11, 12, 13];
+      students.forEach((student, index) => {
+        if (index < 5) {
+          const row = memberRows[index];
+          evalSheet.getCell(`C${row}`).value = student.fullName || "";
+          evalSheet.getCell(`F${row}`).value = student.studentCode || "";
+        }
+      });
+
+      // ==================== GRADING DATA ====================
+      // Map criteria to Excel rows based on the template structure
+      // The template has specific rows for each criterion
+      
+      // Helper function to get score for a criterion
+      const getTeamScore = (criteriaId) => {
+        const raw = teamScores[criteriaId];
+        if (hasNumericValue(raw)) return Number(raw);
+        // Try to get from gradeLookup
+        const firstStudentGrade = grades[0];
+        if (firstStudentGrade?.criteriaGrades) {
+          const found = firstStudentGrade.criteriaGrades.find(g => g.criteriaId === criteriaId);
+          if (found) return found.score;
+        }
+        return "";
+      };
+
+      const getPersonalScore = (studentId, criteriaId) => {
+        const form = forms[studentId];
+        if (form?.scores?.[criteriaId] && hasNumericValue(form.scores[criteriaId])) {
+          return Number(form.scores[criteriaId]);
+        }
+        const grade = gradeLookup[studentId];
+        if (grade?.criteriaGrades) {
+          const found = grade.criteriaGrades.find(g => g.criteriaId === criteriaId);
+          if (found) return found.score;
+        }
+        return "";
+      };
+
+      // Column mapping for team members (F=1, G=2, H=3, I=4, J=5)
+      const memberColumns = ["F", "G", "H", "I", "J"];
+
+      // Process criteria and fill scores
+      // Based on template structure from the image:
+      // Row 17: Software Engineering Practices - Team score in E, personal scores optional
+      // Row 18: Grade of SEP (weighted) - E column
+      // Row 19-21: Ideas and proposed solutions - E column for team
+      // Row 22: Grade of IPS - E column
+      // Row 23: Software process - E column
+      // Row 24: Grade of SP - E column
+      // Row 25-27: Artifacts - E column
+      // Row 28: Grade of Artifacts - E column
+      // Row 29-32: Teamwork and Communication - F,G,H,I,J for each member
+      // Row 33: Grades of Communication - F,G,H,I,J
+      // Row 34: Presentation - F,G,H,I,J
+      // Row 35: Grade of Presentation - F,G,H,I,J
+      // Row 36: Contribution % - F,G,H,I,J
+      // Row 38: Final Grade - F,G,H,I,J
+
+      // Map criteriaForScoring to template rows
+      criteriaForScoring.forEach((criterion) => {
+        const criteriaName = normalizeText(criterion.criteriaName);
+        const isTeamScope = criterion.scope !== CRITERION_SCOPE.PERSONAL;
+
+        // Determine which row to fill based on criteria name
+        let targetRow = null;
+        let isTeamColumn = isTeamScope;
+
+        if (criteriaName.includes("software engineering") || criteriaName.includes("sep")) {
+          targetRow = 17;
+        } else if (criteriaName.includes("ideas") || criteriaName.includes("proposed solution") || criteriaName.includes("ips")) {
+          targetRow = 19;
+        } else if (criteriaName.includes("software process") || criteriaName.includes("sp")) {
+          targetRow = 23;
+        } else if (criteriaName.includes("artifact")) {
+          targetRow = 25;
+        } else if (criteriaName.includes("teamwork") || criteriaName.includes("communication")) {
+          targetRow = 29;
+          isTeamColumn = false; // Personal scores
+        } else if (criteriaName.includes("presentation")) {
+          targetRow = 34;
+          isTeamColumn = false; // Personal scores
+        }
+
+        if (targetRow) {
+          if (isTeamColumn) {
+            // Fill team score in column E
+            const score = getTeamScore(criterion.criteriaId);
+            evalSheet.getCell(`E${targetRow}`).value = score;
+          } else {
+            // Fill personal scores for each member
+            students.forEach((student, idx) => {
+              if (idx < 5) {
+                const score = getPersonalScore(student.studentId, criterion.criteriaId);
+                evalSheet.getCell(`${memberColumns[idx]}${targetRow}`).value = score;
+              }
+            });
+          }
+        }
+      });
+
+      // Fill Contribution row (row 36)
+      students.forEach((student, idx) => {
+        if (idx < 5) {
+          const form = forms[student.studentId];
+          const contribution = form?.contributionPercentage || 
+            gradeLookup[student.studentId]?.contributionPercentage || "";
+          if (contribution) {
+            evalSheet.getCell(`${memberColumns[idx]}36`).value = `${contribution}%`;
+          }
+        }
+      });
+
+      // Fill Final Grade row (row 38)
+      studentSummaries.forEach((student, idx) => {
+        if (idx < 5 && typeof student.finalScore === "number") {
+          evalSheet.getCell(`${memberColumns[idx]}38`).value = student.finalScore;
+        }
+      });
+
+      // Fill Comments section (starting row 40)
+      const allComments = Object.entries(criterionComments)
+        .filter(([, comment]) => comment && comment.trim())
+        .map(([criteriaId, comment]) => {
+          const criterion = criteriaMap[criteriaId];
+          return `${criterion?.criteriaName || "Tiêu chí"}: ${comment}`;
+        })
+        .join("\n");
+      if (allComments) {
+        evalSheet.getCell("A40").value = allComments;
+      }
+
+      // ==================== SHEET 2: Mentor Comments ====================
+      if (mentorSheet) {
+        // Row 2: Group code
+        mentorSheet.getCell("B2").value = teamName;
+
+        // Student rows start at row 5
+        const commentStartRow = 5;
+        students.forEach((student, idx) => {
+          const row = commentStartRow + idx;
+          mentorSheet.getCell(`A${row}`).value = idx + 1; // STT
+          mentorSheet.getCell(`B${row}`).value = student.fullName || "";
+          // Comments column C - leave empty or fill if you have individual comments
+          // mentorSheet.getCell(`C${row}`).value = "";
+        });
+
+        // Date row (approximately row 11 based on template)
+        const today = new Date();
+        const dateStr = `${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
+        mentorSheet.getCell("C11").value = `Date: ${dateStr}`;
+
+        // Signature row (row 13)
+        mentorSheet.getCell("C13").value = mentorName;
+      }
+
+      // 4. Generate and download the file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const fileName = `KetQuaCham_${teamName || "Nhom"}_${formatDate(new Date()).replace(/\//g, "-")}.xlsx`;
+      saveAs(blob, fileName);
+
+      setSuccessMessage("Xuất file Excel thành công!");
+    } catch (err) {
+      console.error("Export Excel error:", err);
+      setErrors([err.message || "Không thể xuất file Excel. Vui lòng thử lại."]);
+    } finally {
+      setSaving(false);
+    }
+  };
+  // ===================== END EXPORT EXCEL =====================
 
   const handleScoreChange =
     (criteriaId, targetStudentId = null) =>
@@ -1530,11 +1675,7 @@ export default function GradingDetailPage({
   };
 
   if (loading && !initialised) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.loadingState}>Đang tải dữ liệu chấm điểm...</div>
-      </div>
-    );
+    return <LoadingFullScreen message="Đang tải dữ liệu chấm điểm..." />;
   }
 
   if (error && !initialised) {
@@ -1564,6 +1705,7 @@ export default function GradingDetailPage({
 
   return (
     <div className={styles.page}>
+      {saving && <LoadingFullScreen message="Đang lưu điểm..." />}
       <div className={styles.headerBar}>
         <button className={styles.backLink} onClick={handleBackClick}>
           <svg
@@ -1575,7 +1717,7 @@ export default function GradingDetailPage({
           >
             <path
               d="M16 18L8 12L16 6"
-              stroke="#2563EB"
+              stroke="#94070d"
               stroke-width="2"
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -1795,7 +1937,6 @@ export default function GradingDetailPage({
                   <div className={styles.colDesc}>
                     Team member contributed significantly to team's success (%)
                   </div>
-                  <div className={styles.gradeIPS}></div>
                 </div>
               </div>
               <div className={`${styles.gridCell} ${styles.colIps}`}></div>
@@ -1912,6 +2053,16 @@ export default function GradingDetailPage({
               disabled={saving}
             >
               Nhận xét
+            </button>
+          </div>
+          <div>
+            <button
+              className={`${styles.btn} ${styles.btnSecondary}`}
+              type="button"
+              onClick={handleExportExcel}
+              disabled={saving || !students.length}
+            >
+              Xuất Excel
             </button>
           </div>
           <div>

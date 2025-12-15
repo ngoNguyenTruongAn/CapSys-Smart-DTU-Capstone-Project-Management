@@ -112,7 +112,7 @@ const GroupCard = ({ group, team, project, members, score, mentor, status, onSta
     <div className={styles.groupCard}>
       <div className={styles.groupCard_top}>
         <div className={styles.groupCard__team}>
-          {team}
+          <p>{team}</p>
         </div>
         <div className={`${styles.groupCard__status} ${statusConfig.className}`}>
           {statusConfig.text}

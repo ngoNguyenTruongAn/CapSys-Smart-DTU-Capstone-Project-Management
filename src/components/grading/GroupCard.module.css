@@ -11,7 +11,7 @@
 .groupCard:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  border-color: var(--primary-blue);
+  border-color: #94070d;
 }
 
 .groupCard_top {
@@ -19,6 +19,7 @@
   font-size: 1.2rem;
   font-weight: bold;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
 }
 
@@ -50,6 +51,13 @@
   padding: 10px;
   border-radius: 20px;
   align-items: center;
+  text-align: center;
+  max-height: fit-content;
+}
+
+.groupCard__team > p {
+  margin: 0;
+  text-align: center;
 }
 
 .groupCard__project {
@@ -113,7 +121,7 @@
 
 .groupCard__actionBtn {
   width: 100%;
-  background: var(--primary-blue);
+  background: #94070d;
   color: var(--text-white);
   border: none;
   border-radius: var(--radius-md);
@@ -125,7 +133,7 @@
 }
 
 .groupCard__actionBtn:hover {
-  background: #2563EB;
+  background: #78050a;
   transform: translateY(-1px);
 }
 

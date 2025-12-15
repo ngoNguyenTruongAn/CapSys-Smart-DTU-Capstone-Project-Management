@@ -92,7 +92,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   right: 8px;
   background: transparent;
   border: none;
-  color: #6d5dfc;
+  color: #94070d;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -104,7 +104,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .datePickerToggle:hover {
-  background: rgba(109, 93, 252, 0.1);
+  background: rgba(148, 7, 13, 0.1);
 }
 
 .datePickerPopover {
@@ -200,14 +200,14 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .calendarDay:hover {
-  background: rgba(109, 93, 252, 0.15);
+  background: rgba(148, 7, 13, 0.15);
 }
 
 .calendarDay:focus-visible,
 .timeSlot:focus-visible,
 .calendarNavBtn:focus-visible,
 .datePickerToggle:focus-visible {
-  outline: 2px solid #6d5dfc;
+  outline: 2px solid #94070d;
   outline-offset: 2px;
 }
 
@@ -216,9 +216,9 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .calendarDaySelected {
-  background: #6d5dfc;
+  background: #94070d;
   color: #fff;
-  box-shadow: 0 10px 20px rgba(109, 93, 252, 0.35);
+  box-shadow: 0 10px 20px rgba(148, 7, 13, 0.35);
 }
 
 .calendarDayDot {
@@ -272,13 +272,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 }
 
 .timeSlot:hover {
-  background: rgba(109, 93, 252, 0.1);
+  background: rgba(148, 7, 13, 0.1);
 }
 
 .timeSlotSelected {
-  background: #6d5dfc;
+  background: #94070d;
   color: #fff;
-  box-shadow: 0 8px 18px rgba(109, 93, 252, 0.4);
+  box-shadow: 0 8px 18px rgba(148, 7, 13, 0.4);
 }
 
 .dateSummary {
@@ -346,9 +346,9 @@ textarea {
 }
 
 .btnPrimary {
-  background: #111827;
+  background: #94070d;
   color: #fff;
-  border-color: #111827;
+  border-color: #94070d;
 }
 
 .btn:disabled {

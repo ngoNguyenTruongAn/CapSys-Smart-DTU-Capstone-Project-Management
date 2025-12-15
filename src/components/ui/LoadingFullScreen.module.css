@@ -1,0 +1,37 @@
+.loadingFullScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  font-weight: 600;
+  animation: fadeIn 0.15s ease-in;
+}
+
+.loadingFullScreen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 17, 17, 0.55);
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .loadingFullScreen::before {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

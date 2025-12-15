@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import GradingDetailPage from "./GradingDetailPage";
 import SummaryCards from "../../components/grading/SummaryCards";
 import SearchAndFilter from "../../components/grading/SearchAndFilter";
@@ -6,8 +7,10 @@ import GroupGrid from "../../components/grading/GroupGrid";
 import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingPage.module.css";
 import CreateSessionModal from "../../components/grading/CreateSessionModal.jsx";
+import LoadingFullScreen from "../../components/ui/LoadingFullScreen";
 
 const GradingPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -307,6 +310,18 @@ const GradingPage = () => {
             return null;
           }
 
+          // Chỉ cho phép chấm điểm khi proposal đã được duyệt
+          const rawStatus = String(
+            proposal.status ?? proposal.Status ?? ""
+          ).toLowerCase();
+          const isApproved = ["approved", "đã duyệt", "approve"].some((s) =>
+            rawStatus.includes(s)
+          );
+
+          if (!isApproved) {
+            return null;
+          }
+
           const teamSessions = sessionsIndex[teamId] || [];
           const teamData = await fetchTeamData(teamId);
 
@@ -338,6 +353,18 @@ const GradingPage = () => {
   useEffect(() => {
     loadGroups();
   }, []);
+
+  useEffect(() => {
+    const sessionId = searchParams.get("sessionId");
+    if (sessionId && groups.length > 0) {
+      const group = groups.find((g) => String(g.sessionId) === sessionId);
+      if (group) {
+        setSelectedGroup({ ...group, sessionId });
+      }
+    } else if (!sessionId) {
+      setSelectedGroup(null);
+    }
+  }, [searchParams, groups]);
 
   const filteredGroups = useMemo(() => {
     return groups.filter((group) => {
@@ -395,8 +422,7 @@ const GradingPage = () => {
       setShowCreateModal(true);
       return;
     }
-    const sessionId = group.sessionId ?? group.id;
-    setSelectedGroup({ ...group, sessionId });
+    setSearchParams({ sessionId: group.sessionId });
   };
 
   const resetPrefillsAndCloseModal = () => {
@@ -407,7 +433,7 @@ const GradingPage = () => {
   };
 
   const handleBack = () => {
-    setSelectedGroup(null);
+    setSearchParams({});
     setError("");
   };
 
@@ -426,15 +452,7 @@ const GradingPage = () => {
   }
 
   if (loading) {
-    return (
-      <div className={styles.gradingPage}>
-        <div className={styles.gradingPage__container}>
-          <div style={{ padding: "2rem", textAlign: "center" }}>
-            Đang tải danh sách nhóm chấm điểm...
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingFullScreen message="Đang tải danh sách nhóm chấm điểm..." />;
   }
 
   if (error && groups.length === 0) {

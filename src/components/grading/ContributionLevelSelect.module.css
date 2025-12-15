@@ -27,8 +27,8 @@
 
 .inlineButton:focus-visible {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: #94070d;
+  box-shadow: 0 0 0 3px rgba(148, 7, 13, 0.15);
 }
 
 .inlineChevron {
@@ -67,17 +67,17 @@
 .inlineOption:hover,
 .inlineOption:focus-visible {
   outline: none;
-  background: rgba(99, 102, 241, 0.08);
+  background: rgba(148, 7, 13, 0.08);
 }
 
 .inlineOption[aria-selected="true"] {
-  background: rgba(99, 102, 241, 0.15);
-  color: #1d4ed8;
+  background: rgba(148, 7, 13, 0.15);
+  color: #94070d;
 }
 
 .inlineOptionCheck {
   opacity: 0;
-  color: #1d4ed8;
+  color: #94070d;
 }
 
 .inlineOption[aria-selected="true"] .inlineOptionCheck {
