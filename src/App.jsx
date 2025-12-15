@@ -62,6 +62,7 @@ function App() {
       </Route>
       <Route path="/student" element={<StudentLayout />}>
         {/* <Route index element={<Students />} /> */}
+        <Route path="my-proposal" element={<StudentProposalDetail />} />
         <Route index element={<StudentDashboard />} />
         <Route path="do-an-cua-toi" element={<StudentTeamDetail />} />
         
