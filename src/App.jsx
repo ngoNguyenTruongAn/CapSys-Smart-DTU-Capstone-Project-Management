@@ -65,7 +65,6 @@ function App() {
         <Route path="my-proposal" element={<StudentProposalDetail />} />
         <Route index element={<StudentDashboard />} />
         <Route path="do-an-cua-toi" element={<StudentTeamDetail />} />
-        
       </Route>
     </Routes>
   );

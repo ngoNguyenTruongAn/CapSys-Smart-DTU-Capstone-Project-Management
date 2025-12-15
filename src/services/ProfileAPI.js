@@ -18,9 +18,9 @@ const updateAdminProfileAPI = async (accountId, fullName) => {
   }
 };
 
-const getStudentProfileAPI = async (studentId) => {
+const getStudentProfileAPI = async (accountId) => {
   try {
-    const response = await instance.get(`Profile/student/${studentId}`);
+    const response = await instance.get(`Profile/student/${accountId}`);
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message);
@@ -28,14 +28,14 @@ const getStudentProfileAPI = async (studentId) => {
 };
 
 const updateStudentProfileAPI = async (
-  studentId,
+  accountId,
   fullName,
   phone,
   faculty,
   major
 ) => {
   try {
-    const response = await instance.put(`Profile/student/${studentId}`, {
+    const response = await instance.put(`Profile/student/${accountId}`, {
       fullName,
       phone,
       faculty,
@@ -47,16 +47,16 @@ const updateStudentProfileAPI = async (
   }
 };
 
-const getLecturerProfileAPI = async (lecturerId) => {
+const getLecturerProfileAPI = async (accountId) => {
   try {
-    const response = await instance.get(`Profile/${lecturerId}`);
+    const response = await instance.get(`Profile/lecturer/${accountId}`);
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message);
   }
 };
 const updateLecturerProfileAPI = async (
-  lecturerId,
+  accountId,
   fullName,
   phone,
   department,
@@ -65,7 +65,7 @@ const updateLecturerProfileAPI = async (
   maxStudentsSupervised
 ) => {
   try {
-    const response = await instance.put(`Profile/lecturer/${lecturerId}`, {
+    const response = await instance.put(`Profile/lecturer/${accountId}`, {
       fullName,
       phone,
       department,

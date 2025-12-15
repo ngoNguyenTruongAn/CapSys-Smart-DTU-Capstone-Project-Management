@@ -10,37 +10,37 @@ import {
   Col,
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./LecturerProfileModal.scss";
+// Sử dụng file style riêng cho Sinh viên (đã đồng bộ)
+import "./StudentProfileModal.scss";
 import {
-  getLecturerProfileAPI,
-  updateLecturerProfileAPI,
-  // Bạn sẽ cần thêm API đổi mật khẩu vào đây nếu có
+  getStudentProfileAPI,
+  updateStudentProfileAPI,
 } from "../../../services/ProfileAPI";
-import { changePasswordAPI } from "../../../services/AuthAPI";
+import { changePasswordAPI } from "../../../services/AuthAPI"; // Giả định AuthAPI có changePasswordAPI
 import { getUserIdFromToken } from "../ProfileModal/utils";
 
-const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
-  // State ban đầu cho Lecturer
+const StudentProfileModal = ({ show, setShow, onProfileUpdate }) => {
+  // State Profile gốc (Chứa tất cả 8 trường, 4 trường tĩnh)
   const [profile, setProfile] = useState({
     email: "",
     accountType: "",
-    lecturerId: null,
+    accountId: null,
     fullName: "",
     phone: "",
-    department: "",
-    specialization: "",
-    academicTitle: "",
-    maxStudentsSupervised: 0,
+    faculty: "",
+    major: "",
+    studentCode: "",
+    gpa: "",
+    capstoneType: "",
+    teamId: "",
   });
 
-  // State cho form
+  // State Form Data (Chỉ chứa 4 trường có thể cập nhật)
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
-    department: "",
-    specialization: "",
-    academicTitle: "",
-    maxStudentsSupervised: 0,
+    faculty: "",
+    major: "",
   });
 
   const [loadingProfile, setLoadingProfile] = useState(false);
@@ -75,7 +75,7 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
         confirm: false,
       });
       setSubmitError("");
-      setIsUpdating(false); // Reset trạng thái cập nhật
+      setIsUpdating(false);
     }
   }, [show]);
 
@@ -83,47 +83,45 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
   useEffect(() => {
     const loadProfile = async () => {
       if (!show) return;
-
       try {
         setLoadingProfile(true);
-        setSubmitError(""); // Xóa lỗi cũ
+        setSubmitError("");
 
-        // Lấy accountId từ token (không phải lecturerId)
-        const accountId = getUserIdFromToken("Lecturer");
+        const accountId = getUserIdFromToken("Student");
         if (!accountId) {
-          throw new Error("Không thể xác định ID tài khoản giảng viên.");
+          throw new Error("Không thể xác định ID tài khoản sinh viên.");
         }
 
-        const response = await getLecturerProfileAPI(accountId);
-        // API trả về { success, message, data: { accountId, email, accountType, fullName, lecturerInfo: {...} } }
+        const response = await getStudentProfileAPI(accountId);
         const responseData = response?.data || response;
-        const lecturerInfo = responseData.lecturerInfo || {};
+        const studentInfo = responseData.studentInfo || {};
 
-        // Merge dữ liệu từ data chính và lecturerInfo
-        setProfile({
+        const loadedProfile = {
           email: responseData.email || "",
-          accountType: responseData.accountType || "Lecturer",
+          accountType: responseData.accountType || "Student",
           accountId: responseData.accountId || accountId,
-          lecturerId: lecturerInfo.lecturerId || null,
           fullName: responseData.fullName || "",
-          phone: lecturerInfo.phone || "",
-          department: lecturerInfo.department || "",
-          specialization: lecturerInfo.specialization || "",
-          academicTitle: lecturerInfo.academicTitle || "",
-          maxStudentsSupervised: lecturerInfo.maxStudentsSupervised || 0,
-        });
+          phone: studentInfo.phone || "",
+          faculty: studentInfo.faculty || "",
+          major: studentInfo.major || "",
+          studentCode: studentInfo.studentCode || "",
+          gpa: studentInfo.gpa || "",
+          capstoneType: studentInfo.capstoneType || "",
+          teamId: studentInfo.teamId || "",
+        };
 
-        // Đặt state formData để chỉnh sửa
+        // Cập nhật Profile state (Chứa toàn bộ data)
+        setProfile(loadedProfile);
+
+        // Đặt formData (Chỉ chứa 4 trường update được)
         setFormData({
-          fullName: responseData.fullName || "",
-          phone: lecturerInfo.phone || "",
-          department: lecturerInfo.department || "",
-          specialization: lecturerInfo.specialization || "",
-          academicTitle: lecturerInfo.academicTitle || "",
-          maxStudentsSupervised: lecturerInfo.maxStudentsSupervised || 0,
+          fullName: loadedProfile.fullName,
+          phone: loadedProfile.phone,
+          faculty: loadedProfile.faculty,
+          major: loadedProfile.major,
         });
       } catch (error) {
-        console.error("Lỗi khi tải thông tin hồ sơ Giảng viên:", error);
+        console.error("Lỗi khi tải thông tin hồ sơ Sinh viên:", error);
         setSubmitError(
           error.message || "Không thể tải thông tin hồ sơ. Vui lòng thử lại."
         );
@@ -135,7 +133,6 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
     loadProfile();
   }, [show]);
 
-  // Hàm chuyển đổi accountType sang tiếng Việt
   const getAccountTypeLabel = (type) => {
     if (!type) return "";
     const typeMap = {
@@ -149,34 +146,26 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
   };
 
-  const validateLecturerForm = () => {
+  const validateStudentForm = () => {
     const newErrors = {};
-    const { fullName, maxStudentsSupervised } = formData;
-
-    if (!fullName || fullName.trim().length < 2) {
+    if (!formData.fullName || formData.fullName.trim().length < 2) {
       newErrors.fullName = "Họ và tên phải có ít nhất 2 ký tự";
     }
-
-    if (maxStudentsSupervised < 0 || isNaN(maxStudentsSupervised)) {
-      newErrors.maxStudentsSupervised =
-        "Số lượng sinh viên tối đa phải là số không âm";
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    if (!validateLecturerForm()) {
-      return;
-    }
-
+    if (!validateStudentForm()) return;
     if (!profile.accountId) {
       setSubmitError(
-        "Không thể xác định tài khoản giảng viên. Vui lòng thử lại."
+        "Không thể xác định tài khoản sinh viên. Vui lòng thử lại."
       );
       return;
     }
@@ -185,72 +174,47 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
       setIsUpdating(true);
       setSubmitError("");
 
-      // API call - sử dụng accountId thay vì lecturerId
-      const response = await updateLecturerProfileAPI(
+      // Gửi 4 trường được phép cập nhật
+      const response = await updateStudentProfileAPI(
         profile.accountId,
         formData.fullName,
         formData.phone,
-        formData.department,
-        formData.specialization,
-        formData.academicTitle,
-        parseInt(formData.maxStudentsSupervised)
+        formData.faculty,
+        formData.major
       );
 
-      // Xử lý response nếu có cấu trúc { success, message, data: {...} }
       const responseData = response?.data || response;
-      const updatedLecturerInfo = responseData.lecturerInfo || {};
+      const studentInfo = responseData.studentInfo || {};
 
-      // Cập nhật state sau khi cập nhật thành công
-      // Lấy dữ liệu từ data chính hoặc lecturerInfo
+      // Cập nhật state profile và formData chỉ với 4 trường này
       const updatedFullName = responseData.fullName || formData.fullName;
-      const updatedPhone =
-        updatedLecturerInfo.phone || responseData.phone || formData.phone;
-      const updatedDepartment =
-        updatedLecturerInfo.department ||
-        responseData.department ||
-        formData.department;
-      const updatedSpecialization =
-        updatedLecturerInfo.specialization ||
-        responseData.specialization ||
-        formData.specialization;
-      const updatedAcademicTitle =
-        updatedLecturerInfo.academicTitle ||
-        responseData.academicTitle ||
-        formData.academicTitle;
-      const updatedMaxStudents =
-        updatedLecturerInfo.maxStudentsSupervised ||
-        responseData.maxStudentsSupervised ||
-        parseInt(formData.maxStudentsSupervised);
+      const updatedPhone = studentInfo.phone || formData.phone;
+      const updatedFaculty = studentInfo.faculty || formData.faculty;
+      const updatedMajor = studentInfo.major || formData.major;
 
-      setProfile({
-        ...profile,
+      setProfile((prevProfile) => ({
+        ...prevProfile,
         fullName: updatedFullName,
         phone: updatedPhone,
-        department: updatedDepartment,
-        specialization: updatedSpecialization,
-        academicTitle: updatedAcademicTitle,
-        maxStudentsSupervised: updatedMaxStudents,
-      });
+        faculty: updatedFaculty,
+        major: updatedMajor,
+        // Giữ nguyên các trường tĩnh khác (studentCode, gpa, capstoneType, teamId)
+      }));
 
-      // Cập nhật formData để đồng bộ
       setFormData({
-        ...formData,
         fullName: updatedFullName,
         phone: updatedPhone,
-        department: updatedDepartment,
-        specialization: updatedSpecialization,
-        academicTitle: updatedAcademicTitle,
-        maxStudentsSupervised: updatedMaxStudents,
+        faculty: updatedFaculty,
+        major: updatedMajor,
       });
 
-      // Gọi callback để cập nhật Navbar nếu có
       if (onProfileUpdate) {
         onProfileUpdate(updatedFullName);
       }
 
       alert("Cập nhật thông tin thành công!");
     } catch (error) {
-      console.error("Lỗi khi cập nhật hồ sơ Giảng viên:", error);
+      console.error("Lỗi khi cập nhật hồ sơ Sinh viên:", error);
       setSubmitError(
         error.message || "Không thể cập nhật hồ sơ. Vui lòng thử lại."
       );
@@ -259,7 +223,7 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
     }
   };
 
-  // Các hàm liên quan đến đổi mật khẩu (Giữ lại như cũ, nhưng API cần được thêm vào)
+  // --- HANDLERS ĐỔI MẬT KHẨU --- (Giữ nguyên)
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordForm({ ...passwordForm, [name]: value });
@@ -267,58 +231,41 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
       setErrors({ ...errors, [name]: "" });
     }
   };
-
   const togglePasswordVisibility = (field) => {
-    setShowPasswords({
-      ...showPasswords,
-      [field]: !showPasswords[field],
-    });
+    setShowPasswords({ ...showPasswords, [field]: !showPasswords[field] });
   };
-
   const validatePasswordForm = () => {
     const newErrors = {};
-
     if (!passwordForm.currentPassword) {
       newErrors.currentPassword = "Vui lòng nhập mật khẩu hiện tại";
     }
-
     if (!passwordForm.newPassword) {
       newErrors.newPassword = "Vui lòng nhập mật khẩu mới";
     } else if (passwordForm.newPassword.length < 6) {
       newErrors.newPassword = "Mật khẩu mới phải có ít nhất 6 ký tự";
     }
-
     if (!passwordForm.confirmPassword) {
       newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu mới";
     } else if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
     }
-
     if (passwordForm.currentPassword === passwordForm.newPassword) {
       newErrors.newPassword = "Mật khẩu mới phải khác mật khẩu hiện tại";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
-    if (!validatePasswordForm()) {
-      return;
-    }
-
+    if (!validatePasswordForm()) return;
     try {
       setIsUpdating(true);
       setSubmitError("");
-
       await changePasswordAPI(
         passwordForm.currentPassword,
         passwordForm.newPassword,
         passwordForm.confirmPassword
       );
-
-      // Reset form sau khi đổi mật khẩu thành công
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
@@ -336,9 +283,31 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
     }
   };
 
-  const handleClose = () => {
-    setShow(false);
-  };
+  const handleClose = () => setShow(false);
+
+  // Component hiển thị thông tin tĩnh
+  const ReadOnlyField = ({ label, value }) => (
+    <div
+      className="profile-item"
+      style={{
+        padding: "0.75rem 0",
+        border: "none",
+        background: "transparent",
+      }}
+    >
+      <Form.Label
+        style={{ fontSize: "1.4rem", fontWeight: 600, color: "#6b7280" }}
+      >
+        {label}
+      </Form.Label>
+      <div
+        className="profile-value"
+        style={{ fontSize: "1.7rem", color: "#111827" }}
+      >
+        {value || "Chưa có"}
+      </div>
+    </div>
+  );
 
   return (
     <Modal
@@ -353,7 +322,7 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
       enforceFocus={true}
     >
       <Modal.Header closeButton>
-        <Modal.Title>Thông tin tài khoản Giảng viên</Modal.Title>
+        <Modal.Title>Thông tin tài khoản Sinh viên</Modal.Title>
       </Modal.Header>
       <Modal.Body>
         {loadingProfile ? (
@@ -366,44 +335,46 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
             activeKey={activeTab}
             onSelect={(k) => {
               setActiveTab(k);
-              setSubmitError(""); // Xóa lỗi khi chuyển tab
+              setSubmitError("");
             }}
             className="profile-tabs"
           >
-            {/* Tab Thông tin cá nhân */}
+            {/* TAB THÔNG TIN CÁ NHÂN */}
             <Tab eventKey="profile" title="Thông tin cá nhân">
-              <Form
-                onSubmit={handleUpdateProfile}
-                className="profile-form mt-3"
-              >
+              <Form onSubmit={handleUpdateProfile}>
                 <div className="profile-info">
                   <div className="profile-avatar">
                     <div className="avatar-circle">
                       <span>
-                        {profile.email?.charAt(0)?.toUpperCase() || "L"}
+                        {profile.email?.charAt(0)?.toUpperCase() || "S"}
                       </span>
                     </div>
-                    {/* Hiển thị thông tin cơ bản không thể chỉnh sửa */}
+                    {/* Hiển thị thông tin cơ bản tĩnh */}
                     <div className="mt-3 text-center">
-                      <p className="mb-1">
-                        <strong>{profile.email}</strong>
+                      <p
+                        className="mb-1 profile-value"
+                        style={{ fontSize: "1.7rem" }}
+                      >
+                        {profile.email}
                       </p>
-                      <p className="text-muted">
+                      <p className="text-muted" style={{ fontSize: "1.5rem" }}>
                         {getAccountTypeLabel(profile.accountType)}
                       </p>
                     </div>
                   </div>
 
+                  {/* Vùng Form Fields */}
                   <div className="profile-details-fields w-100">
                     {submitError && (
                       <div
                         className="text-danger mb-3"
-                        style={{ fontSize: "0.9rem" }}
+                        style={{ fontSize: "1.5rem" }}
                       >
                         {submitError}
                       </div>
                     )}
 
+                    {/* VÙNG CHỈNH SỬA (4 TRƯỜNG) */}
                     <Row>
                       <Col md={6}>
                         <Form.Group className="mb-3">
@@ -440,11 +411,11 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
                     <Row>
                       <Col md={6}>
                         <Form.Group className="mb-3">
-                          <Form.Label>Khoa/Bộ môn</Form.Label>
+                          <Form.Label>Khoa</Form.Label>
                           <Form.Control
                             type="text"
-                            name="department"
-                            value={formData.department}
+                            name="faculty"
+                            value={formData.faculty}
                             onChange={handleFormChange}
                             disabled={isUpdating}
                           />
@@ -455,8 +426,8 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
                           <Form.Label>Chuyên ngành</Form.Label>
                           <Form.Control
                             type="text"
-                            name="specialization"
-                            value={formData.specialization}
+                            name="major"
+                            value={formData.major}
                             onChange={handleFormChange}
                             disabled={isUpdating}
                           />
@@ -464,40 +435,49 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
                       </Col>
                     </Row>
 
-                    <Row>
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Học hàm/Học vị</Form.Label>
-                          <Form.Control
-                            type="text"
-                            name="academicTitle"
-                            value={formData.academicTitle}
-                            onChange={handleFormChange}
-                            disabled={isUpdating}
+                    {/* VÙNG THÔNG TIN TĨNH (4 TRƯỜNG) */}
+                    <h5
+                      className="mt-4 mb-3"
+                      style={{
+                        fontSize: "1.6rem",
+                        fontWeight: 600,
+                        color: "#374151",
+                      }}
+                    >
+                      Thông tin cố định
+                    </h5>
+                    <div
+                      className="p-3"
+                      style={{
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        background: "#f9fafb",
+                      }}
+                    >
+                      <Row>
+                        <Col md={6}>
+                          <ReadOnlyField
+                            label="Mã sinh viên"
+                            value={profile.studentCode}
                           />
-                        </Form.Group>
-                      </Col>
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>
-                            SL SV hướng dẫn tối đa{" "}
-                            <span className="required">*</span>
-                          </Form.Label>
-                          <Form.Control
-                            type="number"
-                            name="maxStudentsSupervised"
-                            value={formData.maxStudentsSupervised}
-                            onChange={handleFormChange}
-                            isInvalid={!!errors.maxStudentsSupervised}
-                            disabled={isUpdating}
-                            min="0"
+                        </Col>
+                        <Col md={6}>
+                          <ReadOnlyField label="GPA" value={profile.gpa} />
+                        </Col>
+                        <Col md={6}>
+                          <ReadOnlyField
+                            label="Loại đồ án"
+                            value={profile.capstoneType}
                           />
-                          <Form.Control.Feedback type="invalid">
-                            {errors.maxStudentsSupervised}
-                          </Form.Control.Feedback>
-                        </Form.Group>
-                      </Col>
-                    </Row>
+                        </Col>
+                        <Col md={6}>
+                          <ReadOnlyField
+                            label="Mã nhóm"
+                            value={profile.teamId}
+                          />
+                        </Col>
+                      </Row>
+                    </div>
 
                     <div className="text-end mt-3">
                       <Button
@@ -527,17 +507,15 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
               </Form>
             </Tab>
 
-            {/* Tab Đổi mật khẩu (Giữ nguyên cấu trúc form) */}
+            {/* TAB ĐỔI MẬT KHẨU */}
             <Tab eventKey="password" title="Đổi mật khẩu">
-              <Form
-                onSubmit={handlePasswordSubmit}
-                className="password-form mt-3"
-              >
+              <Form onSubmit={handlePasswordSubmit} className="password-form">
                 {submitError && (
                   <div className="password-error">
                     <span>{submitError}</span>
                   </div>
                 )}
+                {/* Các trường mật khẩu đã đồng bộ style */}
                 <Form.Group className="mb-3">
                   <Form.Label>
                     Mật khẩu hiện tại <span className="required">*</span>
@@ -676,7 +654,7 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
           <Button
             variant="primary"
             onClick={handlePasswordSubmit}
-            disabled={isUpdating} // Sử dụng isUpdating cho toàn bộ việc gửi form
+            disabled={isUpdating}
           >
             {isUpdating ? (
               <>
@@ -700,4 +678,4 @@ const LecturerProfileModal = ({ show, setShow, onProfileUpdate }) => {
   );
 };
 
-export default LecturerProfileModal;
+export default StudentProfileModal;

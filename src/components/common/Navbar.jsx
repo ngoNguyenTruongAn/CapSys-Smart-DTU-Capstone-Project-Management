@@ -20,6 +20,7 @@ import {
 import { getUserIdFromToken } from "./ProfileModal/utils";
 import ProfileModal from "./ProfileModal/ProfileModal";
 import LecturerProfileModal from "./LecturerProfileModal/LecturerProfileModal";
+import StudentProfileModal from "./StudentProfileModal/StudentProfileModal";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const Navbar = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [fullName, setFullName] = useState("");
   const [showLecturerProfile, setShowLecturerProfile] = useState(false);
+  const [showStudentProfile, setShowStudentProfile] = useState(false);
   // Lấy thông tin profile từ API khi component mount
   useEffect(() => {
     const loadProfile = async () => {
@@ -283,6 +285,8 @@ const Navbar = () => {
             onClick={() => {
               if (accountType === "Lecturer") {
                 setShowLecturerProfile(true);
+              } else if (accountType === "Student") {
+                setShowStudentProfile(true);
               } else {
                 setShowProfile(true);
               }
@@ -318,6 +322,15 @@ const Navbar = () => {
         <LecturerProfileModal
           show={showLecturerProfile}
           setShow={setShowLecturerProfile}
+          onProfileUpdate={(newFullName) => {
+            setFullName(newFullName);
+          }}
+        />
+      ) : null}
+      {showStudentProfile ? (
+        <StudentProfileModal
+          show={showStudentProfile}
+          setShow={setShowStudentProfile}
           onProfileUpdate={(newFullName) => {
             setFullName(newFullName);
           }}
