@@ -19,6 +19,8 @@ import Proposaldetail from "./features/proposals/proposal-detail-UI/Proposal-det
 import GradingPage from "./pages/grading/GradingPage";
 import QuanLyHoiDong from "./pages/admin/QuanLyHoiDong/QuanLyHoiDong";
 import LecturersLayout from "./pages/Lecturers/LecturersLayout";
+import LecturerDashboard from "./pages/Lecturers/LecturerDashboard";
+import DoAnHuongDan from "./pages/Lecturers/DoAnHuongDan";
 import StudentLayout from "./pages/Student/StudentLayout";
 import StudentTeamDetail from "./pages/Student/StudentTeamDetail";
 import StudentProposalDetail from "./pages/Student/StudentProposalDetail";
@@ -57,7 +59,8 @@ function App() {
       <Route path="/proposal-detail/:id" element={<Proposaldetail />} />
 
       <Route path="/lecturer" element={<LecturersLayout />}>
-        {/* <Route index element={<Lecturers />} /> */}
+        <Route index element={<LecturerDashboard />} />
+        <Route path="do-an-huong-dan" element={<DoAnHuongDan />} />
         <Route path="cham-diem" element={<GradingPage />} />
       </Route>
       <Route path="/student" element={<StudentLayout />}>
