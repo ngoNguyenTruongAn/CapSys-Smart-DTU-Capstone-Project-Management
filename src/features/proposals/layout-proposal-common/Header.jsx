@@ -1,27 +1,34 @@
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import styles from "../proposals-management-UI/Proposal.module.scss";
-// import useGoBack from "../proposals-logic/useGoBack";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 function Header({ heading, subheading, rightContent }) {
-  // const goBack = useGoBack();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Xác định đường dẫn quay lại dựa trên trang hiện tại
+  // Lấy đường dẫn dashboard dựa trên role của user
+  const getDashboardPath = () => {
+    const accountType = localStorage.getItem("accountType") || sessionStorage.getItem("accountType");
+    switch (accountType) {
+      case "Admin":
+        return "/admin";
+      case "Lecturer":
+        return "/lecturer";
+      case "Student":
+        return "/student";
+      default:
+        return "/";
+    }
+  };
+
+  // Quay lại trang trước đó trong history
   const handleGoBack = () => {
-    // Nếu đang ở trang chi tiết proposal thì quay về /proposals
-    if (location.pathname.startsWith("/proposal-detail")) {
-      navigate("/proposals");
-    }
-    // Nếu đang ở trang proposals thì quay về /admin
-    else if (location.pathname === "/proposals") {
-      navigate("/admin");
-    }
-    // Mặc định quay về /admin
-    else {
-      navigate("/admin");
+    // Kiểm tra xem có history để back không
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      // Fallback về dashboard nếu không có history
+      navigate(getDashboardPath());
     }
   };
 
