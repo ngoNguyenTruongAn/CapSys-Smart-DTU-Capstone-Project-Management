@@ -1,5 +1,7 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { selectAccountType } from "../../store/authSlice";
 import GradingDetailPage from "./GradingDetailPage";
 import SummaryCards from "../../components/grading/SummaryCards";
 import SearchAndFilter from "../../components/grading/SearchAndFilter";
@@ -8,9 +10,95 @@ import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingPage.module.css";
 import CreateSessionModal from "../../components/grading/CreateSessionModal.jsx";
 import LoadingFullScreen from "../../components/ui/LoadingFullScreen";
+import { getLecturerProfileAPI } from "../../services/ProfileAPI";
+
+/**
+ * Decode JWT payload from token string
+ * @param {string} token - JWT token
+ * @returns {Object|null} Decoded payload or null
+ */
+const decodeJwtPayload = (token) => {
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const base64 = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(parts[1].length + ((4 - (parts[1].length % 4)) % 4), "=");
+    const decoded = window.atob(base64);
+    return JSON.parse(
+      decodeURIComponent(
+        decoded
+          .split("")
+          .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
+          .join("")
+      )
+    );
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Get current account ID from JWT token
+ * @returns {number|null} Account ID or null
+ */
+const getAccountIdFromToken = () => {
+  if (typeof window === "undefined") return null;
+  const token =
+    window.localStorage?.getItem("token") ||
+    window.localStorage?.getItem("accessToken") ||
+    window.sessionStorage?.getItem("token");
+  if (!token) return null;
+  const payload = decodeJwtPayload(token);
+  if (!payload || typeof payload !== "object") return null;
+
+  const accountKeys = ["AccountId", "accountId", "UserId", "userId", "sub"];
+
+  const tryParseNumeric = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+  };
+
+  for (const key of accountKeys) {
+    const parsed = tryParseNumeric(payload[key]);
+    if (parsed) return parsed;
+  }
+
+  return null;
+};
+
+/**
+ * Get lecturer ID by fetching lecturer profile
+ * @returns {Promise<number|null>} Lecturer ID or null
+ */
+const fetchCurrentLecturerId = async () => {
+  try {
+    const accountId = getAccountIdFromToken();
+    if (!accountId) {
+      console.warn("[GradingPage] Could not get accountId from token");
+      return null;
+    }
+    
+    const response = await getLecturerProfileAPI(accountId);
+    const responseData = response?.data || response;
+    const lecturerInfo = responseData?.lecturerInfo || {};
+    const lecturerId = lecturerInfo?.lecturerId || responseData?.lecturerId || null;
+    
+    return lecturerId;
+  } catch (error) {
+    console.error("[GradingPage] Error fetching lecturer profile:", error);
+    return null;
+  }
+};
 
 const GradingPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const accountType = useSelector(selectAccountType);
+  const isAdmin = accountType?.toLowerCase() === "admin";
+  const isLecturer = accountType?.toLowerCase() === "lecturer";
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedGroup, setSelectedGroup] = useState(null);
@@ -230,6 +318,12 @@ const GradingPage = () => {
         team.teamCode ||
         team.TeamCode ||
         null,
+      mentorId:
+        team.mentorId ||
+        team.MentorId ||
+        team.mentor?.lecturerId ||
+        team.Mentor?.LecturerId ||
+        null,
       mentorName:
         team.mentorName ||
         team.MentorName ||
@@ -302,6 +396,12 @@ const GradingPage = () => {
         return;
       }
 
+      // Get current lecturer ID if user is a lecturer (fetch from profile API)
+      let currentLecturerId = null;
+      if (isLecturer) {
+        currentLecturerId = await fetchCurrentLecturerId();
+      }
+
       const groupPromises = proposals
         .filter((proposal) => proposal?.teamId || proposal?.TeamId)
         .map(async (proposal) => {
@@ -324,6 +424,14 @@ const GradingPage = () => {
 
           const teamSessions = sessionsIndex[teamId] || [];
           const teamData = await fetchTeamData(teamId);
+
+          // For lecturer accounts: only show groups where they are the mentor
+          if (isLecturer && currentLecturerId) {
+            const teamMentorId = teamData?.mentorId || teamData?.MentorId || null;
+            if (!teamMentorId || teamMentorId !== currentLecturerId) {
+              return null;
+            }
+          }
 
           if (teamSessions.length === 0) {
             return transformToGroup(null, proposal, teamData);
@@ -415,7 +523,16 @@ const GradingPage = () => {
   const handleStartGrading = (group) => {
     // Only allow grading if there's a sessionId
     if (!group.sessionId) {
-      // Mở popup tạo phiên chấm với team id được điền sẵn
+      // Lecturer: Cho phép chấm điểm mà không cần Session (điểm Mentor)
+      if (!isAdmin) {
+        // Vào trang chấm điểm với teamId thay vì sessionId
+        setSelectedGroup({
+          ...group,
+          sessionId: null, // Không có session - Lecturer chấm điểm Mentor
+        });
+        return;
+      }
+      // Admin: Mở popup tạo phiên chấm với team id được điền sẵn
       setPrefillTeamId(group.teamId || null);
       setPrefillProjectId(group.projectId || group.proposalId || null);
       setPrefillCommitteeId(group.committeeId || null);
@@ -470,17 +587,20 @@ const GradingPage = () => {
   return (
     <div className={styles.gradingPage}>
       <div className={styles.gradingPage__container}>
-        <CreateSessionModal
-          open={showCreateModal}
-          defaultTeamId={prefillTeamId}
-          defaultProjectId={prefillProjectId}
-          defaultCommitteeId={prefillCommitteeId}
-          onClose={resetPrefillsAndCloseModal}
-          onCreated={async () => {
-            resetPrefillsAndCloseModal();
-            await loadGroups();
-          }}
-        />
+        {/* Chỉ Admin mới có quyền tạo Session */}
+        {isAdmin && (
+          <CreateSessionModal
+            open={showCreateModal}
+            defaultTeamId={prefillTeamId}
+            defaultProjectId={prefillProjectId}
+            defaultCommitteeId={prefillCommitteeId}
+            onClose={resetPrefillsAndCloseModal}
+            onCreated={async () => {
+              resetPrefillsAndCloseModal();
+              await loadGroups();
+            }}
+          />
+        )}
         {error && (
           <div
             style={{
