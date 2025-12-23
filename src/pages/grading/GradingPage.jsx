@@ -11,6 +11,7 @@ import styles from "./GradingPage.module.css";
 import CreateSessionModal from "../../components/grading/CreateSessionModal.jsx";
 import LoadingFullScreen from "../../components/ui/LoadingFullScreen";
 import { getLecturerProfileAPI } from "../../services/ProfileAPI";
+import { getAllCommitteesAPI } from "../../services/CommitteeAPI";
 
 /**
  * Decode JWT payload from token string
@@ -90,6 +91,52 @@ const fetchCurrentLecturerId = async () => {
   } catch (error) {
     console.error("[GradingPage] Error fetching lecturer profile:", error);
     return null;
+  }
+};
+
+/**
+ * Get all committee IDs that a lecturer is a member of
+ * @param {number} lecturerId - The lecturer ID
+ * @returns {Promise<Set<number>>} Set of committee IDs
+ */
+const fetchLecturerCommitteeIds = async (lecturerId) => {
+  try {
+    if (!lecturerId) return new Set();
+    
+    const response = await getAllCommitteesAPI(true);
+    const committees = response?.data || response || [];
+    
+    if (!Array.isArray(committees)) return new Set();
+    
+    const committeeIds = new Set();
+    
+    for (const committee of committees) {
+      const members = committee.members || committee.Members || [];
+      const chairmanId = committee.chairmanId || committee.ChairmanId || null;
+      
+      // Check if lecturer is chairman
+      if (chairmanId === lecturerId) {
+        const commId = committee.committeeId || committee.CommitteeId || committee.id;
+        if (commId) committeeIds.add(commId);
+        continue;
+      }
+      
+      // Check if lecturer is a member
+      const isMember = members.some((member) => {
+        const memberLecturerId = member.lecturerId || member.LecturerId || null;
+        return memberLecturerId === lecturerId;
+      });
+      
+      if (isMember) {
+        const commId = committee.committeeId || committee.CommitteeId || committee.id;
+        if (commId) committeeIds.add(commId);
+      }
+    }
+    
+    return committeeIds;
+  } catch (error) {
+    console.error("[GradingPage] Error fetching committees:", error);
+    return new Set();
   }
 };
 
@@ -396,10 +443,14 @@ const GradingPage = () => {
         return;
       }
 
-      // Get current lecturer ID if user is a lecturer (fetch from profile API)
+      // Get current lecturer ID and their committee memberships if user is a lecturer
       let currentLecturerId = null;
+      let lecturerCommitteeIds = new Set();
       if (isLecturer) {
         currentLecturerId = await fetchCurrentLecturerId();
+        if (currentLecturerId) {
+          lecturerCommitteeIds = await fetchLecturerCommitteeIds(currentLecturerId);
+        }
       }
 
       const groupPromises = proposals
@@ -425,10 +476,23 @@ const GradingPage = () => {
           const teamSessions = sessionsIndex[teamId] || [];
           const teamData = await fetchTeamData(teamId);
 
-          // For lecturer accounts: only show groups where they are the mentor
+          // For lecturer accounts: check if they are mentor OR in committee
           if (isLecturer && currentLecturerId) {
             const teamMentorId = teamData?.mentorId || teamData?.MentorId || null;
-            if (!teamMentorId || teamMentorId !== currentLecturerId) {
+            const isMentor = teamMentorId === currentLecturerId;
+            
+            // Check if any session has a committee that the lecturer is part of
+            const isInCommittee = teamSessions.some((session) => {
+              const sessionCommitteeId = pickFirstValue(
+                session?.committeeId,
+                session?.CommitteeId,
+                session?.committee?.committeeId
+              );
+              return sessionCommitteeId && lecturerCommitteeIds.has(sessionCommitteeId);
+            });
+            
+            // Only show if lecturer is mentor OR is in committee for a session
+            if (!isMentor && !isInCommittee) {
               return null;
             }
           }
