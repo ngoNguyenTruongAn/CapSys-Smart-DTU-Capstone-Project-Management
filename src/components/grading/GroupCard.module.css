@@ -119,6 +119,17 @@
   white-space: nowrap;
 }
 
+.groupCard__actionBtnGroup {
+  display: flex;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+
+.groupCard__actionBtnGroup .groupCard__actionBtn {
+  flex: 1;
+  width: auto;
+}
+
 .groupCard__actionBtn {
   width: 100%;
   background: #94070d;
@@ -139,4 +150,20 @@
 
 .groupCard__actionBtn:active {
   transform: translateY(0);
+}
+
+.groupCard__actionBtnSecondary {
+  background: #2563eb;
+}
+
+.groupCard__actionBtnSecondary:hover {
+  background: #1d4ed8;
+}
+
+.groupCard__actionBtnExcel {
+  background: #16a34a;
+}
+
+.groupCard__actionBtnExcel:hover {
+  background: #15803d;
 }

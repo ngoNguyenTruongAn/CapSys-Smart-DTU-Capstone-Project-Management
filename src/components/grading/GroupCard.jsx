@@ -79,8 +79,10 @@ const getMentorDisplayName = (mentorValue) => {
   return DEFAULT_MENTOR_PLACEHOLDER;
 };
 
-const GroupCard = ({ group, team, project, members, score, mentor, status, onStartGrading }) => {
+const GroupCard = ({ group, team, project, members, score, mentor, status, onStartGrading, onViewScore, onExportExcel }) => {
   const mentorDisplayName = getMentorDisplayName(mentor);
+  const isCompleted = status === 'graded';
+  
   const getStatusConfig = (status) => {
     switch (status) {
       case 'graded':
@@ -157,12 +159,29 @@ const GroupCard = ({ group, team, project, members, score, mentor, status, onSta
         </div>
       </div>
       
-      <button 
-        className={styles.groupCard__actionBtn}
-        onClick={() => onStartGrading(group)}
-      >
-        Bắt đầu chấm điểm
-      </button>
+      {isCompleted ? (
+        <div className={styles.groupCard__actionBtnGroup}>
+          <button 
+            className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnSecondary}`}
+            onClick={() => onViewScore && onViewScore(group)}
+          >
+            Xem điểm
+          </button>
+          <button 
+            className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnExcel}`}
+            onClick={() => onExportExcel && onExportExcel(group)}
+          >
+            Xuất Excel
+          </button>
+        </div>
+      ) : (
+        <button 
+          className={styles.groupCard__actionBtn}
+          onClick={() => onStartGrading(group)}
+        >
+          Bắt đầu chấm điểm
+        </button>
+      )}
     </div>
   );
 };
