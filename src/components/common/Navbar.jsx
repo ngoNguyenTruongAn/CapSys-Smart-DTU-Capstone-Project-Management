@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./Navbar.scss";
 import logoCap from "../../assets/logo/logoDT-70.png";
 import Bell from "/src/assets/icon/Bell.svg?react";
@@ -31,6 +31,32 @@ const Navbar = () => {
   const [fullName, setFullName] = useState("");
   const [showLecturerProfile, setShowLecturerProfile] = useState(false);
   const [showStudentProfile, setShowStudentProfile] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const navTopRef = useRef(null);
+
+  // Sử dụng Intersection Observer để phát hiện khi nav-top rời khỏi viewport
+  useEffect(() => {
+    const navTopElement = navTopRef.current;
+    if (!navTopElement) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Khi nav-top không còn hiển thị trong viewport
+        setIsScrolled(!entry.isIntersecting);
+      },
+      {
+        root: null, // viewport
+        threshold: 0, // Kích hoạt ngay khi bắt đầu rời viewport
+        rootMargin: '0px'
+      }
+    );
+
+    observer.observe(navTopElement);
+
+    return () => {
+      observer.unobserve(navTopElement);
+    };
+  }, []);
   // Lấy thông tin profile từ API khi component mount
   useEffect(() => {
     const loadProfile = async () => {
@@ -266,7 +292,7 @@ const Navbar = () => {
 
   return (
     <nav className="navbar">
-      <div className="nav-top">
+      <div ref={navTopRef} className="nav-top">
         <div className="navbar__logo">
           <img src={logoCap} alt="logo" />
           <div className="logo-text">
@@ -299,7 +325,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      <div className="nav-bottom">
+      <div className={`nav-bottom ${isScrolled ? 'nav-bottom--sticky' : ''}`}>
         <ul className="navbar__menu">
           {renderMenuItems()}
           <li onClick={handleLogout}>
@@ -308,6 +334,9 @@ const Navbar = () => {
           </li>
         </ul>
       </div>
+      
+      {/* Spacer để tránh content nhảy khi nav-bottom trở thành fixed */}
+      {isScrolled && <div className="nav-bottom-spacer" />}
 
       {showProfile ? (
         <ProfileModal

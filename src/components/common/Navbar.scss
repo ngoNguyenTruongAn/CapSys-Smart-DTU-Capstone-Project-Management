@@ -177,5 +177,22 @@ $primary-color: #94070d;
     padding: 10px 0;
     border-top: 1px solid #e5e7eb;
     border-bottom: 1px solid #e5e7eb;
+    background-color: #fff;
+    transition: box-shadow 0.3s ease;
+
+    &--sticky {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+  }
+
+  // Spacer để tránh content nhảy khi nav-bottom fixed
+  .nav-bottom-spacer {
+    height: 55px; // Chiều cao của nav-bottom
+    width: 100%;
   }
 }
