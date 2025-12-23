@@ -1,15 +1,12 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import "./TongQuan.scss";
-import file from "../../../assets/image/file.png";
-import time from "../../../assets/image/time.png";
-import what from "../../../assets/image/what.png";
 import { useNavigate } from "react-router-dom";
 import { getAllLecturersAPI } from "../../../services/LecturersAPI";
 import { getAllStudentsAPI } from "../../../services/StudentsAPI";
 import { getAllTeamsAPI } from "../../../services/TeamsAPI";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPeopleLine,faPeopleRoof } from "@fortawesome/free-solid-svg-icons";
-import { faFile,faFolder } from "@fortawesome/free-regular-svg-icons";
+import { faPeopleLine, faPeopleRoof } from "@fortawesome/free-solid-svg-icons";
+import { faFile, faFolder } from "@fortawesome/free-regular-svg-icons";
 // import chart
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { TimelineLite, Power3 } from "gsap";
@@ -125,8 +122,8 @@ const formatDateLabel = (date) => {
 };
 
 const TongQuan = ({
-  mentorManagePath = "/admin/quan-ly-do-an/quan-ly-nhom-do-an/mentor",
-  mentorButtonLabel = "Quản lý mentor",
+  mentorManagePath = "/admin/quan-ly-do-an/quan-ly-nhom-do-an/nhom",
+  mentorButtonLabel = "Xem tất cả",
   showMentorAction = true,
 }) => {
   const navigate = useNavigate();
@@ -291,14 +288,19 @@ const TongQuan = ({
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [lecturersRes, studentsRes, teamsCap1Res, teamsCap2Res, proposalsRes] =
-          await Promise.allSettled([
-            getAllLecturersAPI(),
-            getAllStudentsAPI(),
-            getAllTeamsAPI(1),
-            getAllTeamsAPI(2),
-            getAllProposalsAPI(),
-          ]);
+        const [
+          lecturersRes,
+          studentsRes,
+          teamsCap1Res,
+          teamsCap2Res,
+          proposalsRes,
+        ] = await Promise.allSettled([
+          getAllLecturersAPI(),
+          getAllStudentsAPI(),
+          getAllTeamsAPI(1),
+          getAllTeamsAPI(2),
+          getAllProposalsAPI(),
+        ]);
 
         const hasForbidden = [
           lecturersRes,
@@ -307,7 +309,8 @@ const TongQuan = ({
           teamsCap2Res,
           proposalsRes,
         ].some(
-          (res) => res.status === "rejected" && res.reason?.response?.status === 403
+          (res) =>
+            res.status === "rejected" && res.reason?.response?.status === 403
         );
         if (hasForbidden) {
           setErrorMessage(
@@ -463,7 +466,6 @@ const TongQuan = ({
         <div className="tq-stat-card">
           <div className="tq-icon lecturers">
             <FontAwesomeIcon icon={faPeopleLine} />
-            
           </div>
           <div className="tq-info">
             <div className="tq-stat-title">Giảng viên</div>

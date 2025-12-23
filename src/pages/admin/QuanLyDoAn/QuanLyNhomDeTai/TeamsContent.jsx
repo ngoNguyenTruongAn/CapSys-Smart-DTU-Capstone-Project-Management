@@ -4,6 +4,8 @@ import {
   deleteTeam,
   removeMentor,
   fetchAllTeams,
+  assignMentor,
+  fetchMentorWorkload,
 } from "../../../../store/teamSlice";
 import TeamDetailModal from "../Action/TeamDetailModal"; // Import modal chi tiết nhóm
 // import "./QuanLyNhomDeTai.scss"; // CSS đã được import ở file cha
@@ -12,7 +14,7 @@ const TeamsContent = () => {
   const dispatch = useDispatch();
 
   // Lấy data từ Redux
-  const { loading } = useSelector((state) => state.teams);
+  const { loading, mentorWorkload } = useSelector((state) => state.teams);
 
   // Local state để lưu tất cả teams
   const [allTeams, setAllTeams] = useState([]);
@@ -40,6 +42,13 @@ const TeamsContent = () => {
   // ===== STATE MANAGEMENT (CỦA RIÊNG TAB NÀY) =====
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedTeamId, setSelectedTeamId] = useState(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [assigningTeamId, setAssigningTeamId] = useState(null);
+  const [selectedMentorId, setSelectedMentorId] = useState(null);
+  const [assigning, setAssigning] = useState(false);
+  const [mentorSearch, setMentorSearch] = useState("");
+  const [mentorPage, setMentorPage] = useState(1);
+  const [mentorPageSize, setMentorPageSize] = useState(5);
 
   // Search và filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -115,6 +124,77 @@ const TeamsContent = () => {
     setShowUpdateModal(true);
   };
 
+  const handleAddMentor = (teamId) => {
+    setAssigningTeamId(teamId);
+    setShowAssignModal(true);
+    setMentorPage(1);
+    setMentorSearch("");
+    setSelectedMentorId(null);
+    // Đảm bảo có dữ liệu mentor để hiển thị
+    if (!mentorWorkload || mentorWorkload.length === 0) {
+      dispatch(fetchMentorWorkload());
+    }
+  };
+
+  const confirmAssignMentor = async () => {
+    if (!selectedMentorId || !assigningTeamId) {
+      alert("Vui lòng chọn giảng viên để gán.");
+      return;
+    }
+    try {
+      setAssigning(true);
+      await dispatch(
+        assignMentor({
+          teamId: assigningTeamId,
+          mentorId: selectedMentorId,
+        })
+      ).unwrap();
+      alert("Gán mentor thành công!");
+      const res1 = await dispatch(fetchAllTeams(1)).unwrap();
+      const res2 = await dispatch(fetchAllTeams(2)).unwrap();
+      setAllTeams([...(res1 || []), ...(res2 || [])]);
+      setShowAssignModal(false);
+      setAssigningTeamId(null);
+      setSelectedMentorId(null);
+    } catch (error) {
+      alert("Gán mentor thất bại: " + error);
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const closeAssignModal = () => {
+    setShowAssignModal(false);
+    setAssigningTeamId(null);
+    setSelectedMentorId(null);
+    setMentorSearch("");
+    setMentorPage(1);
+  };
+
+  // Lọc + phân trang mentor trong modal
+  const filteredMentors = useMemo(() => {
+    const keyword = mentorSearch.trim().toLowerCase();
+    if (!keyword) return mentorWorkload || [];
+    return (mentorWorkload || []).filter(
+      (m) =>
+        m.fullName?.toLowerCase().includes(keyword) ||
+        m.department?.toLowerCase().includes(keyword) ||
+        m.specialization?.toLowerCase().includes(keyword)
+    );
+  }, [mentorWorkload, mentorSearch]);
+
+  const totalMentorPages = Math.max(
+    1,
+    Math.ceil(filteredMentors.length / mentorPageSize)
+  );
+  const mentorStart = (mentorPage - 1) * mentorPageSize;
+  const mentorEnd = mentorStart + mentorPageSize;
+  const paginatedMentors = filteredMentors.slice(mentorStart, mentorEnd);
+
+  useEffect(() => {
+    setMentorPage(1);
+  }, [mentorSearch, mentorPageSize]);
+
   const handleRemoveMentor = async (teamId) => {
     if (!window.confirm("Bạn có chắc muốn gỡ mentor khỏi nhóm này?")) {
       return;
@@ -144,8 +224,6 @@ const TeamsContent = () => {
     setCurrentPage(1);
   };
 
-  // ===== RENDER =====
-  // Đây là nội dung của hàm renderTeamsTab() cũ
   return (
     <>
       <div className="teams-section">
@@ -216,16 +294,16 @@ const TeamsContent = () => {
                     <h4>{team.teamName}</h4>
                     <button
                       onClick={() => handleUpdateTeam(team.teamId)}
-                      className="btn-info btn-icon"
+                      className="btn-info btn-icon "
                     >
                       Chi tiêt
                     </button>
                     <button
                       onClick={() => handleDeleteTeam(team.teamId)}
                       disabled={loading}
-                      className="btn-danger btn-icon"
+                      className="btn-danger btn-icon data-variant-danger"
                     >
-                      🗑️
+                      Xóa
                     </button>
                   </div>
 
@@ -246,6 +324,12 @@ const TeamsContent = () => {
                     ) : (
                       <p className="mentor-info">
                         <strong>Mentor:</strong> Chưa có mentor
+                        <button
+                          onClick={() => handleAddMentor(team.teamId)}
+                          className="btn-primary btn-small"
+                        >
+                          Thêm mentor
+                        </button>
                       </p>
                     )}
                     <div className="team-members">
@@ -413,6 +497,113 @@ const TeamsContent = () => {
           setAllTeams([...(res1 || []), ...(res2 || [])]);
         }}
       />
+
+      {/* Modal gán mentor cho nhóm */}
+      {showAssignModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>Chọn giảng viên cho nhóm</h3>
+            <div className="mentor-list">
+              <div className="mentor-toolbar">
+                <input
+                  type="text"
+                  placeholder="Tìm theo tên, khoa, chuyên ngành..."
+                  value={mentorSearch}
+                  onChange={(e) => setMentorSearch(e.target.value)}
+                />
+                <div className="page-size-selector">
+                  <label>Hiển thị:</label>
+                  <select
+                    value={mentorPageSize}
+                    onChange={(e) => setMentorPageSize(Number(e.target.value))}
+                  >
+                    {[5, 10, 15].map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                  <span>giảng viên/trang</span>
+                </div>
+              </div>
+
+              {paginatedMentors && paginatedMentors.length > 0 ? (
+                <div className="mentor-options">
+                  {paginatedMentors.map((mentor) => (
+                    <label
+                      key={mentor.lecturerId}
+                      className={`mentor-option ${
+                        selectedMentorId === mentor.lecturerId ? "selected" : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="mentor"
+                        value={mentor.lecturerId}
+                        checked={selectedMentorId === mentor.lecturerId}
+                        onChange={() => setSelectedMentorId(mentor.lecturerId)}
+                      />
+                      <div className="mentor-info-line">
+                        <div>
+                          <strong>{mentor.fullName}</strong>{" "}
+                          <span className="muted">
+                            ({mentor.department} - {mentor.specialization})
+                          </span>
+                        </div>
+                        <div className="muted">
+                          Nhóm hiện tại: {mentor.currentTeamCount} /{" "}
+                          {mentor.maxTeamsAllowed}
+                        </div>
+                      </div>
+                      {!mentor.isAvailable && (
+                        <span className="badge-danger">Đã đủ nhóm</span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted">Không có giảng viên phù hợp.</p>
+              )}
+
+              <div className="pagination modal-pagination">
+                <button
+                  onClick={() => setMentorPage((p) => Math.max(1, p - 1))}
+                  disabled={mentorPage === 1}
+                  className="pagination-btn"
+                >
+                  {"<"}
+                </button>
+                <span className="page-indicator">
+                  {mentorPage} / {totalMentorPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setMentorPage((p) =>
+                      p >= totalMentorPages ? totalMentorPages : p + 1
+                    )
+                  }
+                  disabled={mentorPage >= totalMentorPages}
+                  className="pagination-btn"
+                >
+                  {">"}
+                </button>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button onClick={closeAssignModal} className="btn-secondary">
+                Hủy
+              </button>
+              <button
+                onClick={confirmAssignMentor}
+                className="btn-primary"
+                disabled={assigning}
+              >
+                {assigning ? "Đang gán..." : "Gán mentor"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

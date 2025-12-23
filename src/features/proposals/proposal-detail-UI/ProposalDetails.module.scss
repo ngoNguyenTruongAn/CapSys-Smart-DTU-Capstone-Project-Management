@@ -835,3 +835,179 @@
   margin-bottom: 0;
   font-size: 1.6rem;
 }
+
+/* ========================================
+   SIMILARITY WARNING STYLES
+   ======================================== */
+
+.similarity-warning-card {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  margin: 0 0 16px 0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  border-left: 4px solid #ff9800;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.15);
+  animation: slideInWarning 0.3s ease-out;
+}
+
+@keyframes slideInWarning {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.similarity-warning-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.similarity-warning-icon {
+  font-size: 2rem;
+  color: #e65100;
+  animation: pulseWarning 2s infinite;
+}
+
+@keyframes pulseWarning {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.similarity-warning-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e65100;
+  margin: 0;
+}
+
+.similarity-warning-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.similarity-warning-item {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+.similarity-warning-item:last-child {
+  margin-bottom: 0;
+}
+
+.similarity-warning-item:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.2);
+}
+
+.similarity-percentage {
+  background: linear-gradient(135deg, #ff5722, #ff9800);
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  min-width: 60px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.similarity-percentage.high {
+  background: linear-gradient(135deg, #d32f2f, #f44336);
+}
+
+.similarity-percentage.medium {
+  background: linear-gradient(135deg, #ff5722, #ff9800);
+}
+
+.similarity-info {
+  flex: 1;
+}
+
+.similarity-proposal-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.similarity-proposal-title svg {
+  color: #ff9800;
+  font-size: 1.2rem;
+}
+
+.similarity-team-name {
+  font-size: 1.2rem;
+  color: #666;
+  margin: 0;
+}
+
+.similarity-message {
+  font-size: 1.1rem;
+  color: #795548;
+  margin: 8px 0 0 0;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.similarity-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid #ff9800;
+  color: #e65100;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.similarity-view-btn:hover {
+  background: #ff9800;
+  color: white;
+}
+
+/* No warnings state */
+.no-similarity-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  margin: 0 0 16px 0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  border-left: 4px solid #4caf50;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.no-similarity-icon {
+  font-size: 2rem;
+  color: #2e7d32;
+}
+
+.no-similarity-text {
+  font-size: 1.3rem;
+  color: #2e7d32;
+  font-weight: 500;
+  margin: 0;
+}

@@ -10,6 +10,9 @@ import {
   faSpinner,
   faChevronDown,
   faChevronUp,
+  faExclamationTriangle,
+  faCheckCircle,
+  faExternalLinkAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import ConfirmationDelModal from "../layout-proposal-common/Modal/ConfirmationDelModal";
 import DeleteButton from "../layout-proposal-common/Button/DeleteButton";
@@ -412,6 +415,73 @@ function Proposaldetail() {
               </div>
             </div>
 
+            {/* Similarity Warning Section */}
+            {(() => {
+              const warnings = selectedProposal?.similarityWarnings || 
+                               selectedProposal?.SimilarityWarnings || 
+                               aiSummary?.similarityWarnings ||
+                               [];
+              
+              if (warnings && warnings.length > 0) {
+                return (
+                  <div className={styles["similarity-warning-card"]}>
+                    <div className={styles["similarity-warning-header"]}>
+                      <FontAwesomeIcon 
+                        icon={faExclamationTriangle} 
+                        className={styles["similarity-warning-icon"]} 
+                      />
+                      <h3 className={styles["similarity-warning-title"]}>
+                        ⚠️ Cảnh báo trùng lặp nội dung ({warnings.length} đề tài)
+                      </h3>
+                    </div>
+                    <ul className={styles["similarity-warning-list"]}>
+                      {warnings.map((warning, idx) => (
+                        <li 
+                          key={idx} 
+                          className={styles["similarity-warning-item"]}
+                          onClick={() => navigate(`/proposal-detail/${warning.proposalId || warning.ProposalId}`)}
+                        >
+                          <span className={`${styles["similarity-percentage"]} ${
+                            (warning.similarityPercentage || warning.SimilarityPercentage) >= 70 ? styles["high"] : styles["medium"]
+                          }`}>
+                            {(warning.similarityPercentage || warning.SimilarityPercentage || 0).toFixed(1)}%
+                          </span>
+                          <div className={styles["similarity-info"]}>
+                            <p className={styles["similarity-proposal-title"]}>
+                              <FontAwesomeIcon icon={faFile} />
+                              {warning.title || warning.Title || "Đề tài không xác định"}
+                            </p>
+                            <p className={styles["similarity-team-name"]}>
+                              Nhóm: {warning.teamName || warning.TeamName || "---"}
+                            </p>
+                            {(warning.warningMessage || warning.WarningMessage) && (
+                              <p className={styles["similarity-message"]}>
+                                {warning.warningMessage || warning.WarningMessage}
+                              </p>
+                            )}
+                          </div>
+                          <button className={styles["similarity-view-btn"]}>
+                            <FontAwesomeIcon icon={faExternalLinkAlt} />
+                            Xem
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              } else if (selectedProposal?.similarityCheckedAt || selectedProposal?.SimilarityCheckedAt) {
+                return (
+                  <div className={styles["no-similarity-card"]}>
+                    <FontAwesomeIcon icon={faCheckCircle} className={styles["no-similarity-icon"]} />
+                    <p className={styles["no-similarity-text"]}>
+                      ✅ Đề tài này không có nội dung trùng lặp với các đề tài khác
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             {/* AI Summary Section */}
             {isSummarizing && (
               <div className={styles["ai-summary-loading-card"]}>
@@ -424,7 +494,7 @@ function Proposaldetail() {
             {summaryError && (
               <div className={styles["ai-summary-error-card"]}>
                 <p>⚠️ {summaryError}</p>
-                <button onClick={handleSummarize} className={styles["retry-btn"]}>
+                <button onClick={() => handleSummarize(true)} className={styles["retry-btn"]}>
                   Thử lại
                 </button>
               </div>
