@@ -1,6 +1,8 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import { selectAccountType } from "../../store/authSlice";
 import GradingDetailPage from "./GradingDetailPage";
 import SummaryCards from "../../components/grading/SummaryCards";
@@ -10,6 +12,7 @@ import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingPage.module.css";
 import CreateSessionModal from "../../components/grading/CreateSessionModal.jsx";
 import LoadingFullScreen from "../../components/ui/LoadingFullScreen";
+import Toasts from "../../components/ui/Toasts.jsx";
 import { getLecturerProfileAPI } from "../../services/ProfileAPI";
 import { getAllCommitteesAPI } from "../../services/CommitteeAPI";
 
@@ -140,9 +143,25 @@ const fetchLecturerCommitteeIds = async (lecturerId) => {
   }
 };
 
+/**
+ * Get account type from localStorage directly (more reliable on page reload)
+ * @returns {string|null} Account type or null
+ */
+const getAccountTypeFromStorage = () => {
+  if (typeof window === "undefined") return null;
+  return (
+    window.localStorage?.getItem("accountType") ||
+    window.sessionStorage?.getItem("accountType") ||
+    null
+  );
+};
+
 const GradingPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const accountType = useSelector(selectAccountType);
+  const reduxAccountType = useSelector(selectAccountType);
+  
+  // Use localStorage value as fallback when Redux state is not yet restored
+  const accountType = reduxAccountType || getAccountTypeFromStorage();
   const isAdmin = accountType?.toLowerCase() === "admin";
   const isLecturer = accountType?.toLowerCase() === "lecturer";
   
@@ -156,6 +175,9 @@ const GradingPage = () => {
   const [prefillTeamId, setPrefillTeamId] = useState(null);
   const [prefillProjectId, setPrefillProjectId] = useState(null);
   const [prefillCommitteeId, setPrefillCommitteeId] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastType, setToastType] = useState("success");
   const teamCacheRef = useRef({});
 
   /**
@@ -429,6 +451,9 @@ const GradingPage = () => {
     setLoading(true);
     setError("");
     try {
+      // Debug: Log current account type to ensure filtering is applied correctly
+      console.log("[GradingPage] loadGroups - accountType:", accountType, "isLecturer:", isLecturer, "isAdmin:", isAdmin);
+      
       const [proposalsResponse, sessionsResponse] = await Promise.all([
         GradingAPI.getProposals(),
         GradingAPI.getSessions(),
@@ -437,6 +462,19 @@ const GradingPage = () => {
       const proposals = unwrapResponseArray(proposalsResponse, ["proposals"]);
       const sessions = unwrapResponseArray(sessionsResponse, ["sessions"]);
       const sessionsIndex = sessionsByTeamId(sessions);
+
+      // Debug: Log all proposals and sessions
+      console.log("[GradingPage] All proposals:", proposals.map(p => ({
+        teamId: p?.teamId || p?.TeamId,
+        status: p?.status || p?.Status,
+        title: p?.title || p?.proposalTitle
+      })));
+      console.log("[GradingPage] All sessions:", sessions.map(s => ({
+        sessionId: s?.sessionId || s?.SessionId,
+        teamId: s?.teamId || s?.TeamId,
+        committeeId: s?.committeeId || s?.CommitteeId,
+        status: s?.status || s?.Status
+      })));
 
       if (proposals.length === 0 && sessions.length === 0) {
         setGroups([]);
@@ -448,8 +486,10 @@ const GradingPage = () => {
       let lecturerCommitteeIds = new Set();
       if (isLecturer) {
         currentLecturerId = await fetchCurrentLecturerId();
+        console.log("[GradingPage] Current Lecturer ID:", currentLecturerId);
         if (currentLecturerId) {
           lecturerCommitteeIds = await fetchLecturerCommitteeIds(currentLecturerId);
+          console.log("[GradingPage] Lecturer Committee IDs:", [...lecturerCommitteeIds]);
         }
       }
 
@@ -461,19 +501,26 @@ const GradingPage = () => {
             return null;
           }
 
-          // Chỉ cho phép chấm điểm khi proposal đã được duyệt
-          const rawStatus = String(
-            proposal.status ?? proposal.Status ?? ""
-          ).toLowerCase();
-          const isApproved = ["approved", "đã duyệt", "approve"].some((s) =>
-            rawStatus.includes(s)
-          );
+          const teamSessions = sessionsIndex[teamId] || [];
+          const hasGradingSession = teamSessions.length > 0;
 
-          if (!isApproved) {
-            return null;
+          // Chỉ check proposal status nếu team CHƯA có grading session
+          // Nếu đã có session (đã/đang chấm) thì vẫn hiển thị bất kể proposal status
+          if (!hasGradingSession) {
+            const rawStatus = String(
+              proposal.status ?? proposal.Status ?? ""
+            ).toLowerCase();
+            // "completed" = team đã chấm điểm xong, cũng coi như approved
+            const isApproved = ["approved", "đã duyệt", "approve", "completed", "hoàn thành"].some((s) =>
+              rawStatus.includes(s)
+            );
+
+            if (!isApproved) {
+              console.log(`[GradingPage] Team ${teamId} SKIPPED - proposal not approved (status: "${rawStatus}")`);
+              return null;
+            }
           }
 
-          const teamSessions = sessionsIndex[teamId] || [];
           const teamData = await fetchTeamData(teamId);
 
           // For lecturer accounts: check if they are mentor OR in committee
@@ -481,8 +528,15 @@ const GradingPage = () => {
             const teamMentorId = teamData?.mentorId || teamData?.MentorId || null;
             const isMentor = teamMentorId === currentLecturerId;
             
+            // Check if team's committee (from teamData) includes the lecturer
+            const teamCommitteeId = pickFirstValue(
+              teamData?.committeeId,
+              teamData?.CommitteeId
+            );
+            const isInTeamCommittee = teamCommitteeId && lecturerCommitteeIds.has(teamCommitteeId);
+            
             // Check if any session has a committee that the lecturer is part of
-            const isInCommittee = teamSessions.some((session) => {
+            const isInSessionCommittee = teamSessions.some((session) => {
               const sessionCommitteeId = pickFirstValue(
                 session?.committeeId,
                 session?.CommitteeId,
@@ -490,9 +544,23 @@ const GradingPage = () => {
               );
               return sessionCommitteeId && lecturerCommitteeIds.has(sessionCommitteeId);
             });
+
+            // Debug log for team 006 or any team
+            console.log(`[GradingPage] Team ${teamId} check:`, {
+              teamCode: teamData?.teamCode || teamData?.teamName,
+              teamMentorId,
+              currentLecturerId,
+              isMentor,
+              teamCommitteeId,
+              isInTeamCommittee,
+              sessionCount: teamSessions.length,
+              isInSessionCommittee,
+              lecturerCommitteeIds: [...lecturerCommitteeIds],
+            });
             
-            // Only show if lecturer is mentor OR is in committee for a session
-            if (!isMentor && !isInCommittee) {
+            // Show if lecturer is mentor OR in team's committee OR in any session's committee
+            if (!isMentor && !isInTeamCommittee && !isInSessionCommittee) {
+              console.log(`[GradingPage] Team ${teamId} FILTERED OUT - not mentor and not in committee`);
               return null;
             }
           }
@@ -522,9 +590,13 @@ const GradingPage = () => {
     }
   };
 
+  // Reload groups when accountType is available or changes
   useEffect(() => {
-    loadGroups();
-  }, []);
+    // Only load when we have a valid accountType (from Redux or localStorage)
+    if (accountType) {
+      loadGroups();
+    }
+  }, [accountType]);
 
   useEffect(() => {
     const sessionId = searchParams.get("sessionId");
@@ -618,6 +690,146 @@ const GradingPage = () => {
     setError("");
   };
 
+  /**
+   * Handle view score - navigate to grading detail page in view mode
+   * @param {Object} group - Group data
+   */
+  const handleViewScore = (group) => {
+    if (group.sessionId) {
+      setSearchParams({ sessionId: group.sessionId });
+    } else {
+      setSelectedGroup(group);
+    }
+  };
+
+  /**
+   * Format date for file naming
+   * @param {Date} date - Date object
+   * @returns {string} Formatted date string
+   */
+  const formatDate = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  /**
+   * Handle export Excel for a completed grading session
+   * @param {Object} group - Group data with sessionId
+   */
+  const handleExportExcel = useCallback(async (group) => {
+    if (!group.sessionId) {
+      setToastMessage("Không tìm thấy phiên chấm điểm.");
+      setToastType("error");
+      return;
+    }
+
+    try {
+      setExporting(true);
+
+      // Fetch session detail data
+      const sessionResponse = await GradingAPI.getGradingSession(group.sessionId);
+      const sessionData = sessionResponse?.data || sessionResponse;
+
+      // Fetch template
+      const response = await fetch("/templates/GradingTemplate.xlsx");
+      if (!response.ok) {
+        throw new Error("Không thể tải file mẫu Excel.");
+      }
+      const templateBuffer = await response.arrayBuffer();
+
+      // Load workbook
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(templateBuffer);
+
+      const evalSheet = workbook.getWorksheet("EvaluationForm") || workbook.getWorksheet(1);
+      const mentorSheet = workbook.getWorksheet("Mentor comments") || workbook.getWorksheet(2);
+
+      if (!evalSheet) {
+        throw new Error("Không tìm thấy sheet EvaluationForm trong file mẫu.");
+      }
+
+      // Fill header information
+      const projectName = sessionData?.sessionName || group?.project || sessionData?.description || "";
+      const mentorName = sessionData?.graderName || sessionData?.mentorName || group?.mentor || "";
+      const teamName = sessionData?.teamName || group?.team || "";
+
+      evalSheet.getCell("C6").value = projectName;
+      evalSheet.getCell("C8").value = mentorName;
+
+      // Fill team members
+      const students = sessionData?.students || [];
+      const memberRows = [9, 10, 11, 12, 13];
+      students.forEach((student, index) => {
+        if (index < 5) {
+          const row = memberRows[index];
+          const fullName = student?.fullName || student?.FullName || "";
+          const studentCode = student?.studentCode || student?.StudentCode || "";
+          evalSheet.getCell(`C${row}`).value = fullName;
+          evalSheet.getCell(`F${row}`).value = studentCode;
+        }
+      });
+
+      // Fill scores from session data
+      const memberColumns = ["F", "G", "H", "I", "J"];
+
+      // Fill Final Grade row (row 38)
+      students.forEach((student, idx) => {
+        if (idx < 5) {
+          const finalScore = student?.finalScore ?? student?.FinalScore;
+          if (typeof finalScore === "number") {
+            evalSheet.getCell(`${memberColumns[idx]}38`).value = finalScore;
+          }
+        }
+      });
+
+      // Fill Contribution row (row 36)
+      students.forEach((student, idx) => {
+        if (idx < 5) {
+          const contribution = student?.contributionPercentage || student?.ContributionPercentage;
+          if (contribution) {
+            evalSheet.getCell(`${memberColumns[idx]}36`).value = `${contribution}%`;
+          }
+        }
+      });
+
+      // Fill mentor sheet if available
+      if (mentorSheet) {
+        mentorSheet.getCell("B2").value = teamName;
+        const commentStartRow = 5;
+        students.forEach((student, idx) => {
+          const row = commentStartRow + idx;
+          mentorSheet.getCell(`A${row}`).value = idx + 1;
+          mentorSheet.getCell(`B${row}`).value = student?.fullName || student?.FullName || "";
+        });
+
+        const today = new Date();
+        const dateStr = `${today.getDate().toString().padStart(2, "0")}/${(today.getMonth() + 1).toString().padStart(2, "0")}/${today.getFullYear()}`;
+        mentorSheet.getCell("C11").value = `Date: ${dateStr}`;
+        mentorSheet.getCell("C13").value = mentorName;
+      }
+
+      // Generate and download file
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const fileName = `KetQuaCham_${teamName || "Nhom"}_${formatDate(new Date()).replace(/\//g, "-")}.xlsx`;
+      saveAs(blob, fileName);
+
+      setToastMessage("Xuất file Excel thành công!");
+      setToastType("success");
+    } catch (err) {
+      console.error("Export Excel error:", err);
+      setToastMessage(err.message || "Không thể xuất file Excel. Vui lòng thử lại.");
+      setToastType("error");
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
   if (selectedGroup) {
     return (
       <div className={styles.gradingPage}>
@@ -683,7 +895,17 @@ const GradingPage = () => {
         <GroupGrid
           groups={filteredGroups}
           onStartGrading={handleStartGrading}
+          onViewScore={handleViewScore}
+          onExportExcel={handleExportExcel}
         />
+        {exporting && <LoadingFullScreen message="Đang xuất file Excel..." />}
+        {toastMessage && (
+          <Toasts
+            message={toastMessage}
+            type={toastType}
+            onClose={() => setToastMessage("")}
+          />
+        )}
       </div>
     </div>
   );

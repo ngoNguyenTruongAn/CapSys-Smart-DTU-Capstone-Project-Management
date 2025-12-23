@@ -16,11 +16,13 @@ export function getStatusKey(raw) {
     return "waiting";
   }
 
-  // approved (đã duyệt / đã phê duyệt / approved)
+  // approved (đã duyệt / đã phê duyệt / approved / completed - team đã chấm điểm xong)
   if (
     s.includes("duyệt") ||
     s.includes("phê duyệt") ||
-    s.includes("approved")
+    s.includes("approved") ||
+    s.includes("completed") ||
+    s.includes("hoàn thành")
   ) {
     return "approved";
   }

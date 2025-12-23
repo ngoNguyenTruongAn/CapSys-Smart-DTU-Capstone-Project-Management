@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import GradingAPI from "../../services/GradingAPI";
+import { getLecturerProfileAPI } from "../../services/ProfileAPI";
 import styles from "./GradingDetailPage.module.css";
 import Toasts from "../../components/ui/Toasts.jsx";
 import LoadingFullScreen from "../../components/ui/LoadingFullScreen";
@@ -12,6 +13,123 @@ const toScoreValue = (value) =>
 
 const toCommentValue = (value) =>
   value === null || value === undefined ? "" : String(value);
+
+/**
+ * Decode JWT payload from token string
+ * @param {string} token - JWT token
+ * @returns {Object|null} Decoded payload or null
+ */
+const decodeJwtPayload = (token) => {
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const base64 = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(parts[1].length + ((4 - (parts[1].length % 4)) % 4), "=");
+    const decoded = window.atob(base64);
+    return JSON.parse(
+      decodeURIComponent(
+        decoded
+          .split("")
+          .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
+          .join("")
+      )
+    );
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Get current account ID from JWT token
+ * @returns {number|null} Account ID or null
+ */
+const getAccountIdFromToken = () => {
+  if (typeof window === "undefined") return null;
+  const token =
+    window.localStorage?.getItem("token") ||
+    window.localStorage?.getItem("accessToken") ||
+    window.sessionStorage?.getItem("token");
+  if (!token) return null;
+  const payload = decodeJwtPayload(token);
+  if (!payload || typeof payload !== "object") return null;
+
+  const accountKeys = ["AccountId", "accountId", "UserId", "userId", "sub"];
+
+  const tryParseNumeric = (value) => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+  };
+
+  for (const key of accountKeys) {
+    const parsed = tryParseNumeric(payload[key]);
+    if (parsed) return parsed;
+  }
+
+  return null;
+};
+
+/**
+ * Get lecturer ID by fetching lecturer profile
+ * @returns {Promise<number|null>} Lecturer ID or null
+ */
+const fetchCurrentLecturerId = async () => {
+  try {
+    const accountId = getAccountIdFromToken();
+    if (!accountId) {
+      console.warn("[GradingDetailPage] Could not get accountId from token");
+      return null;
+    }
+
+    const response = await getLecturerProfileAPI(accountId);
+    const responseData = response?.data || response;
+    const lecturerInfo = responseData?.lecturerInfo || {};
+    const lecturerId =
+      lecturerInfo?.lecturerId || responseData?.lecturerId || null;
+
+    return lecturerId;
+  } catch (error) {
+    console.error("[GradingDetailPage] Error fetching lecturer profile:", error);
+    return null;
+  }
+};
+
+/**
+ * Find the role of a lecturer in committee members
+ * @param {Array} committeeMembers - List of committee members
+ * @param {number} lecturerId - The lecturer ID to find
+ * @returns {string} Role of the lecturer (Secretary, Chairman, Member) or "Secretary" as default
+ */
+const findLecturerRoleInCommittee = (committeeMembers, lecturerId) => {
+  if (!Array.isArray(committeeMembers) || !lecturerId) {
+    return "Secretary";
+  }
+
+  for (const member of committeeMembers) {
+    const memberId =
+      member?.lecturerId ||
+      member?.LecturerId ||
+      member?.evaluatorId ||
+      member?.EvaluatorId;
+
+    if (memberId === lecturerId) {
+      const role = member?.role || member?.Role || "Member";
+      // Normalize role to API expected format
+      const normalizedRole = role.toLowerCase();
+      if (normalizedRole.includes("secretary") || normalizedRole.includes("thư ký")) {
+        return "Secretary";
+      }
+      if (normalizedRole.includes("chairman") || normalizedRole.includes("chủ tịch")) {
+        return "Chairman";
+      }
+      return "Member";
+    }
+  }
+
+  return "Secretary";
+};
 
 const pickFirstValue = (...candidates) =>
   candidates.find(
@@ -1505,6 +1623,32 @@ export default function GradingDetailPage({
         return;
       }
 
+      // Get current logged-in lecturer's ID and role
+      const currentLecturerId = await fetchCurrentLecturerId();
+      if (!currentLecturerId) {
+        throw new Error(
+          "Không thể xác định thông tin giảng viên. Vui lòng đăng nhập lại."
+        );
+      }
+
+      // Get committee members from session detail
+      const committeeMembers =
+        sessionDetail?.committeeMembers ||
+        sessionDetail?.CommitteeMembers ||
+        [];
+
+      // Find the role of current lecturer in the committee
+      const currentLecturerRole = findLecturerRoleInCommittee(
+        committeeMembers,
+        currentLecturerId
+      );
+
+      console.log("[GradingDetailPage] Submitting grades with:", {
+        currentLecturerId,
+        currentLecturerRole,
+        committeeMembersCount: committeeMembers.length,
+      });
+
       for (const payload of studentPayloads) {
         // Map criteria grades to include TeamScore/IndividualScore based on scope
         const mappedCriteriaGrades = payload.criteriaGrades.map((grade) => {
@@ -1519,15 +1663,11 @@ export default function GradingDetailPage({
           };
         });
 
-        // Get current user info for evaluatorId
-        const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
-        const evaluatorId = sessionDetail?.graderId || userInfo?.accountId || 1;
-
         const body = {
           gradingSessionId: sessionId,
           studentId: payload.studentId,
-          evaluatorId: evaluatorId,
-          evaluatorRole: "Secretary",
+          evaluatorId: currentLecturerId,
+          evaluatorRole: currentLecturerRole,
           contributionPercentage: payload.contributionPercentage,
           criteriaGrades: mappedCriteriaGrades,
         };
@@ -1926,16 +2066,6 @@ export default function GradingDetailPage({
               disabled={saving}
             >
               Nhận xét
-            </button>
-          </div>
-          <div>
-            <button
-              className={`${styles.btn} ${styles.btnSecondary}`}
-              type="button"
-              onClick={handleExportExcel}
-              disabled={saving || !students.length}
-            >
-              Xuất Excel
             </button>
           </div>
           <div>
