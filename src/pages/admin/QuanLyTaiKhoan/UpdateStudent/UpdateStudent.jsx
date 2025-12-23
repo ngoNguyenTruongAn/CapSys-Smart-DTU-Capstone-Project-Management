@@ -47,6 +47,13 @@ const UpdateStudent = ({ show, setShow, studentId }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Chặn Enter auto-submit, yêu cầu bấm nút "Cập nhật"
+  const preventEnterSubmit = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+    }
+  };
+
   // Validate form
   const validateForm = () => {
     const { studentCode, fullName, faculty, major, phone, gpa, capstoneType } =
@@ -135,7 +142,7 @@ const UpdateStudent = ({ show, setShow, studentId }) => {
         <Modal.Title>Cập nhật sinh viên</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <Form onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit} onKeyDown={preventEnterSubmit}>
           <div className="update-form-grid">
             <Form.Group className="mb-3">
               <Form.Label>MSSV</Form.Label>

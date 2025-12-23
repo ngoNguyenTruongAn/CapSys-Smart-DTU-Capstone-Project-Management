@@ -205,9 +205,10 @@ const postRemoveStudentAPI = async (studentId) => {
 //gán giảng viên cho team
 const postAssignMentorAPI = async (teamId, mentorId) => {
   try {
-    const response = await instance.post(
-      `Teams/assign-mentor/${teamId}/${mentorId}`
-    );
+    const response = await instance.post(`Teams/assign-mentor`, {
+      teamId: teamId,
+      mentorId: mentorId,
+    });
     return response.data;
   } catch (error) {
     throw new Error(

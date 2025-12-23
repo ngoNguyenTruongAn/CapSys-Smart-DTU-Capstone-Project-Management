@@ -569,6 +569,27 @@ $primary-gradient: linear-gradient(135deg, #94070d, #b3080f);
             transform: none;
           }
         }
+
+        .btn-info {
+          background: #000000;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          padding: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover:not(:disabled) {
+            background: #c82333;
+            transform: scale(1.05);
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+          }
+        }
       }
 
       .team-content {
@@ -602,6 +623,24 @@ $primary-gradient: linear-gradient(135deg, #94070d, #b3080f);
 
             &:hover {
               background: #e0a800;
+            }
+
+            &.btn-primary {
+              background: #0d6efd;
+              color: #fff;
+
+              &:hover {
+                background: #0b5ed7;
+              }
+            }
+
+            &.btn-danger {
+              background: #dc3545;
+              color: #fff;
+
+              &:hover {
+                background: #c82333;
+              }
             }
           }
         }
@@ -883,6 +922,138 @@ $primary-gradient: linear-gradient(135deg, #94070d, #b3080f);
           }
         }
       }
+
+      /* Modal gán mentor */
+      .mentor-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 0.5rem;
+
+        .mentor-toolbar {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+
+          input[type="text"] {
+            flex: 1;
+            min-width: 240px;
+            padding: 0.6rem 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1.35rem;
+            transition: all 0.2s ease;
+
+            &:focus {
+              outline: none;
+              border-color: $primary-color;
+              box-shadow: 0 0 0 3px $primary-light;
+            }
+          }
+
+          .page-size-selector {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.3rem;
+
+            select {
+              padding: 0.4rem 0.8rem;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+              background: #fff;
+              cursor: pointer;
+              font-size: 1.3rem;
+            }
+          }
+        }
+
+        .mentor-options {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+
+          .mentor-option {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.75rem;
+            align-items: center;
+            padding: 0.9rem 1rem;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+
+            &.selected {
+              border-color: $primary-color;
+              box-shadow: 0 4px 12px rgba(148, 7, 13, 0.15);
+              background: #fff;
+            }
+
+            input[type="radio"] {
+              width: 18px;
+              height: 18px;
+              cursor: pointer;
+            }
+
+            .mentor-info-line {
+              display: flex;
+              flex-direction: column;
+              gap: 0.25rem;
+
+              strong {
+                color: #0f172a;
+                font-size: 1.4rem;
+              }
+
+              .muted {
+                color: #64748b;
+                font-size: 1.25rem;
+              }
+            }
+
+            .badge-danger {
+              background: #dc3545;
+              color: #fff;
+              padding: 0.3rem 0.7rem;
+              border-radius: 999px;
+              font-size: 1.1rem;
+              font-weight: 700;
+            }
+          }
+        }
+
+        .modal-pagination {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+
+          .pagination-btn {
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1.2rem;
+
+            &:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+          }
+
+          .page-indicator {
+            font-size: 1.25rem;
+            color: #475569;
+            min-width: 60px;
+            text-align: center;
+          }
+        }
+      }
     }
   }
 
@@ -1132,6 +1303,59 @@ $primary-gradient: linear-gradient(135deg, #94070d, #b3080f);
             font-size: 1.2rem;
             color: #94a3b8;
           }
+        }
+      }
+    }
+  }
+
+  /* Action buttons style giống QuanLyTaiKhoan */
+  .qlda-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      background: #f8fafc;
+      color: #1e293b;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.3rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 6px rgba(15, 23, 42, 0.2);
+      }
+
+      &:first-child {
+        background: $primary-color;
+        color: #fff;
+
+        &:hover {
+          background: $primary-hover;
+        }
+      }
+
+      &:nth-child(2) {
+        background: blue; // xanh lam cho nút Sửa
+        color: #fff;
+
+        &:hover {
+          background: #0b5ed7;
+        }
+      }
+
+      &:nth-child(3),
+      &[data-variant="danger"] {
+        background: red;
+        color: #fff;
+
+        &:hover {
+          background: #c82333;
         }
       }
     }
