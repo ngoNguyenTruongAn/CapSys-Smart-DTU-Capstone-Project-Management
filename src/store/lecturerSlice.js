@@ -66,9 +66,7 @@ export const deleteLecturer = createAsyncThunk(
       }
       return res.data;
     } catch (err) {
-      return rejectWithValue(
-        err.response?.data?.message || "Lỗi không xác định"
-      );
+      return rejectWithValue(err.message || "Lỗi không xác định");
     }
   }
 );

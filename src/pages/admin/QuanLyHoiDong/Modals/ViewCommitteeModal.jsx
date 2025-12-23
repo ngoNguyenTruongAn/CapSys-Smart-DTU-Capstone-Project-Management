@@ -230,7 +230,6 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
                         <th>Capstone</th>
                         <th>Trạng thái</th>
                         <th>Mentor</th>
-                        <th>Phiên chấm</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -255,11 +254,6 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
                             </Badge>
                           </td>
                           <td>{team.mentorName || "Chưa có"}</td>
-                          <td>
-                            {team.sessionDate
-                              ? formatDate(team.sessionDate)
-                              : "Chưa xếp lịch"}
-                          </td>
                         </tr>
                       ))}
                     </tbody>

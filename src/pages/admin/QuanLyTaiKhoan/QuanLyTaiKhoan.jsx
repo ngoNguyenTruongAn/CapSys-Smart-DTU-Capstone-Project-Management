@@ -23,10 +23,12 @@ import {
   getPaginationRowModel,
   flexRender,
 } from "@tanstack/react-table";
+import Toasts from "../../../components/ui/Toasts";
 
 const QuanLyTaiKhoan = () => {
   const [activeTab, setActiveTab] = useState("students");
   const [search, setSearch] = useState("");
+  const [capstoneFilter, setCapstoneFilter] = useState("");
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
   const [showRegisterLecturer, setShowRegisterLecturer] = useState(false);
   const [studentImportFile, setStudentImportFile] = useState(null);
@@ -38,11 +40,9 @@ const QuanLyTaiKhoan = () => {
   const lecturerFileInputRef = useRef(null);
 
   const dispatch = useDispatch();
-  const {
-    data: students,
-    loading: studentsLoading,
-    error: studentsError,
-  } = useSelector((state) => state.students);
+  const { data: students, loading: studentsLoading } = useSelector(
+    (state) => state.students
+  );
 
   // Fetch students qua Redux
   useEffect(() => {
@@ -50,11 +50,14 @@ const QuanLyTaiKhoan = () => {
   }, [dispatch]);
 
   // Lấy lecturers từ Redux
-  const {
-    data: lecturers,
-    loading: lecturersLoading,
-    error: lecturersError,
-  } = useSelector((state) => state.lecturers);
+  const { data: lecturers, loading: lecturersLoading } = useSelector(
+    (state) => state.lecturers
+  );
+
+  // Toast state
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
+  const pushError = (msg) => setToastErrors((prev) => [...prev, msg].slice(-3)); // giữ tối đa 3 lỗi gần nhất
 
   // Fetch lecturers qua Redux
   useEffect(() => {
@@ -78,9 +81,13 @@ const QuanLyTaiKhoan = () => {
   }, []);
 
   const filteredStudents = useMemo(() => {
-    const base = students || [];
+    let base = students || [];
+    if (capstoneFilter) {
+      const capValue = Number(capstoneFilter);
+      base = base.filter((s) => Number(s.capstoneType) === capValue);
+    }
     return filterItems(base, search, "students");
-  }, [students, search, filterItems]);
+  }, [students, search, capstoneFilter, filterItems]);
 
   const filteredLecturers = useMemo(() => {
     const base = lecturers || [];
@@ -111,11 +118,11 @@ const QuanLyTaiKhoan = () => {
         dispatch(deleteStudent(studentId))
           .unwrap()
           .then(() => {
-            alert("Xóa sinh viên thành công");
+            setToastSuccess("Xóa sinh viên thành công");
           })
           .catch((error) => {
             console.error("Lỗi khi xóa sinh viên:", error);
-            alert(`Xóa sinh viên thất bại: ${error}`);
+            pushError(`Xóa sinh viên thất bại: ${error}`);
           });
       }
     },
@@ -143,11 +150,11 @@ const QuanLyTaiKhoan = () => {
         dispatch(deleteLecturer(lecturerId))
           .unwrap()
           .then(() => {
-            alert("Xóa giảng viên thành công");
+            setToastSuccess("Xóa giảng viên thành công");
           })
           .catch((error) => {
             console.error("Lỗi khi xóa giảng viên:", error);
-            alert(`Xóa giảng viên thất bại: ${error}`);
+            pushError(`Xóa giảng viên thất bại: ${error}`);
           });
       }
     },
@@ -166,7 +173,7 @@ const QuanLyTaiKhoan = () => {
 
   const handleImportStudents = async () => {
     if (!studentImportFile) {
-      alert("Vui lòng chọn file Excel sinh viên trước khi import.");
+      pushError("Vui lòng chọn file Excel sinh viên trước khi import.");
       return;
     }
 
@@ -180,7 +187,7 @@ const QuanLyTaiKhoan = () => {
       const data = response.data;
 
       if (!data) {
-        alert("Không nhận được phản hồi từ server.");
+        pushError("Không nhận được phản hồi từ server.");
         return;
       }
 
@@ -188,7 +195,7 @@ const QuanLyTaiKhoan = () => {
       const successCount = data.data?.successCount || 0;
 
       if (data.success && failedCount === 0) {
-        alert("✅ Import sinh viên thành công!\n" + (data.message || ""));
+        setToastSuccess("Import sinh viên thành công!");
         setStudentImportFile(null);
         if (studentFileInputRef.current) {
           studentFileInputRef.current.value = "";
@@ -204,21 +211,20 @@ const QuanLyTaiKhoan = () => {
             )
             .join("\n") || "Không có chi tiết lỗi";
 
-        alert(
-          `⚠️ Import sinh viên thất bại một phần hoặc toàn bộ!\n\n` +
-            `✅ Thành công: ${successCount}\n❌ Thất bại: ${failedCount}\n\n${previewErrors}`
+        pushError(
+          `Import sinh viên thất bại một phần: Thành công ${successCount}, Thất bại ${failedCount}. Chi tiết: ${previewErrors}`
         );
         console.error("Import sinh viên lỗi:", data.data?.errors);
       } else {
-        alert(
-          "❌ Import sinh viên thất bại: " +
+        pushError(
+          "Import sinh viên thất bại: " +
             (data.message || "Không rõ nguyên nhân")
         );
       }
     } catch (error) {
       console.error("Import sinh viên error:", error);
-      alert(
-        "💥 Lỗi khi import sinh viên: " +
+      pushError(
+        "Lỗi khi import sinh viên: " +
           (error?.response?.data?.message ||
             error?.message ||
             "Không rõ nguyên nhân")
@@ -230,7 +236,7 @@ const QuanLyTaiKhoan = () => {
 
   const handleImportLecturers = async () => {
     if (!lecturerImportFile) {
-      alert("Vui lòng chọn file Excel giảng viên trước khi import.");
+      pushError("Vui lòng chọn file Excel giảng viên trước khi import.");
       return;
     }
 
@@ -241,7 +247,7 @@ const QuanLyTaiKhoan = () => {
       const data = response.data;
 
       if (!data) {
-        alert("Không nhận được phản hồi từ server.");
+        pushError("Không nhận được phản hồi từ server.");
         return;
       }
 
@@ -249,7 +255,7 @@ const QuanLyTaiKhoan = () => {
       const successCount = data.data?.successCount || 0;
 
       if (data.success && failedCount === 0) {
-        alert("✅ Import giảng viên thành công!\n" + (data.message || ""));
+        setToastSuccess("Import giảng viên thành công!");
         setLecturerImportFile(null);
         if (lecturerFileInputRef.current) {
           lecturerFileInputRef.current.value = "";
@@ -267,21 +273,20 @@ const QuanLyTaiKhoan = () => {
             )
             .join("\n") || "Không có chi tiết lỗi";
 
-        alert(
-          `⚠️ Import giảng viên thất bại một phần hoặc toàn bộ!\n\n` +
-            `✅ Thành công: ${successCount}\n❌ Thất bại: ${failedCount}\n\n${previewErrors}`
+        pushError(
+          `Import giảng viên thất bại một phần: Thành công ${successCount}, Thất bại ${failedCount}. Chi tiết: ${previewErrors}`
         );
         console.error("Import giảng viên lỗi:", data.data?.errors);
       } else {
-        alert(
-          "❌ Import giảng viên thất bại: " +
+        pushError(
+          "Import giảng viên thất bại: " +
             (data.message || "Không rõ nguyên nhân")
         );
       }
     } catch (error) {
       console.error("Import giảng viên error:", error);
-      alert(
-        "💥 Lỗi khi import giảng viên: " +
+      pushError(
+        "Lỗi khi import giảng viên: " +
           (error?.response?.data?.message ||
             error?.message ||
             "Không rõ nguyên nhân")
@@ -294,10 +299,10 @@ const QuanLyTaiKhoan = () => {
   // Loading/Error chung
   const isLoading =
     activeTab === "students" ? studentsLoading : lecturersLoading;
-  const error = activeTab === "students" ? studentsError : lecturersError;
 
   const handleRefresh = useCallback(() => {
     setSearch("");
+    setCapstoneFilter("");
     dispatch(fetchStudents());
     dispatch(fetchLecturers());
   }, [dispatch]);
@@ -399,6 +404,16 @@ const QuanLyTaiKhoan = () => {
             <option value="students">Danh sách sinh viên</option>
             <option value="lecturers">Danh sách giảng viên</option>
           </select>
+          {activeTab === "students" && (
+            <select
+              value={capstoneFilter}
+              onChange={(e) => setCapstoneFilter(e.target.value)}
+            >
+              <option value="">Tất cả Capstone</option>
+              <option value="1">Capstone 1</option>
+              <option value="2">Capstone 2</option>
+            </select>
+          )}
           <input
             type="text"
             placeholder="Tìm kiếm họ tên / mã tài khoản…"
@@ -500,7 +515,6 @@ const QuanLyTaiKhoan = () => {
       </section>
 
       {isLoading && <p>Đang tải dữ liệu...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
 
       <div className="qlda-table-box qltk-table-box">
         {table.getRowModel().rows.length > 0 ? (
@@ -641,6 +655,15 @@ const QuanLyTaiKhoan = () => {
         show={showViewLecturer}
         setShow={setShowViewLecturer}
         lecturerId={lecturerId}
+      />
+
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
       />
     </div>
   );
