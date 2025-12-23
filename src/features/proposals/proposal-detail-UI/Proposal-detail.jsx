@@ -421,11 +421,7 @@ function Proposaldetail() {
                     const code = typeof m === "string" ? "" : m.studentCode || m.mssv || "";
                     return (
                       <li key={index} className={styles["overview-card-member-info-item"]}>
-                        <img
-                          src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${(index % 5) + 1}.png`}
-                          alt="avatar-member"
-                          className={styles["overview-card-member-info-avatar"]}
-                        />
+                        
                         <div className={styles["overview-card-member-info-item-text"]}>
                           <p className={styles["overview-card-member-info-name"]}>{name}</p>
                           <p className={styles["overview-card-member-student-id"]}>
