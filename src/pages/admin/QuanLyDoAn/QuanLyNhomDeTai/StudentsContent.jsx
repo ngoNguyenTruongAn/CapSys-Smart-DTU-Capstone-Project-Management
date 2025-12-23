@@ -5,7 +5,10 @@ import {
   fetchAllTeams,
   fetchStudentsNotInTeam,
 } from "../../../../store/teamSlice";
+import { deleteStudent } from "../../../../store/studentSlice";
 import { autoArrangeTeamAPI } from "../../../../services/TeamsAPI";
+import ViewStudent from "../../QuanLyTaiKhoan/ViewStudent/ViewStudent";
+import UpdateStudent from "../../QuanLyTaiKhoan/UpdateStudent/UpdateStudent";
 // import "./QuanLyNhomDeTai.scss"; // CSS đã được import ở file cha
 
 const StudentsContent = () => {
@@ -38,6 +41,14 @@ const StudentsContent = () => {
     projectTitle: "",
     teamLeaderId: null,
   });
+
+  // Modal xem / sửa sinh viên
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [activeStudentId, setActiveStudentId] = useState(null);
+
+  // Trạng thái xóa
+  const [deletingId, setDeletingId] = useState(null);
 
   // ===== FILTERS & PAGINATION (LOGIC TÁCH RA TỪ CHA) =====
   const filteredStudents = useMemo(() => {
@@ -182,6 +193,56 @@ const StudentsContent = () => {
     setCurrentPage(1); // Reset to first page
   };
 
+  // ===== STUDENT ACTIONS: VIEW / EDIT / DELETE =====
+  const openViewStudent = (studentId) => {
+    setActiveStudentId(studentId);
+    setShowViewModal(true);
+  };
+
+  const openUpdateStudent = (studentId) => {
+    setActiveStudentId(studentId);
+    setShowUpdateModal(true);
+  };
+
+  const handleCloseViewModal = (visible) => {
+    setShowViewModal(visible);
+    if (!visible) {
+      setActiveStudentId(null);
+    }
+  };
+
+  const handleCloseUpdateModal = async (visible) => {
+    setShowUpdateModal(visible);
+    if (!visible) {
+      setActiveStudentId(null);
+      // Refresh lại danh sách để đồng bộ sau khi cập nhật
+      await dispatch(fetchStudentsNotInTeam(capstoneType));
+    }
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    const student = studentsData.find((s) => s.studentId === studentId);
+    const name = student?.fullName || "sinh viên";
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn xóa ${name}? Hành động này không thể hoàn tác.`
+      )
+    ) {
+      return;
+    }
+    try {
+      setDeletingId(studentId);
+      await dispatch(deleteStudent(studentId)).unwrap();
+      alert("Xóa sinh viên thành công");
+      setSelectedStudentIds((prev) => prev.filter((id) => id !== studentId));
+      await dispatch(fetchStudentsNotInTeam(capstoneType));
+    } catch (error) {
+      alert(`Xóa sinh viên thất bại: ${error}`);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   // ===== RENDER =====
   // Đây là nội dung của hàm renderStudentsTab() cũ
   return (
@@ -271,14 +332,25 @@ const StudentsContent = () => {
                     <td>{student.faculty}</td>
                     <td>{student.major}</td>
                     <td>
-                      <button
-                        onClick={() =>
-                          alert(`Xem chi tiết: ${student.fullName}`)
-                        }
-                        className="btn-icon"
-                      >
-                        👁️
-                      </button>
+                      <div className="qlda-actions">
+                        <button
+                          onClick={() => openViewStudent(student.studentId)}
+                        >
+                          Xem
+                        </button>
+                        <button
+                          onClick={() => openUpdateStudent(student.studentId)}
+                        >
+                          Sửa
+                        </button>
+                        <button
+                          data-variant="danger"
+                          onClick={() => handleDeleteStudent(student.studentId)}
+                          disabled={deletingId === student.studentId}
+                        >
+                          {deletingId === student.studentId ? "..." : "Xóa"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -508,6 +580,18 @@ const StudentsContent = () => {
           </div>
         </div>
       )}
+
+      {/* Modal xem / cập nhật sinh viên (tái sử dụng từ màn Quản Lý Tài Khoản) */}
+      <ViewStudent
+        show={showViewModal}
+        setShow={handleCloseViewModal}
+        studentId={activeStudentId}
+      />
+      <UpdateStudent
+        show={showUpdateModal}
+        setShow={handleCloseUpdateModal}
+        studentId={activeStudentId}
+      />
     </>
   );
 };

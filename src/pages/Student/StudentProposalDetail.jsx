@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styles from "../../features/proposals/proposal-detail-UI/ProposalDetails.module.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFile, faPlus, faRobot } from "@fortawesome/free-solid-svg-icons";
-import { faDownload, faSpinner, faExclamationCircle } from "@fortawesome/free-solid-svg-icons";
+import { 
+  faFile, faPlus, faRobot, faExclamationTriangle, faCheckCircle,
+  faDownload, faSpinner, faExclamationCircle 
+} from "@fortawesome/free-solid-svg-icons";
 import { getStatusKey, getStatusLabel } from "../../features/proposals/proposals-logic/status.utils";
 import StudentAddProposalModal from "../../features/proposals/layout-proposal-common/Modal/StudentAddProposalModal";
 import { useProposalsStore } from "../../services/ProposalAPI";
@@ -106,8 +108,15 @@ function StudentProposalDetail() {
   }, [isModalOpen]);
 
   // Tự động gọi AI summarize nếu chưa có dữ liệu AI
+  const summarizeCalledRef = useRef(false);
   useEffect(() => {
-    if (proposal && !(proposal.aiAbstract || proposal.AiAbstract)) {
+    // Chỉ gọi 1 lần duy nhất khi proposal có data và chưa có AI summary
+    if (
+      proposal?.id &&
+      !(proposal.aiAbstract || proposal.AiAbstract) &&
+      !summarizeCalledRef.current
+    ) {
+      summarizeCalledRef.current = true;
       summarizeProposal(proposal.id)
         .then(res => {
           if (res.success && res.data) {
@@ -128,7 +137,7 @@ function StudentProposalDetail() {
         })
         .catch(console.error);
     }
-  }, [proposal, summarizeProposal]);
+  }, [proposal?.id, proposal?.aiAbstract, proposal?.AiAbstract, summarizeProposal]);
 
   const handleOpenModal = () => setShowModal(true);
   const handleCloseModal = () => setShowModal(false);
@@ -269,6 +278,67 @@ function StudentProposalDetail() {
             )}
           </div>
         </div>
+
+        {/* Similarity Warning Section */}
+        {(() => {
+          const warnings = proposal?.similarityWarnings || 
+                           proposal?.SimilarityWarnings || 
+                           [];
+          
+          if (warnings && warnings.length > 0) {
+            return (
+              <div className={styles["similarity-warning-card"]}>
+                <div className={styles["similarity-warning-header"]}>
+                  <FontAwesomeIcon 
+                    icon={faExclamationTriangle} 
+                    className={styles["similarity-warning-icon"]} 
+                  />
+                  <h3 className={styles["similarity-warning-title"]}>
+                    ⚠️ Cảnh báo trùng lặp nội dung ({warnings.length} đề tài)
+                  </h3>
+                </div>
+                <ul className={styles["similarity-warning-list"]}>
+                  {warnings.map((warning, idx) => (
+                    <li 
+                      key={idx} 
+                      className={styles["similarity-warning-item"]}
+                    >
+                      <span className={`${styles["similarity-percentage"]} ${
+                        (warning.similarityPercentage || warning.SimilarityPercentage) >= 70 ? styles["high"] : styles["medium"]
+                      }`}>
+                        {(warning.similarityPercentage || warning.SimilarityPercentage || 0).toFixed(1)}%
+                      </span>
+                      <div className={styles["similarity-info"]}>
+                        <p className={styles["similarity-proposal-title"]}>
+                          <FontAwesomeIcon icon={faFile} />
+                          {warning.title || warning.Title || "Đề tài không xác định"}
+                        </p>
+                        <p className={styles["similarity-team-name"]}>
+                          Nhóm: {warning.teamName || warning.TeamName || "---"}
+                        </p>
+                        {(warning.warningMessage || warning.WarningMessage) && (
+                          <p className={styles["similarity-message"]}>
+                            {warning.warningMessage || warning.WarningMessage}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          } else if (proposal?.similarityCheckedAt || proposal?.SimilarityCheckedAt) {
+            return (
+              <div className={styles["no-similarity-card"]}>
+                <FontAwesomeIcon icon={faCheckCircle} className={styles["no-similarity-icon"]} />
+                <p className={styles["no-similarity-text"]}>
+                  ✅ Đề tài này không có nội dung trùng lặp với các đề tài khác
+                </p>
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         {/* Mô tả & Tóm tắt AI */}
         <div className={styles["right-content-discribe-card"]}>
