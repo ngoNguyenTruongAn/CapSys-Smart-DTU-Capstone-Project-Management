@@ -15,15 +15,12 @@ import { useDispatch, useSelector } from "react-redux";
 import TeamDetailModal from "./Action/TeamDetailModal";
 import MoveStudentModal from "./Action/MoveStudentModal";
 import SwapStudentModal from "./Action/SwapStudentModal";
-import ConfirmationModal from "../../../features/proposals/layout-proposal-common/Modal/ConfirmationDelModal";
+import Toasts from "../../../components/ui/Toasts";
 
 const QuanLyDoAn = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
 
-const [deleteTeamId, setDeleteTeamId] = useState(null);
   // Redux state
   const { data: rawData, loading } = useSelector((state) => state.teams);
 
@@ -38,6 +35,8 @@ const [deleteTeamId, setDeleteTeamId] = useState(null);
   const [selectedTeamStudents, setSelectedTeamStudents] = useState([]);
   const [swapModal, setSwapModal] = useState(false);
   const [selectedTeamLeaderId, setSelectedTeamLeaderId] = useState(null);
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
   // ---- Fetch dữ liệu từ API (dùng Redux) ----
   const fetchProjects = useCallback(async () => {
     try {
@@ -99,23 +98,25 @@ const [deleteTeamId, setDeleteTeamId] = useState(null);
     fetchProjects();
   }, [fetchProjects]);
 
-  const handleDelete = useCallback(async () => {
-  if (!deleteTeamId) return;
-
-  try {
-    await dispatch(deleteTeamAction(deleteTeamId)).unwrap();
-    await fetchProjects();
-
-    setDeleteModalOpen(false);
-    setDeleteTeamId(null);
-
-    // ✅ mở modal thành công
-    setSuccessModalOpen(true);
-  } catch (error) {
-    console.error("Delete team error:", error);
-    alert("Xóa nhóm thất bại: " + error.message);
-  }
-}, [dispatch, fetchProjects, deleteTeamId]);
+  const handleDelete = useCallback(
+    async (teamId) => {
+      // confirm delete
+      const confirm = window.confirm("Bạn có chắc chắn muốn xóa nhóm này?");
+      if (!confirm) return;
+      try {
+        await dispatch(deleteTeamAction(teamId)).unwrap();
+        await fetchProjects();
+        setToastSuccess("Xóa nhóm thành công!");
+      } catch (error) {
+        console.error("Delete team error:", error);
+        setToastErrors((prev) => [
+          ...prev,
+          "Xóa nhóm thất bại: " + (error?.message || "Không xác định"),
+        ]);
+      }
+    },
+    [dispatch, fetchProjects]
+  );
 
   // ---- react-table config ----
   const columns = useMemo(
@@ -167,8 +168,7 @@ const [deleteTeamId, setDeleteTeamId] = useState(null);
               <button
                 style={{ backgroundColor: "red", color: "white" }}
                 onClick={() => {
-                  setDeleteTeamId(value);
-                  setDeleteModalOpen(true);
+                  handleDelete(value);
                 }}
               >
                 Xóa
@@ -382,28 +382,15 @@ const [deleteTeamId, setDeleteTeamId] = useState(null);
         teams={projects}
         teamLeaderId={selectedTeamLeaderId}
       />
-      <ConfirmationModal
-  isOpen={deleteModalOpen}
-  onClose={() => {
-    setDeleteModalOpen(false);
-    setDeleteTeamId(null);
-  }}
-  onConfirm={handleDelete}
-  title="Xác nhận xóa nhóm"
-  message="Bạn có chắc chắn muốn xóa nhóm đề tài này không? Hành động này không thể hoàn tác."
-  type="danger"
-/>
 
-<ConfirmationModal
-  isOpen={successModalOpen}
-  onConfirm={() => setSuccessModalOpen(false)}
-  title="Thành công"
-  message="Xóa nhóm đề tài thành công!"
-  confirmText="OK"
-  hideCancel
-  type="success"
-/>
-
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
+      />
     </div>
   );
 };

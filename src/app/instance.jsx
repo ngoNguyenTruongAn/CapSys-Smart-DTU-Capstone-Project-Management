@@ -1,104 +1,88 @@
 import axios from "axios";
-import { refreshTokenAPI } from "../services/AuthAPI"; // Giả định path này là đúng
 
 const instance = axios.create({
-  // Thay đổi baseURL thành endpoint API của bạn
   baseURL: "http://localhost:5295/api/",
-  // Cấu hình timeout mặc định nếu cần
-  // timeout: 10000,
 });
 
-/* =========================
-   REFRESH TOKEN LOGIC & STATE
-   ========================= */
-// Cờ trạng thái để ngăn nhiều request cùng lúc kích hoạt refresh token
 let isRefreshing = false;
-// Hàng đợi để lưu trữ các promise của các request bị lỗi 401 đang chờ token mới
 let refreshSubscribers = [];
 
-/**
- * Hàm xử lý khi refresh token thành công, giải quyết tất cả các request đang chờ.
- * @param {string} newToken - Access Token mới
- */
-function onRefreshed(newToken) {
-  // Giải quyết các promise đang chờ với token mới
-  refreshSubscribers.forEach((cb) => cb(newToken, null));
-  // Reset hàng đợi và cờ trạng thái
-  refreshSubscribers = [];
-  isRefreshing = false;
-}
+// --- Helper Functions ---
+const subscribeTokenRefresh = (cb) => refreshSubscribers.push(cb);
 
-/**
- * Hàm xử lý khi refresh token thất bại, từ chối tất cả các request đang chờ
- * và kích hoạt quá trình đăng xuất.
- * @param {Error} error - Lỗi xảy ra
- */
-function onRefreshFailed(error) {
-  // Từ chối tất cả các promise đang chờ với lỗi
-  refreshSubscribers.forEach((cb) => cb(null, error));
-  // Reset hàng đợi và cờ trạng thái
+const onRefreshed = (token) => {
+  refreshSubscribers.forEach((cb) => cb(token));
   refreshSubscribers = [];
-  isRefreshing = false;
+};
 
-  // Kích hoạt đăng xuất
+const handleLogout = () => {
   localStorage.clear();
   window.dispatchEvent(new CustomEvent("auth:logout"));
-  window.location.href = "/";
+  if (window.location.pathname !== "/") window.location.href = "/";
+};
+
+// Hàm kiểm tra token sắp hết hạn (còn dưới 60s)
+function isTokenExpiringSoon(token) {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.exp * 1000 - Date.now() < 60000;
+  } catch {
+    return true;
+  }
 }
 
-/**
- * Hàm xử lý logic chính để gọi API refresh token hoặc đưa request vào hàng đợi.
- * @returns {Promise<string>} Access Token mới
- */
-async function handleRefresh() {
-  // Nếu đã có một request refresh token đang chạy, trả về Promise đang chờ
+// Hàm thực hiện gọi Refresh API (dùng chung cho cả 2 interceptor)
+async function performRefresh() {
   if (isRefreshing) {
-    return new Promise((resolve, reject) => {
-      refreshSubscribers.push((newToken, error) => {
-        if (error) reject(error);
-        else resolve(newToken);
-      });
+    return new Promise((resolve) => {
+      subscribeTokenRefresh((token) => resolve(token));
     });
   }
 
   isRefreshing = true;
-
   const token = localStorage.getItem("token");
   const refreshToken = localStorage.getItem("refreshToken");
 
-  // Nếu không có Refresh Token, không thể tiếp tục, buộc đăng xuất
-  if (!refreshToken) {
-    // Gọi onRefreshFailed để reset cờ và đăng xuất
-    onRefreshFailed(new Error("No refresh token available"));
-    return Promise.reject(new Error("No refresh token available"));
-  }
-
   try {
-    // Gọi API để lấy cặp token mới
-    const data = await refreshTokenAPI({ token, refreshToken });
+    // Dùng axios gốc để không bị dính vào interceptor này
+    const res = await axios.post("http://localhost:5295/api/Auth/refresh", {
+      token,
+      refreshToken,
+    });
 
-    // Lưu token mới vào localStorage
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("refreshToken", data.refreshToken);
+    const newToken = res.data.token;
+    localStorage.setItem("token", newToken);
+    localStorage.setItem("refreshToken", res.data.refreshToken);
 
-    // Thông báo cho các request đang chờ và reset cờ isRefreshing
-    onRefreshed(data.token);
-    return data.token;
+    isRefreshing = false;
+    onRefreshed(newToken);
+    return newToken;
   } catch (err) {
-    console.error("Refresh Token Failed:", err);
-    // Xử lý thất bại (buộc đăng xuất) và reset cờ isRefreshing
-    onRefreshFailed(err);
-    return Promise.reject(err);
+    isRefreshing = false;
+    handleLogout();
+    throw err;
   }
 }
 
 /* =========================
-   REQUEST INTERCEPTOR
-   Gắn token cho MỌI request
-   ========================= */
+   INTERCEPTORS
+========================= */
+
+// 1. REQUEST: Cứ gọi API là check xem có cần refresh không
 instance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("token");
+  async (config) => {
+    let token = localStorage.getItem("token");
+
+    // Nếu đang có token mà token đó sắp hết hạn (trong vòng 60s tới)
+    if (token && isTokenExpiringSoon(token)) {
+      try {
+        token = await performRefresh(); // Đợi lấy token mới xong mới chạy tiếp
+      } catch (e) {
+        // Nếu refresh lỗi, để mặc định nó gửi token cũ hoặc chặn lại
+        return Promise.reject(e);
+      }
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -107,45 +91,21 @@ instance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-/* =========================
-   RESPONSE INTERCEPTOR
-   Xử lý lỗi 401 và Refresh Token
-   ========================= */
+// 2. RESPONSE: Bảo hiểm nếu Request Interceptor bỏ lỡ (ví dụ sai lệch giờ máy tính)
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    const status = error.response?.status;
-
-    // Các URL cần loại trừ:
-    const isAuthLogin = originalRequest.url.includes("Auth/login");
-    // URL Refresh Token không được tự kích hoạt refresh token
-    const isAuthRefresh = originalRequest.url.includes("Auth/refresh");
-
-    // Kiểm tra: Lỗi 401 + Chưa thử lại + Không phải Login + Không phải Refresh Token
-    if (
-      status === 401 &&
-      !originalRequest._retry &&
-      !isAuthLogin &&
-      !isAuthRefresh
-    ) {
-      // Đánh dấu request này là đã retry một lần
-      originalRequest._retry = true;
-
+    const { config, response } = error;
+    if (response?.status === 401 && !config._retry) {
+      config._retry = true;
       try {
-        // Chờ lấy token mới (hoặc Promise đang chờ token mới)
-        const newToken = await handleRefresh();
-
-        // Cập nhật header và gọi lại request gốc
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return instance(originalRequest);
-      } catch (refreshError) {
-        // Nếu refresh thất bại, lỗi đã được xử lý trong onRefreshFailed (buộc logout)
-        return Promise.reject(error);
+        const newToken = await performRefresh();
+        config.headers.Authorization = `Bearer ${newToken}`;
+        return instance(config); // Gọi lại API vừa fail
+      } catch (err) {
+        return Promise.reject(err);
       }
     }
-
-    // Xử lý các lỗi khác (lỗi 404, 500, 401 đã retry, hoặc login/refresh bị lỗi)
     return Promise.reject(error);
   }
 );

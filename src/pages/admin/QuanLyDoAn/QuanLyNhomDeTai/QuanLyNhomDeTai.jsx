@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import "./QuanLyNhomDeTai.scss";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { insertStudentsFromFileAPI } from "../../../../services/StudentsAPI";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchAllTeams,
@@ -17,21 +16,44 @@ const QuanLyNhomDeTai = () => {
   const dispatch = useDispatch();
 
   // Redux state
-  const { data: teams, studentsNotInTeam } = useSelector(
-    (state) => state.teams
-  );
+  const { studentsNotInTeam } = useSelector((state) => state.teams);
 
   // Local state
   const [capstoneType, setCapstoneType] = useState(1);
-  const [file, setFile] = useState(null);
 
   // State để lưu tổng số nhóm
   const [totalTeamsCount, setTotalTeamsCount] = useState(0);
 
   // Refresh data sau khi import
+
+  // 1. Logic kiểm tra Auth & Lắng nghe logout (Giống AdminLayout)
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/", { replace: true });
+      }
+    };
+
+    const handleLogoutEvent = () => {
+      // Khi nhận tín hiệu logout từ Axios, ngay lập tức đá về trang login
+      navigate("/", { replace: true });
+    };
+
+    window.addEventListener("auth:logout", handleLogoutEvent);
+    checkAuth(); // Kiểm tra ngay khi vào component
+
+    return () => {
+      window.removeEventListener("auth:logout", handleLogoutEvent);
+    };
+  }, [navigate]);
+
+  // 2. Refresh data (Hàm này sẽ an toàn vì Axios Interceptor sẽ tự động refresh token)
   const handleRefreshData = useCallback(async () => {
+    // Kiểm tra nhanh token trước khi gọi chuỗi API nặng
+    if (!localStorage.getItem("token")) return;
+
     try {
-      // Fetch cả Capstone 1 và 2 để tính tổng số nhóm
       const [res1, res2] = await Promise.all([
         dispatch(fetchAllTeams(1)).unwrap(),
         dispatch(fetchAllTeams(2)).unwrap(),
@@ -40,74 +62,17 @@ const QuanLyNhomDeTai = () => {
         dispatch(fetchMentorWorkload()),
       ]);
 
-      // Tính tổng số nhóm từ cả 2 Capstone
       const total = (res1?.length || 0) + (res2?.length || 0);
       setTotalTeamsCount(total);
     } catch (error) {
       console.error("Error fetching data:", error);
+      // Lưu ý: Không cần xử lý logout ở đây vì Axios Interceptor đã làm rồi
     }
   }, [capstoneType, dispatch]);
 
   useEffect(() => {
     handleRefreshData();
   }, [handleRefreshData]);
-
-  const handleImportFile = async () => {
-    if (!file) {
-      alert("Vui lòng chọn file trước!");
-      return;
-    }
-
-    try {
-      const response = await insertStudentsFromFileAPI(file, capstoneType);
-      const data = response.data;
-
-      // Nếu không có success hoặc message => lỗi chung
-      if (!data) {
-        alert("Không nhận được phản hồi từ server.");
-        return;
-      }
-
-      // Nếu backend báo success nhưng số record fail > 0
-      const failedCount = data.data?.failureCount || 0;
-      const successCount = data.data?.successCount || 0;
-
-      if (data.success && failedCount === 0) {
-        alert("✅ Import file thành công!\n" + data.message);
-        setFile(null);
-        await handleRefreshData();
-      } else if (failedCount > 0) {
-        // Có lỗi chi tiết trong data.errors
-        const errorList = data.data?.errors?.slice(0, 5) || [];
-        const previewErrors = errorList
-          .map(
-            (err) =>
-              `• Dòng ${err.rowNumber} (${err.studentCode}): ${err.errorMessage}`
-          )
-          .join("\n");
-
-        alert(
-          `⚠️ Import file thất bại một phần hoặc toàn bộ!\n\n` +
-            `✅ Thành công: ${successCount}\n❌ Thất bại: ${failedCount}\n\n` +
-            `${previewErrors}\n\n(Xem console để xem toàn bộ lỗi)`
-        );
-
-        console.error("Chi tiết lỗi import:", data.data.errors);
-      } else {
-        // Khi success = false hoặc logic fail toàn bộ
-        alert(
-          "❌ Import thất bại: " + (data.message || "Không rõ nguyên nhân")
-        );
-        console.error("Import response:", data);
-      }
-    } catch (error) {
-      console.error("Import file error:", error);
-      alert(
-        "💥 Lỗi khi import file: " +
-          (error.response?.data?.message || error.message)
-      );
-    }
-  };
 
   return (
     <div className="qlnd-wrapper">
@@ -129,33 +94,6 @@ const QuanLyNhomDeTai = () => {
             </p>
           </div>
         </div>
-
-        {/* <div className="header-right-content">
-          <div className="header-actions">
-            <label className="import-btn">
-              📤 Import File
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={(e) => setFile(e.target.files[0])}
-              />
-            </label>
-            <div className="filter-group">
-              <select
-                id="capstone-select"
-                value={capstoneType}
-                onChange={(e) => setCapstoneType(Number(e.target.value))}
-                className="capstone-select"
-              >
-                <option value={1}>Capstone Type 1</option>
-                <option value={2}>Capstone Type 2</option>
-              </select>
-            </div>
-            <button onClick={handleImportFile} className="btn-import">
-              Import
-            </button>
-          </div>
-        </div> */}
       </div>
 
       {/* Tab Navigation (Thay button bằng NavLink) */}
