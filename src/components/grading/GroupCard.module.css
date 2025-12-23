@@ -132,8 +132,8 @@
 
 .groupCard__actionBtn {
   width: 100%;
-  background: #94070d;
-  color: var(--text-white);
+  background: #FEF2F2;
+  color: #E14B4B;
   border: none;
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
@@ -144,7 +144,8 @@
 }
 
 .groupCard__actionBtn:hover {
-  background: #78050a;
+  background: #94070d;
+  color: var(--text-white);
   transform: translateY(-1px);
 }
 
@@ -161,9 +162,22 @@
 }
 
 .groupCard__actionBtnExcel {
-  background: #16a34a;
+  background: #DAFCEB;
+  color: #45987C;
 }
 
 .groupCard__actionBtnExcel:hover {
   background: #15803d;
+  color: var(--text-white);
+}
+
+.groupCard__actionBtnDisabled {
+  background: #9ca3af !important;
+  cursor: not-allowed !important;
+  opacity: 0.7;
+}
+
+.groupCard__actionBtnDisabled:hover {
+  background: #9ca3af !important;
+  transform: none !important;
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import GroupCard from './GroupCard';
 import styles from './GroupGrid.module.css';
 
-const GroupGrid = ({ groups, onStartGrading, onViewScore, onExportExcel }) => {
+const GroupGrid = ({ groups, onStartGrading, onViewScore, onExportExcel, isAdmin }) => {
   return (
     <div className={styles.groupGrid}>
       {groups.map((group) => (
@@ -18,6 +18,7 @@ const GroupGrid = ({ groups, onStartGrading, onViewScore, onExportExcel }) => {
           onStartGrading={onStartGrading}
           onViewScore={onViewScore}
           onExportExcel={onExportExcel}
+          isAdmin={isAdmin}
         />
       ))}
     </div>

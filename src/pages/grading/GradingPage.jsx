@@ -897,6 +897,7 @@ const GradingPage = () => {
           onStartGrading={handleStartGrading}
           onViewScore={handleViewScore}
           onExportExcel={handleExportExcel}
+          isAdmin={isAdmin}
         />
         {exporting && <LoadingFullScreen message="Đang xuất file Excel..." />}
         {toastMessage && (

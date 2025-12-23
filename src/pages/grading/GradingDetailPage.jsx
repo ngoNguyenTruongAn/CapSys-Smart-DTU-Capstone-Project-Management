@@ -15,6 +15,55 @@ const toCommentValue = (value) =>
   value === null || value === undefined ? "" : String(value);
 
 /**
+ * Format score input value:
+ * 1. Remove leading zeros (e.g., "07" -> "7")
+ * 2. Clamp to max 10 if greater than 10
+ * 3. Clamp to 0 if less than 0
+ * @param {string} value - Raw input value
+ * @param {number} maxScore - Maximum allowed score (default 10)
+ * @returns {string} Formatted score value
+ */
+const formatScoreInput = (value, maxScore = 10) => {
+  // Allow empty input
+  if (value === "" || value === null || value === undefined) {
+    return "";
+  }
+
+  // Convert to string for manipulation
+  let strValue = String(value);
+
+  // Allow just a decimal point or negative sign for typing in progress
+  if (strValue === "." || strValue === "-" || strValue === "-.") {
+    return strValue;
+  }
+
+  // Remove leading zeros but keep "0" and "0.x" patterns
+  if (strValue.length > 1 && strValue.startsWith("0") && strValue[1] !== ".") {
+    strValue = strValue.replace(/^0+/, "") || "0";
+  }
+
+  // Parse to number for range validation
+  const numValue = parseFloat(strValue);
+
+  // If not a valid number, return the cleaned string
+  if (isNaN(numValue)) {
+    return "";
+  }
+
+  // Clamp to 0 if less than 0
+  if (numValue < 0) {
+    return "0";
+  }
+
+  // Clamp to maxScore if greater than maxScore
+  if (numValue > maxScore) {
+    return String(maxScore);
+  }
+
+  return strValue;
+};
+
+/**
  * Decode JWT payload from token string
  * @param {string} token - JWT token
  * @returns {Object|null} Decoded payload or null
@@ -1261,13 +1310,16 @@ export default function GradingDetailPage({
   // ===================== END EXPORT EXCEL =====================
 
   const handleScoreChange =
-    (criteriaId, targetStudentId = null) =>
+    (criteriaId, targetStudentId = null, maxScore = 10) =>
     (event) => {
       const { value } = event.target;
+      // Format the score input: remove leading zeros, clamp to valid range
+      const formattedValue = formatScoreInput(value, maxScore);
+      
       if (teamScopeIds.has(criteriaId)) {
         setTeamScores((prev) => ({
           ...prev,
-          [criteriaId]: value,
+          [criteriaId]: formattedValue,
         }));
         clearInvalidState(criteriaId, null);
         setError("");
@@ -1284,7 +1336,7 @@ export default function GradingDetailPage({
             ...existingForm,
             scores: {
               ...existingForm.scores,
-              [criteriaId]: value,
+              [criteriaId]: formattedValue,
             },
           },
         };
@@ -1872,7 +1924,7 @@ export default function GradingDetailPage({
                         step="0.1"
                         max={criterion.maxScore ?? 10}
                         value={teamScores[criterion.criteriaId] ?? ""}
-                        onChange={handleScoreChange(criterion.criteriaId)}
+                        onChange={handleScoreChange(criterion.criteriaId, null, criterion.maxScore ?? 10)}
                         disabled={saving}
                         placeholder="--"
                         data-score-key={genreKey(criterion.criteriaId, null)}
@@ -1919,7 +1971,8 @@ export default function GradingDetailPage({
                             value={entry.rawInput ?? ""}
                             onChange={handleScoreChange(
                               criterion.criteriaId,
-                              entry.student.studentId
+                              entry.student.studentId,
+                              criterion.maxScore ?? 10
                             )}
                             disabled={saving}
                             data-score-key={genreKey(

@@ -79,7 +79,7 @@ const getMentorDisplayName = (mentorValue) => {
   return DEFAULT_MENTOR_PLACEHOLDER;
 };
 
-const GroupCard = ({ group, team, project, members, score, mentor, status, onStartGrading, onViewScore, onExportExcel }) => {
+const GroupCard = ({ group, team, project, members, score, mentor, status, onStartGrading, onViewScore, onExportExcel, isAdmin }) => {
   const mentorDisplayName = getMentorDisplayName(mentor);
   const isCompleted = status === 'graded';
   
@@ -160,20 +160,14 @@ const GroupCard = ({ group, team, project, members, score, mentor, status, onSta
       </div>
       
       {isCompleted ? (
-        <div className={styles.groupCard__actionBtnGroup}>
-          <button 
-            className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnSecondary}`}
-            onClick={() => onViewScore && onViewScore(group)}
-          >
-            Xem điểm
-          </button>
-          <button 
-            className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnExcel}`}
-            onClick={() => onExportExcel && onExportExcel(group)}
-          >
-            Xuất Excel
-          </button>
-        </div>
+        <button 
+          className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnExcel} ${!isAdmin ? styles.groupCard__actionBtnDisabled : ''}`}
+          onClick={() => isAdmin && onExportExcel && onExportExcel(group)}
+          disabled={!isAdmin}
+          title={!isAdmin ? 'Chỉ Admin mới có quyền xuất Excel' : 'Xuất file Excel'}
+        >
+          Xuất Excel
+        </button>
       ) : (
         <button 
           className={styles.groupCard__actionBtn}
