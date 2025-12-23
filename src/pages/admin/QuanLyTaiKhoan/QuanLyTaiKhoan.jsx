@@ -15,6 +15,7 @@ import ViewStudent from "./ViewStudent/ViewStudent";
 import UpdateStudent from "./UpdateStudent/UpdateStudent";
 import UpdateLecturer from "./UpdateLecturer/UpdateLecturer";
 import ViewLecturer from "./ViewLecturer/ViewLecturer";
+import ConfirmationModal from "../../../features/proposals/layout-proposal-common/Modal/ConfirmationDelModal";
 import { insertStudentsFromFileAPI } from "../../../services/StudentsAPI";
 import { insertLecturersFromFileAPI } from "../../../services/LecturersAPI";
 import {
@@ -36,7 +37,10 @@ const QuanLyTaiKhoan = () => {
   const [isLecturerImporting, setIsLecturerImporting] = useState(false);
   const studentFileInputRef = useRef(null);
   const lecturerFileInputRef = useRef(null);
-
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleteTargetType, setDeleteTargetType] = useState(null); 
   const dispatch = useDispatch();
   const {
     data: students,
@@ -105,22 +109,12 @@ const QuanLyTaiKhoan = () => {
     setShowUpdateStudent(true);
   }, []);
 
-  const handleDeleteStudent = useCallback(
-    (studentId) => {
-      if (window.confirm("Bạn có chắc chắn muốn xóa sinh viên này?")) {
-        dispatch(deleteStudent(studentId))
-          .unwrap()
-          .then(() => {
-            alert("Xóa sinh viên thành công");
-          })
-          .catch((error) => {
-            console.error("Lỗi khi xóa sinh viên:", error);
-            alert(`Xóa sinh viên thất bại: ${error}`);
-          });
-      }
-    },
-    [dispatch]
-  );
+  const handleDeleteStudent = useCallback((id) => {
+  setDeleteTargetId(id);
+  setDeleteTargetType("student");
+  setShowConfirmDelete(true);
+}, []);
+
 
   const [showViewLecturer, setShowViewLecturer] = useState(false);
   const [showUpdateLecturer, setShowUpdateLecturer] = useState(false);
@@ -137,22 +131,29 @@ const QuanLyTaiKhoan = () => {
     setShowUpdateLecturer(true);
   }, []);
 
-  const handleDeleteLecturer = useCallback(
-    (lecturerId) => {
-      if (window.confirm("Bạn có chắc chắn muốn xóa giảng viên này?")) {
-        dispatch(deleteLecturer(lecturerId))
-          .unwrap()
-          .then(() => {
-            alert("Xóa giảng viên thành công");
-          })
-          .catch((error) => {
-            console.error("Lỗi khi xóa giảng viên:", error);
-            alert(`Xóa giảng viên thất bại: ${error}`);
-          });
-      }
-    },
-    [dispatch]
-  );
+  const handleDeleteLecturer = useCallback((id) => {
+  setDeleteTargetId(id);
+  setDeleteTargetType("lecturer");
+  setShowConfirmDelete(true);
+}, []);
+
+  const handleConfirmDelete = async () => {
+  try {
+    if (deleteTargetType === "student") {
+      await dispatch(deleteStudent(deleteTargetId)).unwrap();
+      dispatch(fetchStudents());
+    } else if (deleteTargetType === "lecturer") {
+      await dispatch(deleteLecturer(deleteTargetId)).unwrap();
+      dispatch(fetchLecturers());
+    }
+
+    setShowConfirmDelete(false);
+    setShowSuccessModal(true);
+  } catch (error) {
+    console.error("Lỗi khi xóa:", error);
+    alert("❌ Xóa thất bại");
+  }
+};
 
   const handleStudentFileChange = (event) => {
     const file = event.target.files?.[0] || null;
@@ -642,6 +643,27 @@ const QuanLyTaiKhoan = () => {
         setShow={setShowViewLecturer}
         lecturerId={lecturerId}
       />
+      <ConfirmationModal
+  isOpen={showConfirmDelete}
+  onClose={() => setShowConfirmDelete(false)}
+  onConfirm={handleConfirmDelete}
+  title="Xác nhận xóa"
+  message="Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác."
+  confirmText="Xóa ngay"
+  cancelText="Hủy bỏ"
+  type="danger"
+/>
+<ConfirmationModal
+  isOpen={showSuccessModal}
+  onClose={() => setShowSuccessModal(false)}
+  onConfirm={() => setShowSuccessModal(false)}
+  title="Thành công"
+  message="Xóa tài khoản thành công!"
+  confirmText="OK"
+  hideCancel
+  type="success"
+/>
+
     </div>
   );
 };

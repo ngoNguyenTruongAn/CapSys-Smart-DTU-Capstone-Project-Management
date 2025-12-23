@@ -15,11 +15,15 @@ import { useDispatch, useSelector } from "react-redux";
 import TeamDetailModal from "./Action/TeamDetailModal";
 import MoveStudentModal from "./Action/MoveStudentModal";
 import SwapStudentModal from "./Action/SwapStudentModal";
+import ConfirmationModal from "../../../features/proposals/layout-proposal-common/Modal/ConfirmationDelModal";
 
 const QuanLyDoAn = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
 
+const [deleteTeamId, setDeleteTeamId] = useState(null);
   // Redux state
   const { data: rawData, loading } = useSelector((state) => state.teams);
 
@@ -95,22 +99,23 @@ const QuanLyDoAn = () => {
     fetchProjects();
   }, [fetchProjects]);
 
-  const handleDelete = useCallback(
-    async (teamId) => {
-      // confirm delete
-      const confirm = window.confirm("Bạn có chắc chắn muốn xóa nhóm này?");
-      if (!confirm) return;
-      try {
-        await dispatch(deleteTeamAction(teamId)).unwrap();
-        await fetchProjects();
-        alert("Xóa nhóm thành công!");
-      } catch (error) {
-        console.error("Delete team error:", error);
-        alert("Xóa nhóm thất bại: " + error.message);
-      }
-    },
-    [dispatch, fetchProjects]
-  );
+  const handleDelete = useCallback(async () => {
+  if (!deleteTeamId) return;
+
+  try {
+    await dispatch(deleteTeamAction(deleteTeamId)).unwrap();
+    await fetchProjects();
+
+    setDeleteModalOpen(false);
+    setDeleteTeamId(null);
+
+    // ✅ mở modal thành công
+    setSuccessModalOpen(true);
+  } catch (error) {
+    console.error("Delete team error:", error);
+    alert("Xóa nhóm thất bại: " + error.message);
+  }
+}, [dispatch, fetchProjects, deleteTeamId]);
 
   // ---- react-table config ----
   const columns = useMemo(
@@ -162,7 +167,8 @@ const QuanLyDoAn = () => {
               <button
                 style={{ backgroundColor: "red", color: "white" }}
                 onClick={() => {
-                  handleDelete(value);
+                  setDeleteTeamId(value);
+                  setDeleteModalOpen(true);
                 }}
               >
                 Xóa
@@ -376,6 +382,28 @@ const QuanLyDoAn = () => {
         teams={projects}
         teamLeaderId={selectedTeamLeaderId}
       />
+      <ConfirmationModal
+  isOpen={deleteModalOpen}
+  onClose={() => {
+    setDeleteModalOpen(false);
+    setDeleteTeamId(null);
+  }}
+  onConfirm={handleDelete}
+  title="Xác nhận xóa nhóm"
+  message="Bạn có chắc chắn muốn xóa nhóm đề tài này không? Hành động này không thể hoàn tác."
+  type="danger"
+/>
+
+<ConfirmationModal
+  isOpen={successModalOpen}
+  onConfirm={() => setSuccessModalOpen(false)}
+  title="Thành công"
+  message="Xóa nhóm đề tài thành công!"
+  confirmText="OK"
+  hideCancel
+  type="success"
+/>
+
     </div>
   );
 };

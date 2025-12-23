@@ -295,13 +295,13 @@ function StudentProposalDetail() {
           <div className={styles["right-content-discribe-card"]}>
             <h3 className={styles["right-content-discribe-card-title"]}>Phương pháp & Kết quả mong đợi</h3>
             {displayMethodology && (
-              <div style={{ marginBottom: "15px" }}>
+              <div style={{ marginBottom: "15px" , fontSize:"1.6rem"}}>
                 <strong>Phương pháp:</strong>
                 <p className={styles["right-content-discribe-card-description"]}>{displayMethodology}</p>
               </div>
             )}
             {displayExpectedResults && (
-              <div>
+              <div style={{fontSize:"1.6rem"}}>
                 <strong>Kết quả mong đợi:</strong>
                 <p className={styles["right-content-discribe-card-description"]}>{displayExpectedResults}</p>
               </div>
