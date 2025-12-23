@@ -1,6 +1,7 @@
 // useProposalsStore.jsx
 import { create } from "zustand";
 import { getTeamByIdAPI, getTeamByCodeAPI } from "./TeamsAPI";
+import { getLecturerProfileAPI } from "./ProfileAPI";
 
 // ====== API base ======
 const ENV_BASE = import.meta?.env?.VITE_API_URL?.replace(/\/$/, "");
@@ -48,6 +49,77 @@ const parseApiJson = async (res) => {
     return JSON.parse(text);
   } catch {
     return text;
+  }
+};
+
+/**
+ * Decode JWT payload from token string
+ */
+const decodeJwtPayload = (token) => {
+  if (!token || typeof token !== "string") return null;
+  const parts = token.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const base64 = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(parts[1].length + ((4 - (parts[1].length % 4)) % 4), "=");
+    const decoded = window.atob(base64);
+    return JSON.parse(
+      decodeURIComponent(
+        decoded
+          .split("")
+          .map((c) => `%${`00${c.charCodeAt(0).toString(16)}`.slice(-2)}`)
+          .join("")
+      )
+    );
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Get current account type from storage or token
+ */
+const getAccountType = () => {
+  return (
+    localStorage.getItem("accountType") ||
+    sessionStorage.getItem("accountType") ||
+    ""
+  );
+};
+
+/**
+ * Get account ID from JWT token
+ */
+const getAccountIdFromToken = () => {
+  const token = getToken();
+  if (!token) return null;
+  const payload = decodeJwtPayload(token);
+  if (!payload) return null;
+
+  const keys = ["AccountId", "accountId", "UserId", "userId", "sub"];
+  for (const key of keys) {
+    const val = Number(payload[key]);
+    if (Number.isFinite(val) && val > 0) return val;
+  }
+  return null;
+};
+
+/**
+ * Get lecturer ID by fetching lecturer profile
+ */
+const fetchLecturerId = async () => {
+  try {
+    const accountId = getAccountIdFromToken();
+    if (!accountId) return null;
+    
+    const response = await getLecturerProfileAPI(accountId);
+    const responseData = response?.data || response;
+    const lecturerInfo = responseData?.lecturerInfo || {};
+    return lecturerInfo?.lecturerId || responseData?.lecturerId || null;
+  } catch {
+    return null;
   }
 };
 
@@ -287,6 +359,7 @@ export const useProposalsStore = create((set, get) => {
     error: null,
 
     // ✅ ENRICH: gọi TeamsAPI để gắn members/mentor
+    // ✅ FILTER: Nếu là Lecturer thì chỉ hiển thị proposals mà họ làm mentor
     fetchProposals: async () => {
       set({ isLoading: true, error: null });
       try {
@@ -307,6 +380,15 @@ export const useProposalsStore = create((set, get) => {
           ? payload
           : [];
 
+        // Check if current user is a lecturer
+        const accountType = getAccountType();
+        const isLecturer = accountType?.toLowerCase() === "lecturer";
+        let currentLecturerId = null;
+        
+        if (isLecturer) {
+          currentLecturerId = await fetchLecturerId();
+        }
+
         const enriched = await Promise.all(
           list.map(async (p) => {
             if (!p || !(p.teamId ?? p.TeamId)) return p;
@@ -316,21 +398,32 @@ export const useProposalsStore = create((set, get) => {
               const tRaw = tRes?.data || tRes || {};
               const members = extractMembers(tRaw);
               const mentorName = extractMentorName(tRaw);
+              const mentorId = tRaw.mentorId || tRaw.MentorId || null;
 
               return {
                 ...p,
                 mentorName,
+                mentorId,
                 members,
                 teamMembers: members,
                 students: members,
               };
             } catch {
-              return { ...p, members: [], teamMembers: [], students: [] };
+              return { ...p, members: [], teamMembers: [], students: [], mentorId: null };
             }
           })
         );
 
-        set({ proposals: enriched, isLoading: false });
+        // Filter proposals for Lecturer: only show proposals where they are the mentor
+        let filteredProposals = enriched;
+        if (isLecturer && currentLecturerId) {
+          filteredProposals = enriched.filter((p) => {
+            const proposalMentorId = p?.mentorId || null;
+            return proposalMentorId === currentLecturerId;
+          });
+        }
+
+        set({ proposals: filteredProposals, isLoading: false });
         recompute();
       } catch (err) {
         console.error("Lỗi fetchProposals:", err);

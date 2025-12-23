@@ -195,7 +195,9 @@ function Proposaldetail() {
   // --- HANDLERS ---
   const handleSetSelectedProposalId = (newId) => {
     setSelectedId(newId);
-    navigate(`/proposal-detail/${newId}`);
+    // Sử dụng replace để thay thế history entry hiện tại
+    // Giúp user chỉ cần back 1 lần để về /proposals
+    navigate(`/proposal-detail/${newId}`, { replace: true });
   };
 
   const toggleSection = (section) => {
@@ -279,13 +281,13 @@ function Proposaldetail() {
   // --- BUTTON ACTIONS ---
   const handleApprove = () => {
     if (typeof approveProposal === "function") {
-      approveProposal(pid).then(() => navigate("/proposals"));
+      approveProposal(pid).then(() => navigate("/proposals", { replace: true }));
     }
   };
 
   const handleReject = () => {
     if (typeof rejectProposal === "function") {
-      rejectProposal(pid).then(() => navigate("/proposals"));
+      rejectProposal(pid).then(() => navigate("/proposals", { replace: true }));
     }
   };
 
@@ -298,7 +300,7 @@ function Proposaldetail() {
     if (typeof deleteProposal === "function") {
       deleteProposal(pid).then((result) => {
         if (result.success) {
-          navigate("/proposals");
+          navigate("/proposals", { replace: true });
         } else {
           alert(result.message || "Xóa thất bại!");
         }

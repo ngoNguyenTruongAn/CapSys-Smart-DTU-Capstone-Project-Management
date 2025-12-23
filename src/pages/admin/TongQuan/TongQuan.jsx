@@ -124,8 +124,13 @@ const formatDateLabel = (date) => {
   }
 };
 
-const TongQuan = () => {
+const TongQuan = ({
+  mentorManagePath = "/admin/quan-ly-do-an/quan-ly-nhom-do-an/mentor",
+  mentorButtonLabel = "Quản lý mentor",
+  showMentorAction = true,
+}) => {
   const navigate = useNavigate();
+  const [errorMessage, setErrorMessage] = useState("");
   const [stats, setStats] = useState({
     lecturers: 0,
     students: 0,
@@ -286,24 +291,42 @@ const TongQuan = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [
+        const [lecturersRes, studentsRes, teamsCap1Res, teamsCap2Res, proposalsRes] =
+          await Promise.allSettled([
+            getAllLecturersAPI(),
+            getAllStudentsAPI(),
+            getAllTeamsAPI(1),
+            getAllTeamsAPI(2),
+            getAllProposalsAPI(),
+          ]);
+
+        const hasForbidden = [
           lecturersRes,
           studentsRes,
           teamsCap1Res,
           teamsCap2Res,
           proposalsRes,
-        ] = await Promise.all([
-          getAllLecturersAPI(),
-          getAllStudentsAPI(),
-          getAllTeamsAPI(1),
-          getAllTeamsAPI(2),
-          getAllProposalsAPI(),
-        ]);
+        ].some(
+          (res) => res.status === "rejected" && res.reason?.response?.status === 403
+        );
+        if (hasForbidden) {
+          setErrorMessage(
+            "Bạn không có quyền xem một số thống kê. Vui lòng liên hệ quản trị viên để được cấp quyền."
+          );
+        }
 
-        const students = studentsRes.data || [];
-        const teamsCap1 = teamsCap1Res.data || [];
-        const teamsCap2 = teamsCap2Res.data || [];
-        const proposals = proposalsRes.data || proposalsRes || [];
+        const safeData = (res, fallback = []) => {
+          if (res.status === "fulfilled") {
+            return res.value?.data || res.value || fallback;
+          }
+          return fallback;
+        };
+
+        const lecturers = safeData(lecturersRes, []);
+        const students = safeData(studentsRes, []);
+        const teamsCap1 = safeData(teamsCap1Res, []);
+        const teamsCap2 = safeData(teamsCap2Res, []);
+        const proposals = safeData(proposalsRes, []);
 
         const grouped = students.reduce((acc, s) => {
           const major = s.major || "Khác";
@@ -358,7 +381,7 @@ const TongQuan = () => {
         setStudentByMajor(majorData);
         setProposalsByStatus(proposalsData);
         setStats({
-          lecturers: lecturersRes.data?.length || 0,
+          lecturers: lecturers.length || 0,
           students: students.length,
           teamsCap1: teamsCap1.length,
           teamsCap1WithMentor: teamsCap1.filter((t) => t.mentorId).length,
@@ -367,6 +390,11 @@ const TongQuan = () => {
         });
       } catch (error) {
         console.error("Error fetching data:", error);
+        setErrorMessage(
+          error?.response?.status === 403
+            ? "Bạn không có quyền xem thống kê này. Vui lòng liên hệ quản trị viên để được cấp quyền."
+            : "Không thể tải dữ liệu, vui lòng thử lại sau."
+        );
       } finally {
         setLoading(false);
       }
@@ -383,12 +411,18 @@ const TongQuan = () => {
     [proposalsByStatus]
   );
 
+  const handleMentorManageClick = () => {
+    if (!showMentorAction) return;
+    navigate(mentorManagePath);
+  };
+
   if (loading) {
     return <div className="tongquan-page">Loading...</div>;
   }
 
   return (
     <div className="tongquan-page">
+      {errorMessage && <div className="tq-error-banner">{errorMessage}</div>}
       {/* Stats cards */}
       <div className="tq-stats">
         <div className="tq-stat-card">
@@ -483,15 +517,15 @@ const TongQuan = () => {
               <h4>Nhóm chưa có mentor</h4>
               <p>Ưu tiên phân bổ giảng viên hướng dẫn</p>
             </div>
-            <button
-              type="button"
-              className="tq-link-btn"
-              onClick={() =>
-                navigate("/admin/quan-ly-do-an/quan-ly-nhom-do-an/mentor")
-              }
-            >
-              Quản lý mentor
-            </button>
+            {showMentorAction && (
+              <button
+                type="button"
+                className="tq-link-btn"
+                onClick={handleMentorManageClick}
+              >
+                {mentorButtonLabel}
+              </button>
+            )}
           </div>
           <ul className="tq-list-items">
             {teamsWithoutMentor.length === 0 && (

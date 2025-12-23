@@ -10,6 +10,16 @@
     align-items: center;
     margin-bottom: 2rem;
 
+
+  .tq-error-banner {
+    background: rgba(248, 113, 113, 0.12);
+    color: #b91c1c;
+    border: 1px solid rgba(185, 28, 28, 0.25);
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    font-weight: 600;
+  }
     .tq-header-right {
       display: flex;
       gap: 0.8rem;
