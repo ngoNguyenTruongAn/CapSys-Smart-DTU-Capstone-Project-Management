@@ -586,62 +586,79 @@ export const useProposalsStore = create((set, get) => {
     },
 
     // AI Summarize Proposal - Check cache first, then call AI if needed
-    summarizeProposal: async (id, forceRefresh = false) => {
-      set({ isLoading: true });
+    // Trong ProposalAPI.js - hàm summarizeProposal
+
+summarizeProposal: async (id, forceRefresh = false) => {
+  // set({ isLoading: true }); -> BỎ dòng này nếu bạn muốn loading cục bộ ở component Detail (tránh loading toàn trang)
+  // Nếu muốn loading toàn trang thì giữ nguyên, nhưng khuyên dùng loading cục bộ như hiện tại.
+  
+  try {
+    // Step 1: Check cache logic (Giữ nguyên)
+    if (!forceRefresh) {
+      const cacheRes = await fetchSafe(`${PROPOSAL_URL}/${id}/summary`, {
+        method: "GET",
+        headers: authHeaders(),
+      });
+      // Thêm check an toàn cho JSON parsing
+      let cachePayload = null;
       try {
-        // Step 1: Check if cached summary exists (unless forceRefresh)
-        if (!forceRefresh) {
-          const cacheRes = await fetchSafe(`${PROPOSAL_URL}/${id}/summary`, {
-            method: "GET",
-            headers: authHeaders(),
-          });
-          const cachePayload = await parseApiJson(cacheRes);
+         cachePayload = await parseApiJson(cacheRes);
+      } catch (e) { /* ignore json error */ }
 
-          if (cacheRes.ok && cachePayload?.cached && cachePayload?.data) {
-            console.log("Using cached AI summary from database");
-            set({ isLoading: false });
-            return {
-              success: true,
-              cached: true,
-              data: cachePayload.data,
-            };
-          }
-        }
-
-        // Step 2: No cache or forceRefresh - call AI to generate summary
-        console.log("Generating new AI summary...");
-        const res = await fetchSafe(
-          `${PROPOSAL_URL}/${id}/summarize?forceRefresh=${forceRefresh}`,
-          {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({
-              maxWordsPerSection: 150,
-              language: "vi",
-            }),
-          }
-        );
-        const payload = await parseApiJson(res);
+      if (cacheRes.ok && cachePayload?.cached && cachePayload?.data) {
+        console.log("Using cached AI summary from database");
         set({ isLoading: false });
-
-        if (!res.ok) {
-          throw new Error(payload?.message || "Không thể tóm tắt đề tài");
-        }
-
         return {
           success: true,
-          cached: false,
-          data: payload?.data ?? payload,
-        };
-      } catch (e) {
-        console.error("summarizeProposal error:", e);
-        set({ isLoading: false });
-        return {
-          success: false,
-          message: e.message || "Không thể tóm tắt đề tài",
+          cached: true,
+          data: cachePayload.data, // Đảm bảo trả về đúng object
         };
       }
-    },
+    }
+
+    // Step 2: Call AI
+    console.log("Generating new AI summary...");
+    const res = await fetchSafe(
+      `${PROPOSAL_URL}/${id}/summarize?forceRefresh=${forceRefresh}`,
+      {
+        method: "POST",
+        headers: authHeaders(),
+        // Tăng timeout cho fetch nếu server AI chậm (mặc định fetch không có timeout, nhưng browser có)
+        body: JSON.stringify({
+          maxWordsPerSection: 150,
+          language: "vi",
+        }),
+      }
+    );
+    
+    const payload = await parseApiJson(res);
+    set({ isLoading: false });
+
+    if (!res.ok) {
+      // Trả về lỗi rõ ràng hơn để UI hiển thị nút "Thử lại"
+      throw new Error(payload?.message || payload?.error || "Không thể tóm tắt đề tài");
+    }
+
+    // Kiểm tra kỹ payload.data
+    const summaryData = payload?.data ?? payload;
+    if (!summaryData) {
+       throw new Error("Dữ liệu trả về từ AI rỗng");
+    }
+
+    return {
+      success: true,
+      cached: false,
+      data: summaryData,
+    };
+  } catch (e) {
+    console.error("summarizeProposal error:", e);
+    set({ isLoading: false });
+    return {
+      success: false,
+      message: e.message || "Lỗi kết nối đến server AI",
+    };
+  }
+},
   };
 });
 

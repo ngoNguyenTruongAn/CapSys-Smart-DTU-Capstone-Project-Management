@@ -2,19 +2,66 @@ import React from "react";
 import styles from "./ProposalDetails.module.scss";
 import { getStatusKey, getStatusLabel } from "../proposals-logic/status.utils";
 
-// Giữ nguyên các hàm formatName, formatDate của bạn ở đây...
-const formatName = (fullName) => { /* ...code cũ của bạn... */ return fullName; };
-const formatDate = (value) => { /* ...code cũ của bạn... */ return value; };
+// ================= HELPER FUNCTIONS =================
+
+// 1. Format tên (Giữ nguyên logic chuẩn để hiển thị đẹp)
+const formatName = (fullName) => {
+  if (!fullName) return "";
+  
+  // Xử lý nếu fullName là object thay vì string
+  if (typeof fullName !== "string") {
+    try {
+      fullName = String(fullName.fullName || fullName.name || fullName.StudentName || "");
+    } catch {
+      return "";
+    }
+  }
+
+  fullName = fullName.trim();
+  const parts = fullName.split(/\s+/);
+
+  // Logic viết tắt tên đệm nếu tên quá dài (Option)
+  // Ví dụ: Nguyen Van A -> N. V. A (nếu muốn ngắn gọn) 
+  // Hoặc hiển thị đầy đủ. Ở đây mình giữ hiển thị tương đối đầy đủ nhưng chuẩn hóa.
+  if (parts.length > 2) {
+    const last = parts.pop();
+    const mid = parts.pop();
+    const init = parts.map(p => p[0].toUpperCase()).join(".");
+    return `${init}. ${mid} ${last}`; // Vd: N.V. An
+  }
+  
+  return fullName;
+};
+
+// 2. Format ngày tháng (ĐÃ SỬA)
+const formatDate = (value) => {
+  if (!value) return "—"; // Trả về gạch ngang nếu không có dữ liệu
+  
+  const date = new Date(value);
+  
+  // Kiểm tra ngày không hợp lệ (Invalid Date)
+  if (isNaN(date.getTime())) return "—";
+
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+
+  return `${day}/${month}/${year}`;
+};
+
+// ================= COMPONENT =================
 
 function CardDetails({ proposal, selectedProposalId, setSelectedProposalId }) {
-  // 1. Lấy ID linh hoạt
+  // 1. Lấy ID linh hoạt (xử lý chữ hoa/thường của backend)
   const id = proposal.id ?? proposal.proposalId ?? proposal.ProposalId;
   const title = proposal.title ?? proposal.proposalTitle ?? proposal.ProposalTitle;
   
-  // Mapping dữ liệu (giữ nguyên logic của bạn)
+  // Mapping dữ liệu an toàn
   const rawMentor = proposal.mentor || proposal.mentorName || proposal.MentorName || proposal.lecturer?.fullName || "";
+  
+  // Ưu tiên các trường ngày tháng có thể xuất hiện
   const rawRegisterDate = proposal.registerDate || proposal.createdDate || proposal.CreatedDate || proposal.submittedDate;
-  const rawApproveDate = proposal.approveDate || proposal.approvedDate || proposal.ApprovedDate;
+  
   const status = proposal.status || proposal.Status;
 
   // Xử lý status badge
@@ -22,21 +69,18 @@ function CardDetails({ proposal, selectedProposalId, setSelectedProposalId }) {
   const statusLabel = getStatusLabel(key);
   const badgeClass = styles["status-" + key] || "";
 
-  // 2. LOGIC ACTIVE: So sánh ID (ép về String hoặc Number để chắc chắn)
-  // Nếu selectedProposalId là số (5) còn id là chuỗi ("5") thì dùng String() sẽ an toàn nhất
+  // 2. LOGIC ACTIVE: So sánh ID
+  // Chuyển cả 2 về String để so sánh chính xác (tránh lỗi 5 !== "5")
   const isActive = String(id) === String(selectedProposalId);
 
   const handleClick = () => {
     setSelectedProposalId(id);
-    if (typeof window !== "undefined") {
-      // Chỉ scroll nhẹ nếu cần, hoặc bỏ đi nếu thấy phiền
-      // window.scrollTo({ top: 0, behavior: "smooth" }); 
-    }
+    // Scroll nhẹ lên đầu nếu cần thiết
+    // if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
     <div
-      // --- SỬA LỖI TẠI ĐÂY: Đổi 'Card-active' thành 'active' ---
       className={`${styles["DetailsCard-wrapper"]} ${
         isActive ? styles["active"] : ""
       }`}
@@ -58,13 +102,6 @@ function CardDetails({ proposal, selectedProposalId, setSelectedProposalId }) {
       <p className={styles["DetailsCard-date"]}>
         Ngày đăng ký: {formatDate(rawRegisterDate)}
       </p>
-
-      {/* Chỉ hiện ngày duyệt nếu có */}
-      {rawApproveDate && !String(rawApproveDate).startsWith("0001") && (
-        <p className={styles["DetailsCard-date"]}>
-          Ngày duyệt: {formatDate(rawApproveDate)}
-        </p>
-      )}
     </div>
   );
 }
