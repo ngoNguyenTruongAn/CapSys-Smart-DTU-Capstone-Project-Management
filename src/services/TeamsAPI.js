@@ -272,6 +272,20 @@ const moveStudentToTeamAPI = async (studentId, targetTeamId) => {
   }
 };
 
+const addStudentToTeamAPI = async (studentCode, teamId) => {
+  try {
+    const response = await instance.post(`Teams/add-student`, {
+      studentCode: studentCode,
+      teamId: teamId,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message || error.message || "Server Error"
+    );
+  }
+};
+
 export {
   getAllTeamsAPI,
   getTeamByIdAPI,
@@ -290,4 +304,5 @@ export {
   getMentorWorkloadAPI,
   getTeamsWithoutMentorAPI,
   moveStudentToTeamAPI,
+  addStudentToTeamAPI,
 };

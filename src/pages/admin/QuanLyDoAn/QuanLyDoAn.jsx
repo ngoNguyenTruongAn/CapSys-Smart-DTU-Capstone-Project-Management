@@ -38,6 +38,8 @@ const [deleteTeamId, setDeleteTeamId] = useState(null);
   const [selectedTeamStudents, setSelectedTeamStudents] = useState([]);
   const [swapModal, setSwapModal] = useState(false);
   const [selectedTeamLeaderId, setSelectedTeamLeaderId] = useState(null);
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
   // ---- Fetch dữ liệu từ API (dùng Redux) ----
   const fetchProjects = useCallback(async () => {
     try {
@@ -404,6 +406,15 @@ const [deleteTeamId, setDeleteTeamId] = useState(null);
   type="success"
 />
 
+
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
+      />
     </div>
   );
 };

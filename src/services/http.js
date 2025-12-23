@@ -22,12 +22,7 @@ export const API_BASE_URL = deriveBaseUrl();
 
 const isAbsoluteUrl = (path) => /^https?:\/\//i.test(path);
 
-const knownTokenKeys = [
-  "accessToken",
-  "token",
-  "authToken",
-  "Authorization",
-];
+const knownTokenKeys = ["accessToken", "token", "authToken", "Authorization"];
 
 const normalizeBearerToken = (raw) => {
   if (!raw) {
@@ -98,7 +93,7 @@ const isFormData = (value) => {
   return value instanceof FormData;
 };
 
-const toJsonString = (body) => {  
+const toJsonString = (body) => {
   if (!body) {
     return undefined;
   }

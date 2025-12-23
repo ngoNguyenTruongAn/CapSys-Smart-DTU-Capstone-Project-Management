@@ -214,6 +214,63 @@ const ViewCommitteeModal = ({ show, setShow, committeeId }) => {
                 <strong>Chưa có thành viên nào trong hội đồng</strong>
               </div>
             )}
+
+            {/* Nhóm đã được gán cho hội đồng */}
+            <div className="mt-4">
+              <h5 className="mb-3 border-bottom pb-2">
+                Nhóm đã được gán ({committee.assignedTeams?.length || 0})
+              </h5>
+
+              {committee.assignedTeams && committee.assignedTeams.length > 0 ? (
+                <div className="table-responsive">
+                  <table className="table table-striped align-middle">
+                    <thead>
+                      <tr>
+                        <th>Mã nhóm</th>
+                        <th>Capstone</th>
+                        <th>Trạng thái</th>
+                        <th>Mentor</th>
+                        <th>Phiên chấm</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {committee.assignedTeams.map((team) => (
+                        <tr key={team.teamId}>
+                          <td>
+                            <strong>
+                              {team.teamCode || `#${team.teamId}`}
+                            </strong>
+                          </td>
+                          <td>Capstone {team.capstoneType || "—"}</td>
+                          <td>
+                            <Badge
+                              bg={
+                                (team.status || "Pending").toLowerCase() ===
+                                "active"
+                                  ? "success"
+                                  : "secondary"
+                              }
+                            >
+                              {team.status || "—"}
+                            </Badge>
+                          </td>
+                          <td>{team.mentorName || "Chưa có"}</td>
+                          <td>
+                            {team.sessionDate
+                              ? formatDate(team.sessionDate)
+                              : "Chưa xếp lịch"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="alert alert-info mb-0">
+                  <strong>Chưa có nhóm nào được gán cho hội đồng.</strong>
+                </div>
+              )}
+            </div>
           </div>
         ) : null}
       </Modal.Body>

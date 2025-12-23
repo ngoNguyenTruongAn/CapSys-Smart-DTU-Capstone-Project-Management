@@ -10,6 +10,9 @@ import {
   faSpinner,
   faChevronDown,
   faChevronUp,
+  faExclamationTriangle,
+  faCheckCircle,
+  faExternalLinkAlt,
 } from "@fortawesome/free-solid-svg-icons";
 import ConfirmationDelModal from "../layout-proposal-common/Modal/ConfirmationDelModal";
 import DeleteButton from "../layout-proposal-common/Button/DeleteButton";
@@ -74,12 +77,11 @@ const formatDate = (value) => {
 function Proposaldetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  
   const {
     proposals,
     fetchProposals,
     fetchProposalById,
-    // setSearchTerm, // Note: Ta dùng local state cho search ở trang này thay vì store
     approveProposal,
     rejectProposal,
     deleteProposal,
@@ -100,7 +102,10 @@ function Proposaldetail() {
   const [aiSummary, setAiSummary] = useState(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
+  
+  // Refs để xử lý race condition (QUAN TRỌNG: Đã sửa)
   const summarizeCalledRef = React.useRef(null);
+  const activeRequestRef = React.useRef(null);
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -111,7 +116,7 @@ function Proposaldetail() {
     researchAreas: false,
   });
 
-  // --- USE EFFECTS ---
+  // --- USE EFFECTS CHUNG ---
   useEffect(() => {
     setSelectedId(id ? Number(id) : null);
   }, [id]);
@@ -133,7 +138,6 @@ function Proposaldetail() {
   // --- TÍNH TOÁN DỮ LIỆU ---
 
   // 3. TẠO DANH SÁCH ĐÃ LỌC (FILTERED LIST)
-  // Dùng useMemo để tối ưu hiệu năng, chỉ lọc lại khi proposals hoặc searchTerm thay đổi
   const filteredProposals = useMemo(() => {
     return searchProposals(proposals, searchTerm);
   }, [proposals, searchTerm]);
@@ -153,49 +157,74 @@ function Proposaldetail() {
     selectedProposal?.proposalId ??
     selectedProposal?.ProposalID;
 
-  // --- LOGIC AI ---
+  // ==========================================
+  // --- LOGIC AI (ĐÃ SỬA LỖI) ---
+  // ==========================================
+  
   const handleSummarize = async (forceRefresh = false) => {
-    if (isSummarizing || !pid) return;
+    if (!pid) return;
 
+    // 1. Đánh dấu ID này đang được xử lý để tránh conflict với request cũ
+    activeRequestRef.current = pid;
+    
     setIsSummarizing(true);
     setSummaryError(null);
+    
+    // Nếu là force refresh (bấm nút thử lại), clear data cũ
+    if (forceRefresh) {
+      setAiSummary(null);
+    }
 
     try {
       const result = await summarizeProposal(pid, forceRefresh);
-      if (result.success && result.data) {
-        setAiSummary(result.data);
-      } else {
-        setSummaryError(result.message || "Không thể tóm tắt đề tài");
+      
+      // 2. Chỉ cập nhật state nếu user vẫn đang ở đúng trang ID đó
+      // (Ngăn chặn việc hiển thị kết quả của trang cũ lên trang mới)
+      if (activeRequestRef.current === pid) {
+        if (result.success && result.data) {
+          setAiSummary(result.data);
+        } else {
+          setSummaryError(result.message || "Không thể tóm tắt đề tài");
+        }
       }
     } catch (error) {
-      console.error("AI Summary Error:", error);
-      setSummaryError(error.message || "Có lỗi xảy ra khi tóm tắt");
+      if (activeRequestRef.current === pid) {
+        console.error("AI Summary Error:", error);
+        setSummaryError(error.message || "Có lỗi xảy ra khi tóm tắt");
+      }
     } finally {
-      setIsSummarizing(false);
+      // 3. Chỉ tắt loading nếu vẫn đang ở đúng trang đó
+      if (activeRequestRef.current === pid) {
+        setIsSummarizing(false);
+      }
     }
   };
 
   useEffect(() => {
-    if (summarizeCalledRef.current !== null && summarizeCalledRef.current !== pid) {
-      summarizeCalledRef.current = null;
+    // Reset ref gọi API để đảm bảo logic chạy lại khi ID đổi
+    if (!pid) return;
+
+    // Logic quan trọng:
+    // Nếu ID thay đổi so với lần gọi trước, reset và gọi mới NGAY LẬP TỨC
+    if (summarizeCalledRef.current !== pid) {
+      // Reset state hiển thị
       setAiSummary(null);
       setSummaryError(null);
-    }
-
-    if (summarizeCalledRef.current === pid || isSummarizing || !pid) {
-      return;
-    }
-
-    if (pid && selectedProposal) {
+      
+      // Cập nhật ref để đánh dấu đã xử lý ID này
       summarizeCalledRef.current = pid;
-      handleSummarize();
+      
+      // Gọi hàm phân tích
+      handleSummarize(false);
     }
-  }, [pid, selectedProposal?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pid]); 
+  // ^ Dependency chỉ là [pid]. Bỏ isSummarizing ra khỏi đây để tránh loop hoặc chặn request.
 
   // --- HANDLERS ---
   const handleSetSelectedProposalId = (newId) => {
     setSelectedId(newId);
-    navigate(`/proposal-detail/${newId}`);
+    navigate(`/proposal-detail/${newId}`, { replace: true });
   };
 
   const toggleSection = (section) => {
@@ -279,13 +308,13 @@ function Proposaldetail() {
   // --- BUTTON ACTIONS ---
   const handleApprove = () => {
     if (typeof approveProposal === "function") {
-      approveProposal(pid).then(() => navigate("/proposals"));
+      approveProposal(pid).then(() => navigate("/proposals", { replace: true }));
     }
   };
 
   const handleReject = () => {
     if (typeof rejectProposal === "function") {
-      rejectProposal(pid).then(() => navigate("/proposals"));
+      rejectProposal(pid).then(() => navigate("/proposals", { replace: true }));
     }
   };
 
@@ -298,7 +327,7 @@ function Proposaldetail() {
     if (typeof deleteProposal === "function") {
       deleteProposal(pid).then((result) => {
         if (result.success) {
-          navigate("/proposals");
+          navigate("/proposals", { replace: true });
         } else {
           alert(result.message || "Xóa thất bại!");
         }
@@ -410,6 +439,73 @@ function Proposaldetail() {
               </div>
             </div>
 
+            {/* Similarity Warning Section */}
+            {(() => {
+              const warnings = selectedProposal?.similarityWarnings || 
+                               selectedProposal?.SimilarityWarnings || 
+                               aiSummary?.similarityWarnings ||
+                               [];
+              
+              if (warnings && warnings.length > 0) {
+                return (
+                  <div className={styles["similarity-warning-card"]}>
+                    <div className={styles["similarity-warning-header"]}>
+                      <FontAwesomeIcon 
+                        icon={faExclamationTriangle} 
+                        className={styles["similarity-warning-icon"]} 
+                      />
+                      <h3 className={styles["similarity-warning-title"]}>
+                        ⚠️ Cảnh báo trùng lặp nội dung ({warnings.length} đề tài)
+                      </h3>
+                    </div>
+                    <ul className={styles["similarity-warning-list"]}>
+                      {warnings.map((warning, idx) => (
+                        <li 
+                          key={idx} 
+                          className={styles["similarity-warning-item"]}
+                          onClick={() => navigate(`/proposal-detail/${warning.proposalId || warning.ProposalId}`)}
+                        >
+                          <span className={`${styles["similarity-percentage"]} ${
+                            (warning.similarityPercentage || warning.SimilarityPercentage) >= 70 ? styles["high"] : styles["medium"]
+                          }`}>
+                            {(warning.similarityPercentage || warning.SimilarityPercentage || 0).toFixed(1)}%
+                          </span>
+                          <div className={styles["similarity-info"]}>
+                            <p className={styles["similarity-proposal-title"]}>
+                              <FontAwesomeIcon icon={faFile} />
+                              {warning.title || warning.Title || "Đề tài không xác định"}
+                            </p>
+                            <p className={styles["similarity-team-name"]}>
+                              Nhóm: {warning.teamName || warning.TeamName || "---"}
+                            </p>
+                            {(warning.warningMessage || warning.WarningMessage) && (
+                              <p className={styles["similarity-message"]}>
+                                {warning.warningMessage || warning.WarningMessage}
+                              </p>
+                            )}
+                          </div>
+                          <button className={styles["similarity-view-btn"]}>
+                            <FontAwesomeIcon icon={faExternalLinkAlt} />
+                            Xem
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              } else if (selectedProposal?.similarityCheckedAt || selectedProposal?.SimilarityCheckedAt) {
+                return (
+                  <div className={styles["no-similarity-card"]}>
+                    <FontAwesomeIcon icon={faCheckCircle} className={styles["no-similarity-icon"]} />
+                    <p className={styles["no-similarity-text"]}>
+                      ✅ Đề tài này không có nội dung trùng lặp với các đề tài khác
+                    </p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
             {/* AI Summary Section */}
             {isSummarizing && (
               <div className={styles["ai-summary-loading-card"]}>
@@ -422,7 +518,7 @@ function Proposaldetail() {
             {summaryError && (
               <div className={styles["ai-summary-error-card"]}>
                 <p>⚠️ {summaryError}</p>
-                <button onClick={handleSummarize} className={styles["retry-btn"]}>
+                <button onClick={() => handleSummarize(true)} className={styles["retry-btn"]}>
                   Thử lại
                 </button>
               </div>
