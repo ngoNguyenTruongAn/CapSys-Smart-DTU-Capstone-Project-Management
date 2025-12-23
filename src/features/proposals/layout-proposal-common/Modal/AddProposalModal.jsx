@@ -23,6 +23,8 @@ export default function AddProposalModal() {
   } = useProposalsStore();
 
   const [teamId, setTeamId] = useState("");
+  // 1. Thêm state cho Tên Đề Tài
+  const [proposalTitle, setProposalTitle] = useState(""); 
   const [members, setMembers] = useState([{ name: "", mssv: "" }]);
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -33,9 +35,11 @@ export default function AddProposalModal() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingTeamCodes, setIsLoadingTeamCodes] = useState(false);
 
-  // Map teamContext -> members
+  // Map teamContext -> members & proposalTitle
   useEffect(() => {
     if (!teamContext) return;
+    
+    // Map members
     if (Array.isArray(teamContext.members) && teamContext.members.length) {
       setMembers(
         teamContext.members.map((m) => ({
@@ -46,6 +50,11 @@ export default function AddProposalModal() {
     } else {
       setMembers([{ name: "", mssv: "" }]);
     }
+
+    // 2. Map existing title (nếu có thì điền vào input)
+    const existingTitle = teamContext.existingProposal?.title || "";
+    setProposalTitle(existingTitle);
+
   }, [teamContext]);
 
   // Khi mở modal lần đầu -> load tất cả team code
@@ -78,15 +87,9 @@ export default function AddProposalModal() {
 
   if (!isModalOpen) return null;
 
-  const handleArrChange = (setter, i, v) =>
-    setter((p) => {
-      const n = [...p];
-      n[i] = v;
-      return n;
-    });
-
   const reset = () => {
     setTeamId("");
+    setProposalTitle(""); // Reset title
     setMembers([{ name: "", mssv: "" }]);
     setFile(null);
     setFilteredTeamCodes([]);
@@ -104,7 +107,6 @@ export default function AddProposalModal() {
     await fetchTeamContext(id);
   };
 
-  // Khi gõ vào ô Tên Nhóm -> lọc gợi ý
   const handleTeamIdChange = (e) => {
     const value = e.target.value;
     setTeamId(value);
@@ -117,10 +119,8 @@ export default function AddProposalModal() {
     }
 
     const matches = allTeamCodes
-      .filter(
-        (code) => code && code.toLowerCase().includes(query)
-      )
-      .slice(0, 8); // giới hạn 8 gợi ý
+      .filter((code) => code && code.toLowerCase().includes(query))
+      .slice(0, 8);
 
     setFilteredTeamCodes(matches);
     setShowSuggestions(matches.length > 0);
@@ -130,25 +130,24 @@ export default function AddProposalModal() {
     setTeamId(code);
     setShowSuggestions(false);
     setFilteredTeamCodes([]);
-    // tự động lookup team luôn cho tiện
     fetchTeamContext(code);
   };
 
   const submit = async (e) => {
     e.preventDefault();
 
+    // Check logic cũ: nếu đã có proposal thì chặn (tùy nhu cầu của bạn có thể bỏ check này nếu muốn cho phép update)
     if (teamContext?.existingProposal?.title) {
-      alert("Team này đã có proposal");
+      alert("Team này đã có proposal rồi.");
       return;
     }
 
-    const titleFromContext = teamContext?.existingProposal?.title || "";
-    const fallbackTitle =
-      (teamContext?.team?.teamCode &&
-        `Proposal ${teamContext.team.teamCode}`) ||
-      (teamId && `Proposal Team ${teamId}`) ||
-      "Untitled Proposal";
-    const titleToSend = (titleFromContext || fallbackTitle).trim();
+    // 4. Validate Tên Đề Tài
+    const titleToSend = proposalTitle.trim();
+    if (!titleToSend) {
+      alert("Vui lòng nhập Tên Đề Tài.");
+      return;
+    }
 
     if (!String(teamId).trim()) {
       alert("Vui lòng nhập/tra cứu Tên Nhóm.");
@@ -175,6 +174,7 @@ export default function AddProposalModal() {
       .filter((m) => m.name);
 
     const fd = new FormData();
+    // Sử dụng title từ input
     fd.append("ProposalTitle", titleToSend);
     fd.append("Title", titleToSend);
 
@@ -217,6 +217,9 @@ export default function AddProposalModal() {
     }
   };
 
+  // Check xem có nên disable input không (nếu đã có proposal rồi thì disable cho user khỏi sửa nhầm)
+  const isExistingProposal = !!teamContext?.existingProposal?.title;
+
   return (
     <>
       {isLoading && (
@@ -236,6 +239,7 @@ export default function AddProposalModal() {
           </div>
 
           <form className={styles.body} onSubmit={submit}>
+            {/* --- TEAM LOOKUP --- */}
             <div className={styles.lookupRow}>
               <label>Tên Nhóm</label>
               <div className={styles.lookup}>
@@ -256,30 +260,22 @@ export default function AddProposalModal() {
                       }
                     }}
                     onBlur={() => {
-                      // delay 1 chút để onMouseDown ở item chạy trước
                       setTimeout(() => setShowSuggestions(false), 150);
                     }}
                   />
-
-                  {/* dropdown gợi ý */}
-                  {showSuggestions &&
-                    filteredTeamCodes.length > 0 && (
-                      <ul className={styles.suggestionList}>
-                        {filteredTeamCodes.map((code) => (
-                          <li
-                            key={code}
-                            className={styles.suggestionItem}
-                            onMouseDown={() =>
-                              handleSelectSuggestion(code)
-                            }
-                          >
-                            {code}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-
-                  {/* hint loading nhỏ (optional) */}
+                  {showSuggestions && filteredTeamCodes.length > 0 && (
+                    <ul className={styles.suggestionList}>
+                      {filteredTeamCodes.map((code) => (
+                        <li
+                          key={code}
+                          className={styles.suggestionItem}
+                          onMouseDown={() => handleSelectSuggestion(code)}
+                        >
+                          {code}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   {isLoadingTeamCodes && (
                     <span className={styles.suggestionLoading}>
                       Đang tải danh sách nhóm...
@@ -299,6 +295,7 @@ export default function AddProposalModal() {
               </div>
             </div>
 
+            {/* --- TEAM INFO CARD --- */}
             <div className={styles.card}>
               <div className={styles.cardHeader}>
                 <div className={styles.teamTitle}>
@@ -314,8 +311,9 @@ export default function AddProposalModal() {
                         : styles.badgeWarn
                     }`}
                   >
-                    {teamContext?.existingProposal?.title ||
-                      "Đề tài: Chưa có"}
+                    {teamContext?.existingProposal?.title
+                      ? "Đã có đề tài"
+                      : "Chưa có đề tài"}
                   </span>
                 </div>
               </div>
@@ -340,9 +338,7 @@ export default function AddProposalModal() {
                   {(teamContext?.members || []).map((m, i) => (
                     <div key={i} className={styles.memberChip}>
                       <span className={styles.memberName}>{m.fullName}</span>
-                      <span className={styles.memberCode}>
-                        {m.studentCode}
-                      </span>
+                      <span className={styles.memberCode}>{m.studentCode}</span>
                     </div>
                   ))}
                   {!teamContext && (
@@ -354,6 +350,33 @@ export default function AddProposalModal() {
               </div>
             </div>
 
+            {/* --- 3. INPUT TÊN ĐỀ TÀI MỚI THÊM VÀO --- */}
+            <div className={styles.group} style={{ marginTop: "16px" }}>
+              <label className={styles.label} style={{ marginBottom: "8px" }}>
+                Tên Đề Tài <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                className={styles.input} // Giả sử bạn có class .input trong SCSS, nếu không có thể dùng inline style hoặc class lookupInput
+                style={{ 
+                  width: "100%", 
+                  padding: "10px", 
+                  borderRadius: "6px", 
+                  border: "1px solid #ddd",
+                  backgroundColor: isExistingProposal ? "#f5f5f5" : "#fff"
+                }}
+                placeholder="Nhập tên đề tài đồ án..."
+                value={proposalTitle}
+                onChange={(e) => setProposalTitle(e.target.value)}
+                disabled={isExistingProposal} // Disable nếu đã có đề tài từ server
+              />
+              {isExistingProposal && (
+                <small style={{ color: "orange", marginTop: "4px", display: "block" }}>
+                  * Nhóm này đã đăng ký đề tài, không thể thay đổi tên tại đây.
+                </small>
+              )}
+            </div>
+
+            {/* --- FILE UPLOAD --- */}
             <div className={styles.group}>
               <label className={styles.label} style={{ marginBottom: "8px" }}>
                 Tài liệu đính kèm
@@ -401,10 +424,7 @@ export default function AddProposalModal() {
                     e.preventDefault();
                     setIsDragging(false);
                     const droppedFile = e.dataTransfer.files?.[0];
-                    if (
-                      droppedFile &&
-                      droppedFile.type === "application/pdf"
-                    ) {
+                    if (droppedFile && droppedFile.type === "application/pdf") {
                       setFile(droppedFile);
                     } else {
                       alert("Chỉ chấp nhận file PDF.");
@@ -432,9 +452,7 @@ export default function AddProposalModal() {
                     </div>
                     <p>
                       Kéo thả tệp vào đây hoặc{" "}
-                      <span className={styles.browseText}>
-                        bấm để chọn tệp
-                      </span>
+                      <span className={styles.browseText}>bấm để chọn tệp</span>
                     </p>
                     <span className={styles.uploadHint}>
                       Hỗ trợ PDF (Tối đa 10MB)
