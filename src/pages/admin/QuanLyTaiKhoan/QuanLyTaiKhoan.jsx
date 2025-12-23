@@ -24,10 +24,12 @@ import {
   getPaginationRowModel,
   flexRender,
 } from "@tanstack/react-table";
+import Toasts from "../../../components/ui/Toasts";
 
 const QuanLyTaiKhoan = () => {
   const [activeTab, setActiveTab] = useState("students");
   const [search, setSearch] = useState("");
+  const [capstoneFilter, setCapstoneFilter] = useState("");
   const [showRegisterStudent, setShowRegisterStudent] = useState(false);
   const [showRegisterLecturer, setShowRegisterLecturer] = useState(false);
   const [studentImportFile, setStudentImportFile] = useState(null);
@@ -40,13 +42,12 @@ const QuanLyTaiKhoan = () => {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
-  const [deleteTargetType, setDeleteTargetType] = useState(null); 
+  const [deleteTargetType, setDeleteTargetType] = useState(null);
   const dispatch = useDispatch();
-  const {
-    data: students,
-    loading: studentsLoading,
-    error: studentsError,
-  } = useSelector((state) => state.students);
+  
+  const { data: students, loading: studentsLoading } = useSelector(
+    (state) => state.students
+  );
 
   // Fetch students qua Redux
   useEffect(() => {
@@ -54,18 +55,21 @@ const QuanLyTaiKhoan = () => {
   }, [dispatch]);
 
   // Lấy lecturers từ Redux
-  const {
-    data: lecturers,
-    loading: lecturersLoading,
-    error: lecturersError,
-  } = useSelector((state) => state.lecturers);
+  const { data: lecturers, loading: lecturersLoading } = useSelector(
+    (state) => state.lecturers
+  );
+
+  // Toast state
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
+  const pushError = (msg) => setToastErrors((prev) => [...prev, msg].slice(-3));
 
   // Fetch lecturers qua Redux
   useEffect(() => {
     dispatch(fetchLecturers());
   }, [dispatch]);
 
-  // Hàm filter chung để tránh duplication
+  // Hàm filter chung
   const filterItems = useMemo(() => {
     return (items, searchTerm, type) => {
       if (!searchTerm) return items;
@@ -82,9 +86,13 @@ const QuanLyTaiKhoan = () => {
   }, []);
 
   const filteredStudents = useMemo(() => {
-    const base = students || [];
+    let base = students || [];
+    if (capstoneFilter) {
+      const capValue = Number(capstoneFilter);
+      base = base.filter((s) => Number(s.capstoneType) === capValue);
+    }
     return filterItems(base, search, "students");
-  }, [students, search, filterItems]);
+  }, [students, search, capstoneFilter, filterItems]);
 
   const filteredLecturers = useMemo(() => {
     const base = lecturers || [];
@@ -110,17 +118,15 @@ const QuanLyTaiKhoan = () => {
   }, []);
 
   const handleDeleteStudent = useCallback((id) => {
-  setDeleteTargetId(id);
-  setDeleteTargetType("student");
-  setShowConfirmDelete(true);
-}, []);
-
+    setDeleteTargetId(id);
+    setDeleteTargetType("student");
+    setShowConfirmDelete(true);
+  }, []);
 
   const [showViewLecturer, setShowViewLecturer] = useState(false);
   const [showUpdateLecturer, setShowUpdateLecturer] = useState(false);
   const [lecturerId, setLecturerId] = useState(null);
 
-  // Placeholder handlers cho lecturers (gợi ý: implement modals tương tự students)
   const handleViewLecturer = useCallback((lecturerId) => {
     setLecturerId(lecturerId);
     setShowViewLecturer(true);
@@ -132,45 +138,48 @@ const QuanLyTaiKhoan = () => {
   }, []);
 
   const handleDeleteLecturer = useCallback((id) => {
-  setDeleteTargetId(id);
-  setDeleteTargetType("lecturer");
-  setShowConfirmDelete(true);
-}, []);
+    setDeleteTargetId(id);
+    setDeleteTargetType("lecturer");
+    setShowConfirmDelete(true);
+  }, []);
 
+  // --- FIX 1: Thêm 2 hàm xử lý file input bị thiếu ---
+  const handleStudentFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) setStudentImportFile(file);
+  };
+
+  const handleLecturerFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) setLecturerImportFile(file);
+  };
+
+  // --- FIX 2: Sửa hàm handleConfirmDelete (thêm catch block) ---
   const handleConfirmDelete = async () => {
-  try {
-    if (deleteTargetType === "student") {
-      await dispatch(deleteStudent(deleteTargetId)).unwrap();
-      dispatch(fetchStudents());
-    } else if (deleteTargetType === "lecturer") {
-      await dispatch(deleteLecturer(deleteTargetId)).unwrap();
-      dispatch(fetchLecturers());
+    try {
+      if (deleteTargetType === "student") {
+        await dispatch(deleteStudent(deleteTargetId)).unwrap();
+        dispatch(fetchStudents());
+      } else if (deleteTargetType === "lecturer") {
+        await dispatch(deleteLecturer(deleteTargetId)).unwrap();
+        dispatch(fetchLecturers());
+      }
+
+      setShowConfirmDelete(false);
+      setShowSuccessModal(true);
+    } catch (error) { // Thêm catch ở đây
+      console.error("Lỗi khi xóa:", error);
+      alert("❌ Xóa thất bại");
     }
-
-    setShowConfirmDelete(false);
-    setShowSuccessModal(true);
-  } catch (error) {
-    console.error("Lỗi khi xóa:", error);
-    alert("❌ Xóa thất bại");
-  }
-};
-
-  const handleStudentFileChange = (event) => {
-    const file = event.target.files?.[0] || null;
-    setStudentImportFile(file);
   };
 
-  const handleLecturerFileChange = (event) => {
-    const file = event.target.files?.[0] || null;
-    setLecturerImportFile(file);
-  };
-
+  // --- FIX 3: Đóng gói logic Import Student vào hàm handleImportStudents ---
   const handleImportStudents = async () => {
     if (!studentImportFile) {
-      alert("Vui lòng chọn file Excel sinh viên trước khi import.");
-      return;
+        pushError("Vui lòng chọn file Excel sinh viên trước khi import.");
+        return;
     }
-
+    
     setIsStudentImporting(true);
 
     try {
@@ -181,7 +190,7 @@ const QuanLyTaiKhoan = () => {
       const data = response.data;
 
       if (!data) {
-        alert("Không nhận được phản hồi từ server.");
+        pushError("Không nhận được phản hồi từ server.");
         return;
       }
 
@@ -189,7 +198,7 @@ const QuanLyTaiKhoan = () => {
       const successCount = data.data?.successCount || 0;
 
       if (data.success && failedCount === 0) {
-        alert("✅ Import sinh viên thành công!\n" + (data.message || ""));
+        setToastSuccess("Import sinh viên thành công!");
         setStudentImportFile(null);
         if (studentFileInputRef.current) {
           studentFileInputRef.current.value = "";
@@ -205,21 +214,20 @@ const QuanLyTaiKhoan = () => {
             )
             .join("\n") || "Không có chi tiết lỗi";
 
-        alert(
-          `⚠️ Import sinh viên thất bại một phần hoặc toàn bộ!\n\n` +
-            `✅ Thành công: ${successCount}\n❌ Thất bại: ${failedCount}\n\n${previewErrors}`
+        pushError(
+          `Import sinh viên thất bại một phần: Thành công ${successCount}, Thất bại ${failedCount}. Chi tiết: ${previewErrors}`
         );
         console.error("Import sinh viên lỗi:", data.data?.errors);
       } else {
-        alert(
-          "❌ Import sinh viên thất bại: " +
+        pushError(
+          "Import sinh viên thất bại: " +
             (data.message || "Không rõ nguyên nhân")
         );
       }
     } catch (error) {
       console.error("Import sinh viên error:", error);
-      alert(
-        "💥 Lỗi khi import sinh viên: " +
+      pushError(
+        "Lỗi khi import sinh viên: " +
           (error?.response?.data?.message ||
             error?.message ||
             "Không rõ nguyên nhân")
@@ -231,7 +239,7 @@ const QuanLyTaiKhoan = () => {
 
   const handleImportLecturers = async () => {
     if (!lecturerImportFile) {
-      alert("Vui lòng chọn file Excel giảng viên trước khi import.");
+      pushError("Vui lòng chọn file Excel giảng viên trước khi import.");
       return;
     }
 
@@ -242,7 +250,7 @@ const QuanLyTaiKhoan = () => {
       const data = response.data;
 
       if (!data) {
-        alert("Không nhận được phản hồi từ server.");
+        pushError("Không nhận được phản hồi từ server.");
         return;
       }
 
@@ -250,7 +258,7 @@ const QuanLyTaiKhoan = () => {
       const successCount = data.data?.successCount || 0;
 
       if (data.success && failedCount === 0) {
-        alert("✅ Import giảng viên thành công!\n" + (data.message || ""));
+        setToastSuccess("Import giảng viên thành công!");
         setLecturerImportFile(null);
         if (lecturerFileInputRef.current) {
           lecturerFileInputRef.current.value = "";
@@ -268,21 +276,20 @@ const QuanLyTaiKhoan = () => {
             )
             .join("\n") || "Không có chi tiết lỗi";
 
-        alert(
-          `⚠️ Import giảng viên thất bại một phần hoặc toàn bộ!\n\n` +
-            `✅ Thành công: ${successCount}\n❌ Thất bại: ${failedCount}\n\n${previewErrors}`
+        pushError(
+          `Import giảng viên thất bại một phần: Thành công ${successCount}, Thất bại ${failedCount}. Chi tiết: ${previewErrors}`
         );
         console.error("Import giảng viên lỗi:", data.data?.errors);
       } else {
-        alert(
-          "❌ Import giảng viên thất bại: " +
+        pushError(
+          "Import giảng viên thất bại: " +
             (data.message || "Không rõ nguyên nhân")
         );
       }
     } catch (error) {
       console.error("Import giảng viên error:", error);
-      alert(
-        "💥 Lỗi khi import giảng viên: " +
+      pushError(
+        "Lỗi khi import giảng viên: " +
           (error?.response?.data?.message ||
             error?.message ||
             "Không rõ nguyên nhân")
@@ -292,13 +299,12 @@ const QuanLyTaiKhoan = () => {
     }
   };
 
-  // Loading/Error chung
   const isLoading =
     activeTab === "students" ? studentsLoading : lecturersLoading;
-  const error = activeTab === "students" ? studentsError : lecturersError;
 
   const handleRefresh = useCallback(() => {
     setSearch("");
+    setCapstoneFilter("");
     dispatch(fetchStudents());
     dispatch(fetchLecturers());
   }, [dispatch]);
@@ -400,6 +406,16 @@ const QuanLyTaiKhoan = () => {
             <option value="students">Danh sách sinh viên</option>
             <option value="lecturers">Danh sách giảng viên</option>
           </select>
+          {activeTab === "students" && (
+            <select
+              value={capstoneFilter}
+              onChange={(e) => setCapstoneFilter(e.target.value)}
+            >
+              <option value="">Tất cả Capstone</option>
+              <option value="1">Capstone 1</option>
+              <option value="2">Capstone 2</option>
+            </select>
+          )}
           <input
             type="text"
             placeholder="Tìm kiếm họ tên / mã tài khoản…"
@@ -501,7 +517,6 @@ const QuanLyTaiKhoan = () => {
       </section>
 
       {isLoading && <p>Đang tải dữ liệu...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
 
       <div className="qlda-table-box qltk-table-box">
         {table.getRowModel().rows.length > 0 ? (
@@ -644,28 +659,36 @@ const QuanLyTaiKhoan = () => {
         lecturerId={lecturerId}
       />
       <ConfirmationModal
-  isOpen={showConfirmDelete}
-  onClose={() => setShowConfirmDelete(false)}
-  onConfirm={handleConfirmDelete}
-  title="Xác nhận xóa"
-  message="Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác."
-  confirmText="Xóa ngay"
-  cancelText="Hủy bỏ"
-  type="danger"
-/>
-<ConfirmationModal
-  isOpen={showSuccessModal}
-  onClose={() => setShowSuccessModal(false)}
-  onConfirm={() => setShowSuccessModal(false)}
-  title="Thành công"
-  message="Xóa tài khoản thành công!"
-  confirmText="OK"
-  hideCancel
-  type="success"
-/>
+        isOpen={showConfirmDelete}
+        onClose={() => setShowConfirmDelete(false)}
+        onConfirm={handleConfirmDelete}
+        title="Xác nhận xóa"
+        message="Bạn có chắc chắn muốn xóa tài khoản này không? Hành động này không thể hoàn tác."
+        confirmText="Xóa ngay"
+        cancelText="Hủy bỏ"
+        type="danger"
+      />
+      <ConfirmationModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onConfirm={() => setShowSuccessModal(false)}
+        title="Thành công"
+        message="Xóa tài khoản thành công!"
+        confirmText="OK"
+        hideCancel
+        type="success"
+      />
 
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
+      />
     </div>
   );
-};
+}; // Thêm dấu đóng component
 
 export default QuanLyTaiKhoan;

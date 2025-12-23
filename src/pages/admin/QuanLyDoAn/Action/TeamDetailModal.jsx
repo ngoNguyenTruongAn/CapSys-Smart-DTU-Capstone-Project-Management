@@ -387,7 +387,7 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
                         <td>{s.major}</td>
                         <td>{s.gpa}</td>
                         <td>{s.email}</td>
-                        <td>
+                        <td style={{ textAlign: "center" }}>
                           {formData.teamLeaderId === s.studentId ? (
                             <Badge bg="primary">Leader</Badge>
                           ) : (
