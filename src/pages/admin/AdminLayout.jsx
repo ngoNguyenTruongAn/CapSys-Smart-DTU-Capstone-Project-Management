@@ -7,35 +7,46 @@ const AdminLayout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const refreshToken = localStorage.getItem("refreshToken");
+    const validateAuth = () => {
+      const token = localStorage.getItem("token");
 
-    // 1. Kiểm tra xem có token không (đã đăng nhập chưa)
-    if (!token || !refreshToken) {
-      localStorage.clear(); // Dọn dẹp nếu thiếu
-      navigate("/", { replace: true });
-      return;
-    }
+      if (!token) {
+        navigate("/", { replace: true });
+        return;
+      }
 
-    try {
-      // 2. Chỉ decode token để kiểm tra vai trò (Role)
-      const decoded = jwtDecode(token);
+      try {
+        const decoded = jwtDecode(token);
+        const role =
+          decoded.AccountType ||
+          decoded.accountType ||
+          decoded[
+            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+          ];
 
-      const role =
-        decoded.AccountType ||
-        decoded.accountType ||
-        decoded["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-
-      // 3. Kiểm tra vai trò
-      if (role !== "Admin") {
+        if (role !== "Admin") {
+          localStorage.clear();
+          navigate("/", { replace: true });
+        }
+      } catch (error) {
         localStorage.clear();
         navigate("/", { replace: true });
       }
-    } catch (error) {
-      console.error("Error decoding token in AdminLayout:", error);
-      localStorage.clear();
+    };
+
+    // 1. Kiểm tra ngay khi load layout
+    validateAuth();
+
+    // 2. Lắng nghe sự kiện logout từ Axios Client
+    const handleLogoutEvent = () => {
       navigate("/", { replace: true });
-    }
+    };
+
+    window.addEventListener("auth:logout", handleLogoutEvent);
+
+    return () => {
+      window.removeEventListener("auth:logout", handleLogoutEvent);
+    };
   }, [navigate]);
 
   return (
