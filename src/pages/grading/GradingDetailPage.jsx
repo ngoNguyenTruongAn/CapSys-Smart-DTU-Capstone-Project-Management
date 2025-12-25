@@ -65,6 +65,45 @@ const formatScoreInput = (value, maxScore = 10) => {
 };
 
 /**
+ * Format contribution input (percentage) with clamping 0-100
+ * and removing leading zeros for faster input.
+ * @param {string|number} value - Raw input value
+ * @param {number} maxPercent - Maximum allowed percent (default 100)
+ * @returns {string} Formatted percentage value
+ */
+const formatContributionInput = (value, maxPercent = 100) => {
+  if (value === "" || value === null || value === undefined) {
+    return "";
+  }
+
+  let strValue = String(value);
+
+  // Allow partial typing states
+  if (strValue === "." || strValue === "-" || strValue === "-.") {
+    return strValue;
+  }
+
+  if (strValue.length > 1 && strValue.startsWith("0") && strValue[1] !== ".") {
+    strValue = strValue.replace(/^0+/, "") || "0";
+  }
+
+  const numValue = parseFloat(strValue);
+  if (Number.isNaN(numValue)) {
+    return "";
+  }
+
+  if (numValue < 0) {
+    return "0";
+  }
+
+  if (numValue > maxPercent) {
+    return String(maxPercent);
+  }
+
+  return strValue;
+};
+
+/**
  * Decode JWT payload from token string
  * @param {string} token - JWT token
  * @returns {Object|null} Decoded payload or null
@@ -1400,13 +1439,16 @@ export default function GradingDetailPage({
     if (!targetId) {
       return;
     }
+
+    const formattedValue = formatContributionInput(nextValue, 100);
+
     setForms((prev) => {
       const baseForm = prev[targetId] ?? buildEmptyForm(criteria);
       return {
         ...prev,
         [targetId]: {
           ...baseForm,
-          contributionPercentage: nextValue,
+          contributionPercentage: formattedValue,
         },
       };
     });
