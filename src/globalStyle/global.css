@@ -65,3 +65,27 @@ a {
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
     0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
+
+/* --- Tùy chỉnh thanh cuộn chính của trình duyệt --- */
+
+/* 1. Thiết lập độ rộng */
+::-webkit-scrollbar {
+  width: 10px; /* Độ rộng vừa phải, không quá to như mặc định */
+}
+
+/* 2. Phần nền của thanh cuộn (Track) */
+::-webkit-scrollbar-track {
+  background: #FEF2F2; /* Màu xám rất nhạt để tiệp với nền web */
+}
+
+/* 3. Phần thanh trượt (Thumb) - Lấy theo màu đỏ trên Header của bạn */
+::-webkit-scrollbar-thumb {
+  background: #a91b20; /* Mã màu đỏ tương đồng với nút 'Import sinh viên' */
+  border-radius: 4px;   /* Bo góc nhẹ cho mềm mại */
+  border: solid #FEF2F2; /* Tạo khoảng cách giữa thumb và track */
+}
+
+/* 4. Hiệu ứng khi di chuột vào thanh trượt */
+::-webkit-scrollbar-thumb:hover {
+  background: #8a161a; /* Màu đỏ đậm hơn một chút khi hover để tạo cảm giác tương tác */
+}
