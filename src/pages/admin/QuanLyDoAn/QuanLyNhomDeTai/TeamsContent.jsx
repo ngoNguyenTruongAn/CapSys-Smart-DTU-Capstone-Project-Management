@@ -8,6 +8,7 @@ import {
   fetchMentorWorkload,
 } from "../../../../store/teamSlice";
 import TeamDetailModal from "../Action/TeamDetailModal"; // Import modal chi tiết nhóm
+import FilterSelect from "../../../../components/ui/FilterSelect";
 // import "./QuanLyNhomDeTai.scss"; // CSS đã được import ở file cha
 
 const TeamsContent = () => {
@@ -248,29 +249,31 @@ const TeamsContent = () => {
 
             <div className="filter-group">
               <label htmlFor="mentor-filter">Bộ lọc:</label>
-              <select
-                id="mentor-filter"
+              <FilterSelect
+                options={[
+                  { value: "all", label: "Tất cả nhóm" },
+                  { value: "with", label: "Đã có mentor" },
+                  { value: "without", label: "Chưa có mentor" },
+                ]}
                 value={mentorFilter}
-                onChange={(e) => setMentorFilter(e.target.value)}
-                className="capstone-select"
-              >
-                <option value="all">Tất cả nhóm</option>
-                <option value="with">Đã có mentor</option>
-                <option value="without">Chưa có mentor</option>
-              </select>
+                onChange={(val) => setMentorFilter(val)}
+                minWidth={180}
+                id="mentor-filter"
+              />
             </div>
             <div className="filter-group">
               <label htmlFor="capstone-filter">Loại Capstone:</label>
-              <select
-                id="capstone-filter"
+              <FilterSelect
+                options={[
+                  { value: "all", label: "Tất cả Capstone" },
+                  { value: "1", label: "Capstone 1" },
+                  { value: "2", label: "Capstone 2" },
+                ]}
                 value={capstoneFilter}
-                onChange={(e) => setCapstoneFilter(e.target.value)}
-                className="capstone-select"
-              >
-                <option value="all">Tất cả Capstone</option>
-                <option value="1">Capstone 1</option>
-                <option value="2">Capstone 2</option>
-              </select>
+                onChange={(val) => setCapstoneFilter(val)}
+                minWidth={180}
+                id="capstone-filter"
+              />
             </div>
           </div>
         </div>
@@ -467,18 +470,16 @@ const TeamsContent = () => {
               </button>
               <div className="page-size-selector">
                 <label htmlFor="team-page-size">Hiển thị:</label>
-                <select
-                  id="team-page-size"
+                <FilterSelect
+                  options={[3, 6, 9, 12].map((size) => ({
+                    value: size,
+                    label: String(size),
+                  }))}
                   value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="page-size-select"
-                >
-                  {[3, 6, 9, 12].map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => handlePageSizeChange(val)}
+                  minWidth={120}
+                  id="team-page-size"
+                />
                 <span>nhóm/trang</span>
               </div>
             </div>
@@ -513,16 +514,16 @@ const TeamsContent = () => {
                 />
                 <div className="page-size-selector">
                   <label>Hiển thị:</label>
-                  <select
+                  <FilterSelect
+                    options={[5, 10, 15].map((size) => ({
+                      value: size,
+                      label: String(size),
+                    }))}
                     value={mentorPageSize}
-                    onChange={(e) => setMentorPageSize(Number(e.target.value))}
-                  >
-                    {[5, 10, 15].map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setMentorPageSize(val)}
+                    minWidth={120}
+                    id="mentor-page-size"
+                  />
                   <span>giảng viên/trang</span>
                 </div>
               </div>

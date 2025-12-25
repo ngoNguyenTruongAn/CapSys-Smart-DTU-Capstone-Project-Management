@@ -9,6 +9,7 @@ import { deleteStudent } from "../../../../store/studentSlice";
 import { autoArrangeTeamAPI } from "../../../../services/TeamsAPI";
 import ViewStudent from "../../QuanLyTaiKhoan/ViewStudent/ViewStudent";
 import UpdateStudent from "../../QuanLyTaiKhoan/UpdateStudent/UpdateStudent";
+import FilterSelect from "../../../../components/ui/FilterSelect"; // Added FilterSelect import
 // import "./QuanLyNhomDeTai.scss"; // CSS đã được import ở file cha
 
 const StudentsContent = () => {
@@ -252,15 +253,16 @@ const StudentsContent = () => {
           <h3>Danh sách sinh viên chưa có nhóm</h3>
           <div className="filter-group">
             <label htmlFor="capstone-select">Loại Capstone:</label>
-            <select
-              id="capstone-select"
+            <FilterSelect
+              options={[
+                { value: 1, label: "Capstone Type 1" },
+                { value: 2, label: "Capstone Type 2" },
+              ]}
               value={capstoneType}
-              onChange={(e) => setCapstoneType(Number(e.target.value))}
-              className="capstone-select"
-            >
-              <option value={1}>Capstone Type 1</option>
-              <option value={2}>Capstone Type 2</option>
-            </select>
+              onChange={(val) => setCapstoneType(val)}
+              minWidth={170}
+              id="capstone-select"
+            />
           </div>
 
           <div className="search-group">
@@ -473,18 +475,16 @@ const StudentsContent = () => {
               </button>
               <div className="page-size-selector">
                 <label htmlFor="page-size">Hiển thị:</label>
-                <select
-                  id="page-size"
+                <FilterSelect
+                  options={[5, 10, 20, 30, 50].map((size) => ({
+                    value: size,
+                    label: String(size),
+                  }))}
                   value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="page-size-select"
-                >
-                  {[5, 10, 20, 30, 50].map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(val) => handlePageSizeChange(val)}
+                  minWidth={120}
+                  id="students-page-size"
+                />
                 <span>mục/trang</span>
               </div>
             </div>
@@ -531,24 +531,26 @@ const StudentsContent = () => {
             </div>
             <div className="form-group">
               <label>Chọn trưởng nhóm:</label>
-              <select
-                value={teamForm.teamLeaderId || ""}
-                onChange={(e) =>
+              <FilterSelect
+                options={[
+                  { value: "", label: "-- Chọn trưởng nhóm --" },
+                  ...studentsData
+                    .filter((s) => selectedStudentIds.includes(s.studentId))
+                    .map((student) => ({
+                      value: student.studentId,
+                      label: `${student.fullName} (${student.studentCode})`,
+                    })),
+                ]}
+                value={teamForm.teamLeaderId ?? ""}
+                onChange={(val) =>
                   setTeamForm({
                     ...teamForm,
-                    teamLeaderId: Number(e.target.value),
+                    teamLeaderId: val === "" ? null : val,
                   })
                 }
-              >
-                <option value="">-- Chọn trưởng nhóm --</option>
-                {studentsData
-                  .filter((s) => selectedStudentIds.includes(s.studentId))
-                  .map((student) => (
-                    <option key={student.studentId} value={student.studentId}>
-                      {student.fullName} ({student.studentCode})
-                    </option>
-                  ))}
-              </select>
+                minWidth={220}
+                id="team-leader-select"
+              />
             </div>
             <div className="selected-students">
               <strong>Sinh viên đã chọn ({selectedStudentIds.length}):</strong>

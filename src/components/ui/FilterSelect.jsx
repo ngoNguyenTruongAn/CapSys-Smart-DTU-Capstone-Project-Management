@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './FilterSelect.module.css';
 
 /**
@@ -27,11 +28,23 @@ export default function FilterSelect({
   ariaLabel,
 }) {
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState(null);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
+  const portalHostRef = useRef(null);
 
   const currentLabel =
     options.find((o) => o.value === value)?.label ?? placeholder;
+
+  // Prepare portal host once
+  useEffect(() => {
+    const host = document.createElement('div');
+    portalHostRef.current = host;
+    document.body.appendChild(host);
+    return () => {
+      document.body.removeChild(host);
+    };
+  }, []);
 
   const choose = (optionValue) => {
     if (disabled) return;
@@ -54,6 +67,47 @@ export default function FilterSelect({
     };
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
+  }, [open]);
+
+  // Compute floating position so menu overlays without pushing layout
+  const updateMenuPosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const gap = 6;
+    const preferredMenuHeight = 160;
+    const maxWidth = Math.min(320, window.innerWidth - 16);
+    const width = Math.min(rect.width, maxWidth);
+
+    const belowSpace = window.innerHeight - rect.bottom - gap;
+    const aboveSpace = rect.top - gap;
+    let top = rect.bottom + gap;
+
+    // If not enough space below and there is more space above, drop upwards
+    if (belowSpace < 140 && aboveSpace > belowSpace) {
+      top = Math.max(8, rect.top - gap - preferredMenuHeight);
+    }
+
+    const maxHeight = Math.max(120, Math.min(preferredMenuHeight, window.innerHeight - top - 8));
+
+    const left = Math.min(
+      Math.max(8, rect.left),
+      window.innerWidth - width - 8
+    );
+
+    setMenuPos({ top, left, width, maxHeight });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    updateMenuPosition();
+    const onResize = () => updateMenuPosition();
+    const onScroll = () => updateMenuPosition();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, true); // capture scroll on ancestors
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onScroll, true);
+    };
   }, [open]);
 
   // Keyboard accessibility
@@ -127,48 +181,60 @@ export default function FilterSelect({
         </svg>
       </button>
 
-      {open && !disabled && (
-        <div
-          className={styles.filterSelect__menu}
-          role="listbox"
-          aria-activedescendant={value != null ? String(value) : undefined}
-          ref={menuRef}
-          onKeyDown={onMenuKeyDown}
-        >
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              id={`${id || 'filter'}-opt-${opt.value}`}
-              role="option"
-              aria-selected={value === opt.value}
-              className={`${styles.filterSelect__option} ${
-                value === opt.value ? styles['is-selected'] : ''
-              }`}
-              onClick={() => choose(opt.value)}
-              type="button"
+      {open && !disabled && portalHostRef.current && menuPos
+        ? createPortal(
+            <div
+              className={styles.filterSelect__menu}
+              role="listbox"
+              aria-activedescendant={value != null ? String(value) : undefined}
+              ref={menuRef}
+              onKeyDown={onMenuKeyDown}
+              style={{
+                position: 'fixed',
+                top: menuPos.top,
+                left: menuPos.left,
+                minWidth: menuPos.width,
+                width: menuPos.width,
+                maxWidth: 'min(320px, 90vw)',
+                maxHeight: menuPos.maxHeight,
+              }}
             >
-              <span className={styles.filterSelect__optionLabel}>{opt.label}</span>
-              <span className={styles.filterSelect__check} aria-hidden="true">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+              {options.map((opt) => (
+                <button
+                  key={opt.value}
+                  id={`${id || 'filter'}-opt-${opt.value}`}
+                  role="option"
+                  aria-selected={value === opt.value}
+                  className={`${styles.filterSelect__option} ${
+                    value === opt.value ? styles['is-selected'] : ''
+                  }`}
+                  onClick={() => choose(opt.value)}
+                  type="button"
                 >
-                  <path
-                    d="M20 6L9 17l-5-5"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+                  <span className={styles.filterSelect__optionLabel}>{opt.label}</span>
+                  <span className={styles.filterSelect__check} aria-hidden="true">
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M20 6L9 17l-5-5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </span>
+                </button>
+              ))}
+            </div>,
+            portalHostRef.current
+          )
+        : null}
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import TeamDetailModal from "./Action/TeamDetailModal";
 import MoveStudentModal from "./Action/MoveStudentModal";
 import SwapStudentModal from "./Action/SwapStudentModal";
+import FilterSelect from "../../../components/ui/FilterSelect";
 import Toasts from "../../../components/ui/Toasts";
 
 const QuanLyDoAn = () => {
@@ -228,13 +229,16 @@ const QuanLyDoAn = () => {
     <div className="quanlydoan-page">
       <header className="qlda-toolbar">
         <div className="toolbar-controls">
-          <select
+          <FilterSelect
+            options={[
+              { value: 1, label: "Capstone 1" },
+              { value: 2, label: "Capstone 2" },
+            ]}
             value={capstoneType}
-            onChange={(e) => setCapstoneType(Number(e.target.value))}
-          >
-            <option value="1">Capstone 1</option>
-            <option value="2">Capstone 2</option>
-          </select>
+            onChange={(val) => setCapstoneType(val)}
+            minWidth={140}
+            id="qlda-capstone"
+          />
           {/* <select value={year} onChange={(e) => setYear(e.target.value)}>
           <option value="">Tất cả năm</option>
           <option value="2024-2025">2024-2025</option>
@@ -246,13 +250,17 @@ const QuanLyDoAn = () => {
           <option value="2">HK2</option>
           <option value="3">Summer</option>
         </select> */}
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Tất cả trạng thái</option>
-            <option value="Active">Đang thực hiện</option>
-            {/* <option value="Pending">Chờ duyệt</option> */}
-            <option value="Completed">Hoàn thành</option>
-            {/* <option value="Defending">Sắp bảo vệ</option> */}
-          </select>
+          <FilterSelect
+            options={[
+              { value: "", label: "Tất cả trạng thái" },
+              { value: "Active", label: "Đang thực hiện" },
+              { value: "Completed", label: "Hoàn thành" },
+            ]}
+            value={status}
+            onChange={(val) => setStatus(val)}
+            minWidth={170}
+            id="qlda-status"
+          />
           <input
             type="text"
             placeholder="Tìm đề tài / nhóm…"
@@ -344,16 +352,16 @@ const QuanLyDoAn = () => {
               {">>"}
             </button>
 
-            <select
+            <FilterSelect
+              options={[5, 10, 20, 30, 50].map((size) => ({
+                value: size,
+                label: `Hiển thị ${size}`,
+              }))}
               value={pageSize}
-              onChange={(e) => table.setPageSize(Number(e.target.value))}
-            >
-              {[5, 10, 20, 30, 50].map((size) => (
-                <option key={size} value={size}>
-                  Hiển thị {size}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => table.setPageSize(val)}
+              minWidth={140}
+              id="qlda-page-size"
+            />
           </div>
         </div>
       )}
