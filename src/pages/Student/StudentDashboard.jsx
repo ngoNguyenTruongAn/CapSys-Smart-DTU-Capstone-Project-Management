@@ -61,8 +61,8 @@ export default function StudentDashboard() {
     { id: 1, label: "Tạo Nhóm" },
     { id: 2, label: "Đăng Ký Đề Tài" },
     { id: 3, label: "Chờ Duyệt" },
-    { id: 4, label: "Triển Khai" },
-    { id: 5, label: "Bảo Vệ" },
+    { id: 4, label: "Bảo Vệ" },
+    
   ];
 
   // 3. Fake Notifications (Vì Backend chưa có API này)

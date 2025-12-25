@@ -6,6 +6,7 @@ import {
   registerStudent,
   selectAuthLoading,
 } from "../../../../store/authSlice";
+import Toasts from "../../../../components/ui/Toasts";
 const RegisterStudent = ({ show, setShow }) => {
   const dispatch = useDispatch();
   const loading = useSelector(selectAuthLoading);
@@ -23,6 +24,10 @@ const RegisterStudent = ({ show, setShow }) => {
   };
 
   const [formData, setFormData] = useState(initialForm);
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
+
+  const pushError = (msg) => setToastErrors((prev) => [...prev, msg].slice(-3)); // giữ tối đa 3 lỗi gần nhất
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -39,15 +44,22 @@ const RegisterStudent = ({ show, setShow }) => {
     }
 
     // Validate email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      alert("Email không hợp lệ! Vui lòng nhập đúng định dạng email.");
+    const emailRegex = /^[a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      pushError("Email không đúng định dạng (VD: example@gmail.com)");
+      return false;
+    }
+
+    // MSSV chỉ gồm chữ số
+    const codeRegex = /^\d+$/;
+    if (!codeRegex.test(studentCode.trim())) {
+      pushError("Mã sinh viên chỉ được chứa chữ số!");
       return false;
     }
 
     // Validate mật khẩu - phải đủ 4 ký tự
     if (password.length < 6) {
-      alert("Mật khẩu phải có ít nhất 6 ký tự!");
+      pushError("Mật khẩu phải có ít nhất 6 ký tự!");
       return false;
     }
 
@@ -55,8 +67,8 @@ const RegisterStudent = ({ show, setShow }) => {
     if (phone) {
       const phoneRegex = /^0\d{9,10}$/;
       if (!phoneRegex.test(phone)) {
-        alert(
-          "Số điện thoại không hợp lệ! Phải có 10-11 chữ số và bắt đầu bằng 0 (Ví dụ: 0912345678)"
+        pushError(
+          "Số điện thoại không hợp lệ! Phải 10-11 số và bắt đầu bằng 0 (VD: 0912345678)"
         );
         return false;
       }
@@ -66,11 +78,11 @@ const RegisterStudent = ({ show, setShow }) => {
     if (gpa !== "" && gpa !== null && gpa !== undefined) {
       const gpaValue = parseFloat(gpa);
       if (isNaN(gpaValue) || gpaValue < 0) {
-        alert("GPA phải là số dương!");
+        pushError("GPA phải là số dương!");
         return false;
       }
       if (gpaValue > 4) {
-        alert("GPA phải nhỏ hơn hoặc bằng 4!");
+        pushError("GPA phải nhỏ hơn hoặc bằng 4!");
         return false;
       }
     }
@@ -91,15 +103,15 @@ const RegisterStudent = ({ show, setShow }) => {
       // unwrap sẽ throw error nếu action bị reject
 
       if (res?.success) {
-        alert("Đăng ký thành công");
+        setToastSuccess("Đăng ký thành công");
         setFormData(initialForm);
         setShow(false); // chỉ đóng khi thành công
       } else {
         console.error("Đăng ký thất bại:", res?.message);
-        alert("Đăng ký thất bại" + res?.message);
+        pushError("Đăng ký thất bại: " + (res?.message || "Không xác định"));
       }
     } catch (err) {
-      alert("Lỗi khi đăng ký: " + err);
+      pushError("Lỗi khi đăng ký: " + (err?.message || err));
       console.log(formData);
     }
   };
@@ -110,139 +122,154 @@ const RegisterStudent = ({ show, setShow }) => {
   };
 
   return (
-    <Modal
-      show={show}
-      onHide={handleClose}
-      size="lg"
-      centered
-      dialogClassName="qltk-register-modal"
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>Đăng ký sinh viên</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form onSubmit={handleSubmit}>
-          <div className="register-form-grid">
-            <Form.Group className="mb-3">
-              <Form.Label>Email</Form.Label>
-              <Form.Control
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                autoComplete="off"
-                required
-              />
-            </Form.Group>
+    <>
+      <Modal
+        show={show}
+        onHide={handleClose}
+        size="lg"
+        centered
+        dialogClassName="qltk-register-modal"
+        backdrop="static"
+        keyboard={false}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Đăng ký sinh viên</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleSubmit}>
+            <div className="register-form-grid">
+              <Form.Group className="mb-3">
+                <Form.Label>Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  autoComplete="off"
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Mật khẩu</Form.Label>
-              <Form.Control
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                autoComplete="new-password"
-                minLength={4}
-                required
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Mật khẩu</Form.Label>
+                <Form.Control
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                  minLength={4}
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Mã sinh viên</Form.Label>
-              <Form.Control
-                type="text"
-                name="studentCode"
-                value={formData.studentCode}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Mã sinh viên</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="studentCode"
+                  value={formData.studentCode}
+                  onChange={handleChange}
+                  inputMode="numeric"
+                  pattern="\d+"
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Họ tên</Form.Label>
-              <Form.Control
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Họ tên</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Khoa</Form.Label>
-              <Form.Control
-                type="text"
-                name="faculty"
-                value={formData.faculty}
-                onChange={handleChange}
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Khoa</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="faculty"
+                  value={formData.faculty}
+                  onChange={handleChange}
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Chuyên ngành</Form.Label>
-              <Form.Control
-                type="text"
-                name="major"
-                value={formData.major}
-                onChange={handleChange}
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Chuyên ngành</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="major"
+                  value={formData.major}
+                  onChange={handleChange}
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Điện thoại</Form.Label>
-              <Form.Control
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                pattern="[0-9]{10,11}"
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Điện thoại</Form.Label>
+                <Form.Control
+                  type="tel"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  pattern="[0-9]{10,11}"
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Capstone Type</Form.Label>
-              <Form.Select
-                name="capstoneType"
-                value={formData.capstoneType}
-                onChange={handleChange}
-              >
-                <option value="">-- Chọn Capstone --</option>
-                <option value="1">Capstone 1</option>
-                <option value="2">Capstone 2</option>
-              </Form.Select>
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Capstone Type</Form.Label>
+                <Form.Select
+                  name="capstoneType"
+                  value={formData.capstoneType}
+                  onChange={handleChange}
+                >
+                  <option value="">-- Chọn Capstone --</option>
+                  <option value="1">Capstone 1</option>
+                  <option value="2">Capstone 2</option>
+                </Form.Select>
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>GPA</Form.Label>
-              <Form.Control
-                type="number"
-                name="gpa"
-                value={formData.gpa}
-                onChange={handleChange}
-                step="0.01"
-                min="0"
-                max="3.99"
-              />
-            </Form.Group>
-          </div>
-        </Form>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={handleClose}>
-          Hủy
-        </Button>
-        <Button
-          variant="primary"
-          onClick={handleSubmit}
-          disabled={loading}
-          type="submit"
-        >
-          {loading ? "Đang đăng ký..." : "Đăng ký"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+              <Form.Group className="mb-3">
+                <Form.Label>GPA</Form.Label>
+                <Form.Control
+                  type="number"
+                  name="gpa"
+                  value={formData.gpa}
+                  onChange={handleChange}
+                  step="0.01"
+                  min="0"
+                  max="3.99"
+                />
+              </Form.Group>
+            </div>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Hủy
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSubmit}
+            disabled={loading}
+            type="submit"
+          >
+            {loading ? "Đang đăng ký..." : "Đăng ký"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
+      />
+    </>
   );
 };
 

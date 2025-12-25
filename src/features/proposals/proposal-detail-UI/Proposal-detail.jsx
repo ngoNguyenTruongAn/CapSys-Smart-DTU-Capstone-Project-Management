@@ -77,12 +77,11 @@ const formatDate = (value) => {
 function Proposaldetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  
   const {
     proposals,
     fetchProposals,
     fetchProposalById,
-    // setSearchTerm, // Note: Ta dùng local state cho search ở trang này thay vì store
     approveProposal,
     rejectProposal,
     deleteProposal,
@@ -103,7 +102,10 @@ function Proposaldetail() {
   const [aiSummary, setAiSummary] = useState(null);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [summaryError, setSummaryError] = useState(null);
+  
+  // Refs để xử lý race condition (QUAN TRỌNG: Đã sửa)
   const summarizeCalledRef = React.useRef(null);
+  const activeRequestRef = React.useRef(null);
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState({
@@ -114,7 +116,7 @@ function Proposaldetail() {
     researchAreas: false,
   });
 
-  // --- USE EFFECTS ---
+  // --- USE EFFECTS CHUNG ---
   useEffect(() => {
     setSelectedId(id ? Number(id) : null);
   }, [id]);
@@ -136,7 +138,6 @@ function Proposaldetail() {
   // --- TÍNH TOÁN DỮ LIỆU ---
 
   // 3. TẠO DANH SÁCH ĐÃ LỌC (FILTERED LIST)
-  // Dùng useMemo để tối ưu hiệu năng, chỉ lọc lại khi proposals hoặc searchTerm thay đổi
   const filteredProposals = useMemo(() => {
     return searchProposals(proposals, searchTerm);
   }, [proposals, searchTerm]);
@@ -156,50 +157,73 @@ function Proposaldetail() {
     selectedProposal?.proposalId ??
     selectedProposal?.ProposalID;
 
-  // --- LOGIC AI ---
+  // ==========================================
+  // --- LOGIC AI (ĐÃ SỬA LỖI) ---
+  // ==========================================
+  
   const handleSummarize = async (forceRefresh = false) => {
-    if (isSummarizing || !pid) return;
+    if (!pid) return;
 
+    // 1. Đánh dấu ID này đang được xử lý để tránh conflict với request cũ
+    activeRequestRef.current = pid;
+    
     setIsSummarizing(true);
     setSummaryError(null);
+    
+    // Nếu là force refresh (bấm nút thử lại), clear data cũ
+    if (forceRefresh) {
+      setAiSummary(null);
+    }
 
     try {
       const result = await summarizeProposal(pid, forceRefresh);
-      if (result.success && result.data) {
-        setAiSummary(result.data);
-      } else {
-        setSummaryError(result.message || "Không thể tóm tắt đề tài");
+      
+      // 2. Chỉ cập nhật state nếu user vẫn đang ở đúng trang ID đó
+      // (Ngăn chặn việc hiển thị kết quả của trang cũ lên trang mới)
+      if (activeRequestRef.current === pid) {
+        if (result.success && result.data) {
+          setAiSummary(result.data);
+        } else {
+          setSummaryError(result.message || "Không thể tóm tắt đề tài");
+        }
       }
     } catch (error) {
-      console.error("AI Summary Error:", error);
-      setSummaryError(error.message || "Có lỗi xảy ra khi tóm tắt");
+      if (activeRequestRef.current === pid) {
+        console.error("AI Summary Error:", error);
+        setSummaryError(error.message || "Có lỗi xảy ra khi tóm tắt");
+      }
     } finally {
-      setIsSummarizing(false);
+      // 3. Chỉ tắt loading nếu vẫn đang ở đúng trang đó
+      if (activeRequestRef.current === pid) {
+        setIsSummarizing(false);
+      }
     }
   };
 
   useEffect(() => {
-    if (summarizeCalledRef.current !== null && summarizeCalledRef.current !== pid) {
-      summarizeCalledRef.current = null;
+    // Reset ref gọi API để đảm bảo logic chạy lại khi ID đổi
+    if (!pid) return;
+
+    // Logic quan trọng:
+    // Nếu ID thay đổi so với lần gọi trước, reset và gọi mới NGAY LẬP TỨC
+    if (summarizeCalledRef.current !== pid) {
+      // Reset state hiển thị
       setAiSummary(null);
       setSummaryError(null);
-    }
-
-    if (summarizeCalledRef.current === pid || isSummarizing || !pid) {
-      return;
-    }
-
-    if (pid && selectedProposal) {
+      
+      // Cập nhật ref để đánh dấu đã xử lý ID này
       summarizeCalledRef.current = pid;
-      handleSummarize();
+      
+      // Gọi hàm phân tích
+      handleSummarize(false);
     }
-  }, [pid, selectedProposal?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pid]); 
+  // ^ Dependency chỉ là [pid]. Bỏ isSummarizing ra khỏi đây để tránh loop hoặc chặn request.
 
   // --- HANDLERS ---
   const handleSetSelectedProposalId = (newId) => {
     setSelectedId(newId);
-    // Sử dụng replace để thay thế history entry hiện tại
-    // Giúp user chỉ cần back 1 lần để về /proposals
     navigate(`/proposal-detail/${newId}`, { replace: true });
   };
 
@@ -397,11 +421,7 @@ function Proposaldetail() {
                     const code = typeof m === "string" ? "" : m.studentCode || m.mssv || "";
                     return (
                       <li key={index} className={styles["overview-card-member-info-item"]}>
-                        <img
-                          src={`https://hinhnenpowerpoint.app/wp-content/uploads/2024/11/avatar-vo-tri-nam-hai-huoc-${(index % 5) + 1}.png`}
-                          alt="avatar-member"
-                          className={styles["overview-card-member-info-avatar"]}
-                        />
+                        
                         <div className={styles["overview-card-member-info-item-text"]}>
                           <p className={styles["overview-card-member-info-name"]}>{name}</p>
                           <p className={styles["overview-card-member-student-id"]}>

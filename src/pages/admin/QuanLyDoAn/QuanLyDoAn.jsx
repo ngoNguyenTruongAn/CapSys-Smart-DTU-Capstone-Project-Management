@@ -15,6 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import TeamDetailModal from "./Action/TeamDetailModal";
 import MoveStudentModal from "./Action/MoveStudentModal";
 import SwapStudentModal from "./Action/SwapStudentModal";
+import Toasts from "../../../components/ui/Toasts";
 
 const QuanLyDoAn = () => {
   const navigate = useNavigate();
@@ -34,6 +35,8 @@ const QuanLyDoAn = () => {
   const [selectedTeamStudents, setSelectedTeamStudents] = useState([]);
   const [swapModal, setSwapModal] = useState(false);
   const [selectedTeamLeaderId, setSelectedTeamLeaderId] = useState(null);
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
   // ---- Fetch dữ liệu từ API (dùng Redux) ----
   const fetchProjects = useCallback(async () => {
     try {
@@ -103,10 +106,13 @@ const QuanLyDoAn = () => {
       try {
         await dispatch(deleteTeamAction(teamId)).unwrap();
         await fetchProjects();
-        alert("Xóa nhóm thành công!");
+        setToastSuccess("Xóa nhóm thành công!");
       } catch (error) {
         console.error("Delete team error:", error);
-        alert("Xóa nhóm thất bại: " + error.message);
+        setToastErrors((prev) => [
+          ...prev,
+          "Xóa nhóm thất bại: " + (error?.message || "Không xác định"),
+        ]);
       }
     },
     [dispatch, fetchProjects]
@@ -375,6 +381,15 @@ const QuanLyDoAn = () => {
         students={selectedTeamStudents}
         teams={projects}
         teamLeaderId={selectedTeamLeaderId}
+      />
+
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
       />
     </div>
   );

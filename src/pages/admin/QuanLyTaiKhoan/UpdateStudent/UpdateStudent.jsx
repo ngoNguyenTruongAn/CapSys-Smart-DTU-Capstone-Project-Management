@@ -5,6 +5,7 @@ import { updateStudent } from "../../../../store/studentSlice";
 import { getStudentByIdAPI } from "../../../../services/StudentsAPI";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./UpdateStudent.scss";
+import Toasts from "../../../../components/ui/Toasts";
 
 const UpdateStudent = ({ show, setShow, studentId }) => {
   const dispatch = useDispatch();
@@ -18,6 +19,11 @@ const UpdateStudent = ({ show, setShow, studentId }) => {
     gpa: "",
     capstoneType: "",
   });
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
+
+  const pushError = (msg) =>
+    setToastErrors((prev) => [...prev, msg].slice(-3)); // giữ tối đa 3 lỗi gần nhất
 
   // Load student khi mở modal
   useEffect(() => {
@@ -68,27 +74,27 @@ const UpdateStudent = ({ show, setShow, studentId }) => {
       gpa === "" ||
       !capstoneType
     ) {
-      alert("Vui lòng nhập đầy đủ thông tin!");
+      pushError("Vui lòng nhập đầy đủ thông tin!");
       return false;
     }
 
     // MSSV không chứa khoảng trắng
     if (/\s/.test(studentCode)) {
-      alert("MSSV không được chứa khoảng trắng!");
+      pushError("MSSV không được chứa khoảng trắng!");
       return false;
     }
 
     // Số điện thoại: 10 chữ số, bắt đầu bằng 0
     const phoneRegex = /^0\d{9}$/;
     if (!phoneRegex.test(phone)) {
-      alert("Số điện thoại không hợp lệ! (Ví dụ: 0912345678)");
+      pushError("Số điện thoại không hợp lệ! (VD: 0912345678)");
       return false;
     }
 
     // GPA trong khoảng 0 - 4
     const gpaValue = parseFloat(gpa);
     if (isNaN(gpaValue) || gpaValue < 0 || gpaValue > 4) {
-      alert("GPA phải nằm trong khoảng từ 0 đến 4!");
+      pushError("GPA phải nằm trong khoảng từ 0 đến 4!");
       return false;
     }
 
@@ -106,13 +112,13 @@ const UpdateStudent = ({ show, setShow, studentId }) => {
       ).unwrap();
 
       if (res.success) {
-        alert("Cập nhật thành công");
+        setToastSuccess("Cập nhật thành công");
         setShow(false);
       } else {
-        alert("Cập nhật thất bại: " + res.message);
+        pushError("Cập nhật thất bại: " + (res.message || "Không xác định"));
       }
     } catch (err) {
-      alert("Lỗi khi cập nhật: " + err);
+      pushError("Lỗi khi cập nhật: " + (err?.message || err));
     }
   };
 
@@ -131,114 +137,125 @@ const UpdateStudent = ({ show, setShow, studentId }) => {
   };
 
   return (
-    <Modal
-      show={show}
-      onHide={handleClose}
-      size="lg"
-      centered
-      dialogClassName="qltk-update-modal"
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>Cập nhật sinh viên</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form onSubmit={handleSubmit} onKeyDown={preventEnterSubmit}>
-          <div className="update-form-grid">
-            <Form.Group className="mb-3">
-              <Form.Label>MSSV</Form.Label>
-              <Form.Control
-                type="text"
-                name="studentCode"
-                value={formData.studentCode}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
+    <>
+      <Modal
+        show={show}
+        onHide={handleClose}
+        size="lg"
+        centered
+        dialogClassName="qltk-update-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Cập nhật sinh viên</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleSubmit} onKeyDown={preventEnterSubmit}>
+            <div className="update-form-grid">
+              <Form.Group className="mb-3">
+                <Form.Label>MSSV</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="studentCode"
+                  value={formData.studentCode}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Họ và tên</Form.Label>
-              <Form.Control
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Họ và tên</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Khoa</Form.Label>
-              <Form.Control
-                type="text"
-                name="faculty"
-                value={formData.faculty}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Khoa</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="faculty"
+                  value={formData.faculty}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Chuyên ngành</Form.Label>
-              <Form.Control
-                type="text"
-                name="major"
-                value={formData.major}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Chuyên ngành</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="major"
+                  value={formData.major}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>GPA</Form.Label>
-              <Form.Control
-                type="number"
-                step="0.01"
-                min="0"
-                max="4"
-                name="gpa"
-                value={formData.gpa}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>GPA</Form.Label>
+                <Form.Control
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="4"
+                  name="gpa"
+                  value={formData.gpa}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Điện thoại</Form.Label>
-              <Form.Control
-                type="text"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-              />
-            </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Điện thoại</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Loại Capstone</Form.Label>
-              <Form.Select
-                name="capstoneType"
-                value={formData.capstoneType}
-                onChange={handleChange}
-                required
-              >
-                <option value="">-- Chọn Loại Capstone --</option>
-                <option value="1">Capstone 1</option>
-                <option value="2">Capstone 2</option>
-              </Form.Select>
-            </Form.Group>
-          </div>
+              <Form.Group className="mb-3">
+                <Form.Label>Loại Capstone</Form.Label>
+                <Form.Select
+                  name="capstoneType"
+                  value={formData.capstoneType}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">-- Chọn Loại Capstone --</option>
+                  <option value="1">Capstone 1</option>
+                  <option value="2">Capstone 2</option>
+                </Form.Select>
+              </Form.Group>
+            </div>
 
-          <Modal.Footer>
-            <Button variant="secondary" onClick={handleClose}>
-              Đóng
-            </Button>
-            <Button variant="primary" type="submit">
-              Cập nhật
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal.Body>
-    </Modal>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={handleClose}>
+                Đóng
+              </Button>
+              <Button variant="primary" type="submit">
+                Cập nhật
+              </Button>
+            </Modal.Footer>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
+      />
+    </>
   );
 };
 

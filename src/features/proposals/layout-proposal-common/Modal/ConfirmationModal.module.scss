@@ -94,3 +94,14 @@
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+.success {
+  color: #28a745;
+}
+.btnSuccess {
+  background-color: #28a745;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+
+  &:hover {
+    background-color: #218838; // xanh đậm hơn
+  }
+}
