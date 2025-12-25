@@ -174,10 +174,12 @@
 .groupCard__actionBtnDisabled {
   background: #9ca3af !important;
   cursor: not-allowed !important;
+  color: var(--text-white) !important;
   opacity: 0.7;
 }
 
 .groupCard__actionBtnDisabled:hover {
   background: #9ca3af !important;
+  color: var(--text-white);
   transform: none !important;
 }

@@ -81,7 +81,21 @@ const getMentorDisplayName = (mentorValue) => {
 
 const GroupCard = ({ group, team, project, members, score, mentor, status, onStartGrading, onViewScore, onExportExcel, isAdmin }) => {
   const mentorDisplayName = getMentorDisplayName(mentor);
-  const isCompleted = status === 'graded';
+  
+  // Get grading status from group data (simplified - no role checking)
+  const gradingStatus = group?.gradingStatusByRole || null;
+  const isFullyGraded = gradingStatus?.isFullyGraded || false;
+  const hasCurrentLecturerGraded = gradingStatus?.hasCurrentLecturerGraded || false;
+  
+  // Debug logging to check button rendering logic
+  console.log(`[GroupCard] Team: ${team}`, {
+    isAdmin,
+    isFullyGraded,
+    hasCurrentLecturerGraded,
+    gradedLecturerIds: gradingStatus?.gradedLecturerIds,
+    status,
+    willShowStartGrading: !isFullyGraded && !isAdmin && !hasCurrentLecturerGraded
+  });
   
   const getStatusConfig = (status) => {
     switch (status) {
@@ -159,16 +173,51 @@ const GroupCard = ({ group, team, project, members, score, mentor, status, onSta
         </div>
       </div>
       
-      {isCompleted ? (
+      {/* 
+        Button logic (simplified - no role checking):
+        - If fully graded (all 3 committee members): Show "Xuất Excel" button (enabled for Admin only)
+        - If no session yet: Show "Bắt đầu chấm điểm" for Admin to create session
+        - For Admin when not fully graded but has session: Show "Xuất Excel" disabled
+        - For Lecturer who hasn't graded: Show "Bắt đầu chấm điểm" button
+        - For Lecturer who already graded: Show "Đã chấm điểm" disabled
+      */}
+      {isFullyGraded ? (
         <button 
           className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnExcel} ${!isAdmin ? styles.groupCard__actionBtnDisabled : ''}`}
           onClick={() => isAdmin && onExportExcel && onExportExcel(group)}
           disabled={!isAdmin}
-          title={!isAdmin ? 'Chỉ Admin mới có quyền xuất Excel' : 'Xuất file Excel'}
+          title={!isAdmin ? 'Chỉ Admin mới có quyền xuất Excel' : 'Xuất file Excel - Đã đủ điểm từ hội đồng'}
         >
           Xuất Excel
         </button>
+      ) : isAdmin && !group?.sessionId ? (
+        // Admin with team that has no grading session yet - show button to create session
+        <button 
+          className={styles.groupCard__actionBtn}
+          onClick={() => onStartGrading(group)}
+        >
+          Bắt đầu chấm điểm
+        </button>
+      ) : isAdmin ? (
+        // Admin with team that has a session but not fully graded - show disabled Excel button
+        <button 
+          className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnExcel} ${styles.groupCard__actionBtnDisabled}`}
+          disabled={true}
+          title="Chưa đủ điểm từ tất cả thành viên hội đồng"
+        >
+          Xuất Excel
+        </button>
+      ) : hasCurrentLecturerGraded ? (
+        // Lecturer who already graded - show disabled button
+        <button 
+          className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnDisabled}`}
+          disabled={true}
+          title="Bạn đã chấm điểm cho nhóm này"
+        >
+          Đã chấm điểm
+        </button>
       ) : (
+        // Lecturer who hasn't graded yet - show start grading button
         <button 
           className={styles.groupCard__actionBtn}
           onClick={() => onStartGrading(group)}

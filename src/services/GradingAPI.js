@@ -272,6 +272,113 @@ const GradingAPI = {
    * @returns {Promise<Object>} Team details
    */
   getTeam: (teamId) => apiFetchWithCorrectBase(`/Teams/${teamId}`),
+
+  /**
+   * Get grading progress for a session using new backend API
+   * Returns detailed progress info: who has graded, who hasn't, student status
+   * @param {number|string} sessionId - The session ID
+   * @returns {Promise<Object>} GradingProgressDto from backend
+   */
+  getGradingProgress: async (sessionId) => {
+    try {
+      const progressData = await apiFetch(`/grading/sessions/${sessionId}/progress`);
+      console.log("[GradingAPI] Session", sessionId, "progress:", progressData);
+      return progressData;
+    } catch (error) {
+      console.error("Error getting grading progress:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get grading status for a session - uses new backend API
+   * Returns list of lecturer IDs who have completed grading
+   * @param {number|string} sessionId - The session ID
+   * @returns {Promise<Object>} Object with gradedLecturerIds, completedEvaluators, requiredEvaluators
+   */
+  getSessionGradingStatus: async (sessionId) => {
+    try {
+      // Use new backend API for accurate grading progress
+      const progressData = await apiFetch(`/grading/sessions/${sessionId}/progress`);
+      
+      if (!progressData) {
+        return {
+          gradedLecturerIds: [],
+          completedEvaluators: 0,
+          requiredEvaluators: 3,
+          isFullyGraded: false,
+          sessionStatus: "Active",
+        };
+      }
+      
+      // Extract completed evaluator IDs from evaluatorProgress
+      const evaluatorProgress = progressData.evaluatorProgress || [];
+      const gradedLecturerIds = evaluatorProgress
+        .filter(e => e.isCompleted)
+        .map(e => e.evaluatorId);
+      
+      const completedEvaluators = progressData.completedEvaluators || 0;
+      const requiredEvaluators = progressData.requiredEvaluators || 3;
+      const isFullyGraded = completedEvaluators >= requiredEvaluators;
+      
+      console.log("[GradingAPI] Session", sessionId, "grading status:", {
+        gradedLecturerIds,
+        completedEvaluators,
+        requiredEvaluators,
+        isFullyGraded,
+        sessionStatus: progressData.sessionStatus,
+      });
+
+      return {
+        gradedLecturerIds,
+        completedEvaluators,
+        requiredEvaluators,
+        isFullyGraded,
+        sessionStatus: progressData.sessionStatus,
+        evaluatorProgress,
+        studentStatuses: progressData.studentStatuses || [],
+      };
+    } catch (error) {
+      console.error("Error getting session grading status:", error);
+      return {
+        gradedLecturerIds: [],
+        completedEvaluators: 0,
+        requiredEvaluators: 3,
+        isFullyGraded: false,
+        sessionStatus: "Active",
+      };
+    }
+  },
+
+  /**
+   * Export grading session to Excel file
+   * @param {number|string} sessionId - The session ID
+   * @returns {Promise<Blob>} Excel file as Blob
+   */
+  exportSessionExcel: async (sessionId) => {
+    const token =
+      localStorage.getItem("token") ||
+      sessionStorage.getItem("token") ||
+      localStorage.getItem("accessToken") ||
+      "";
+
+    const response = await fetch(
+      `${API_BASE}/Grading/sessions/${sessionId}/export-excel`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || "Không thể xuất file Excel từ server.");
+    }
+
+    return await response.blob();
+  },
 };
 
 export default GradingAPI;

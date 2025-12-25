@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 import GradingAPI from "../../services/GradingAPI";
 import { getLecturerProfileAPI } from "../../services/ProfileAPI";
+import { getCommitteeByIdAPI } from "../../services/CommitteeAPI";
 import styles from "./GradingDetailPage.module.css";
 import Toasts from "../../components/ui/Toasts.jsx";
 import LoadingFullScreen from "../../components/ui/LoadingFullScreen";
@@ -153,6 +154,7 @@ const fetchCurrentLecturerId = async () => {
  */
 const findLecturerRoleInCommittee = (committeeMembers, lecturerId) => {
   if (!Array.isArray(committeeMembers) || !lecturerId) {
+    console.warn("[findLecturerRoleInCommittee] Missing committeeMembers or lecturerId");
     return "Secretary";
   }
 
@@ -164,19 +166,36 @@ const findLecturerRoleInCommittee = (committeeMembers, lecturerId) => {
       member?.EvaluatorId;
 
     if (memberId === lecturerId) {
-      const role = member?.role || member?.Role || "Member";
-      // Normalize role to API expected format
-      const normalizedRole = role.toLowerCase();
-      if (normalizedRole.includes("secretary") || normalizedRole.includes("thư ký")) {
-        return "Secretary";
-      }
-      if (normalizedRole.includes("chairman") || normalizedRole.includes("chủ tịch")) {
+      const role = member?.role || member?.Role || "Secretary";
+      // Normalize role: remove diacritics and convert to lowercase for comparison
+      // "Chủ tịch" → "chu tich", "Phản biện" → "phan bien", "Thư ký" → "thu ky"
+      const normalizedRole = role
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+      
+      console.log("[findLecturerRoleInCommittee] Found member:", {
+        memberId,
+        originalRole: role,
+        normalizedRole,
+      });
+      
+      if (normalizedRole.includes("chairman") || normalizedRole.includes("chu tich")) {
         return "Chairman";
       }
-      return "Member";
+      if (normalizedRole.includes("reviewer") || normalizedRole.includes("phan bien")) {
+        return "Reviewer";
+      }
+      if (normalizedRole.includes("secretary") || normalizedRole.includes("thu ky")) {
+        return "Secretary";
+      }
+      // Default fallback for unknown roles
+      console.warn("[findLecturerRoleInCommittee] Unknown role, defaulting to Reviewer:", role);
+      return "Reviewer";
     }
   }
-
+  
+  console.warn("[findLecturerRoleInCommittee] Lecturer not found in committee:", lecturerId);
   return "Secretary";
 };
 
@@ -581,12 +600,25 @@ const normalizeCriteriaList = (list) => {
     );
 };
 
-const aggregateDetailedGrades = (details) => {
+const aggregateDetailedGrades = (details, filterEvaluatorId = null) => {
   if (!Array.isArray(details)) {
     return [];
   }
+  
+  // Filter grades by evaluatorId if provided
+  const filteredDetails = filterEvaluatorId
+    ? details.filter((detail) => {
+        const evaluatorId = pickFirstValue(detail?.evaluatorId, detail?.EvaluatorId);
+        return evaluatorId === filterEvaluatorId;
+      })
+    : details;
+  
+  console.log("[aggregateDetailedGrades] Filtering by evaluatorId:", filterEvaluatorId, 
+    "Total grades:", details.length, 
+    "Filtered grades:", filteredDetails.length);
+  
   const grouped = new Map();
-  details.forEach((detail) => {
+  filteredDetails.forEach((detail) => {
     const studentId = pickFirstValue(detail?.studentId, detail?.StudentId);
     if (studentId === null || studentId === undefined) {
       return;
@@ -746,13 +778,24 @@ export default function GradingDetailPage({
       ? resolvedSessionId
       : null;
 
+  // Use refs to store stable references and prevent infinite loops
+  const groupRef = useRef(group);
+  const teamIdRef = useRef(teamId);
+  const formsInitializedRef = useRef(false);
+  
+  // Update refs when props change
+  useEffect(() => {
+    groupRef.current = group;
+    teamIdRef.current = teamId;
+  }, [group, teamId]);
+
   const [criteria, setCriteria] = useState([]);
   const [sessionDetail, setSessionDetail] = useState(null);
   const [grades, setGrades] = useState([]);
+  const [currentLecturerId, setCurrentLecturerId] = useState(null);
   const [forms, setForms] = useState({});
   const [teamScores, setTeamScores] = useState({});
   const [criterionComments, setCriterionComments] = useState({});
-  const [demoMode, setDemoMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [initialised, setInitialised] = useState(false);
   const [error, setError] = useState("");
@@ -850,11 +893,6 @@ export default function GradingDetailPage({
     []
   );
 
-  const forcedDemoMode =
-    group?.isDemo ||
-    (typeof import.meta !== "undefined" &&
-      import.meta.env?.VITE_USE_GRADING_DEMO === "true");
-
   const calculateFinalScore = useCallback(
     (criteriaGrades, contributionPercentage) => {
       const baseScore = criteriaGrades.reduce((total, item) => {
@@ -918,12 +956,14 @@ export default function GradingDetailPage({
       if (!rawSession || typeof rawSession !== "object") {
         return null;
       }
+      const currentGroup = groupRef.current;
+      const currentTeamId = teamIdRef.current;
       const fallbackTeamId = pickFirstValue(
         rawSession?.teamId,
         rawSession?.TeamId,
-        group?.teamId,
-        group?.team?.teamId,
-        teamId
+        currentGroup?.teamId,
+        currentGroup?.team?.teamId,
+        currentTeamId
       );
       let fallbackTeamData = null;
       if (fallbackTeamId) {
@@ -936,23 +976,16 @@ export default function GradingDetailPage({
       }
       return enhanceSessionDetail(rawSession, fallbackTeamData, {
         fallbackTeamId,
-        group,
+        group: currentGroup,
       });
     },
-    [group, teamId]
+    [] // Empty deps - uses refs for stable reference
   );
 
   useEffect(() => {
     if (!sessionId) {
       setError("Không tìm thấy phiên chấm điểm hợp lệ.");
       setLoading(false);
-      return;
-    }
-
-    if (forcedDemoMode) {
-      if (!demoMode) {
-        activateDemoMode();
-      }
       return;
     }
 
@@ -967,6 +1000,11 @@ export default function GradingDetailPage({
         if (!sessionId || sessionId === "undefined" || sessionId === "null") {
           throw new Error(`Session ID không hợp lệ: ${sessionId}`);
         }
+
+        // Fetch current lecturer ID first
+        const lecturerId = await fetchCurrentLecturerId();
+        console.log("[GradingDetailPage] Current lecturer ID:", lecturerId);
+        setCurrentLecturerId(lecturerId);
 
         const [criteriaData, sessionData, gradesData] = await Promise.all([
           GradingAPI.getCriteria(),
@@ -989,8 +1027,11 @@ export default function GradingDetailPage({
           Array.isArray(criteriaData) ? criteriaData : []
         );
         const enhancedSession = await prepareSessionDetail(sessionData ?? null);
+        
+        // Filter grades by current lecturer - each evaluator sees only their own grades
         const aggregatedGrades = aggregateDetailedGrades(
-          Array.isArray(gradesData) ? gradesData : []
+          Array.isArray(gradesData) ? gradesData : [],
+          lecturerId  // Pass current lecturer ID to filter
         );
         setCriteria(normalizedCriteria);
         setSessionDetail(enhancedSession);
@@ -1011,12 +1052,10 @@ export default function GradingDetailPage({
         
         if (err?.status === 400) {
           const serverMessage = err?.message || "";
-          // Nếu lỗi do thiếu cột trong DB (lỗi backend đang gặp), hiển thị rõ hoặc fallback demo
+          // Nếu lỗi do thiếu cột trong DB
           if (serverMessage.includes("Invalid column name")) {
              console.warn("Backend schema mismatch detected (Missing columns).");
              setError(`Lỗi Backend: Database thiếu cột dữ liệu (${serverMessage}). Vui lòng cập nhật Database.`);
-             // Nếu muốn tự động chuyển sang demo mode thì uncomment dòng dưới:
-             // activateDemoMode(); 
              return;
           }
 
@@ -1025,8 +1064,8 @@ export default function GradingDetailPage({
         }
 
         if (!err?.status) {
-          console.warn("Network error or unknown error, falling back to demo mode if applicable");
-          activateDemoMode();
+          console.warn("Network error or unknown error");
+          setError("Lỗi kết nối mạng. Vui lòng kiểm tra kết nối và thử lại.");
           return;
         }
         const message =
@@ -1046,21 +1085,27 @@ export default function GradingDetailPage({
       ignore = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    sessionId,
-    forcedDemoMode,
-    demoMode,
-    // prepareSessionDetail removed to prevent infinite loop
-    // activateDemoMode removed to prevent infinite loop
-  ]);
+  }, [sessionId]);
 
+  // Initialize forms only once when criteria and students are first available
   useEffect(() => {
-    if (!criteria.length || !students.length) {
-      setForms({});
-      setTeamScores({});
-      setCriterionComments({});
+    // Skip if already initialized or missing data
+    if (formsInitializedRef.current || !criteria.length || !students.length) {
+      if (!criteria.length || !students.length) {
+        // Reset if data becomes unavailable
+        if (formsInitializedRef.current) {
+          formsInitializedRef.current = false;
+          setForms({});
+          setTeamScores({});
+          setCriterionComments({});
+        }
+      }
       return;
     }
+    
+    // Mark as initialized to prevent re-running
+    formsInitializedRef.current = true;
+    
     const nextForms = {};
     students.forEach((student) => {
       nextForms[student.studentId] = buildFormFromGrade(
@@ -1088,9 +1133,7 @@ export default function GradingDetailPage({
     setCriterionComments(initialComments);
     setTeamScores(initialTeamScores);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [criteria, students]);
-  // Note: criteriaForScoring and gradeLookup removed from deps to prevent infinite loop
-  // They are derived from criteria/grades which are already in deps
+  }, [criteria, students, gradeLookup, criteriaForScoring]);
 
   const handleBackClick = () => {
     if (typeof onBack === "function") {
@@ -1542,15 +1585,17 @@ export default function GradingDetailPage({
   };
 
   const refreshData = async () => {
-    if (demoMode || !sessionId) {
+    if (!sessionId) {
       return;
     }
     const [updatedGrades, updatedSession] = await Promise.all([
       GradingAPI.getSessionGrades(sessionId),
       GradingAPI.getSessionDetail(sessionId),
     ]);
+    // Filter grades by current lecturer - each evaluator sees only their own grades
     const aggregatedGrades = aggregateDetailedGrades(
-      Array.isArray(updatedGrades) ? updatedGrades : []
+      Array.isArray(updatedGrades) ? updatedGrades : [],
+      currentLecturerId  // Pass current lecturer ID to filter
     );
     const enhancedSession = await prepareSessionDetail(updatedSession ?? null);
     setGrades(aggregatedGrades);
@@ -1580,101 +1625,6 @@ export default function GradingDetailPage({
       setSaving(true);
       setError("");
 
-      if (demoMode) {
-        const nowIso = new Date().toISOString();
-        setGrades((prev) => {
-          const nextGrades = [...prev];
-          studentPayloads.forEach((payload) => {
-            const normalizedGrades = payload.criteriaGrades.map((item) => {
-              const criterion = criteriaMap[item.criteriaId];
-              const weight = criterion?.weight ?? 0;
-              const score = Number(item.score ?? 0);
-              return {
-                ...item,
-                score,
-                criteriaName: criterion?.criteriaName ?? "",
-                weight,
-                weightedScore: Number((score * (weight / 100)).toFixed(2)),
-              };
-            });
-            const finalScore = calculateFinalScore(
-              normalizedGrades,
-              payload.contributionPercentage
-            );
-            const gradeData = {
-              studentId: payload.studentId,
-              studentCode: payload.student?.studentCode ?? "",
-              fullName: payload.student?.fullName ?? "",
-              finalScore,
-              isCompleted: true,
-              gradedDate: nowIso,
-              contributionPercentage: payload.contributionPercentage,
-              criteriaGrades: normalizedGrades,
-            };
-            const existingIndex = nextGrades.findIndex(
-              (item) => item.studentId === payload.studentId
-            );
-            if (existingIndex >= 0) {
-              nextGrades[existingIndex] = gradeData;
-            } else {
-              nextGrades.push(gradeData);
-            }
-          });
-          return nextGrades;
-        });
-
-        setSessionDetail((prev) => {
-          if (!prev) {
-            return prev;
-          }
-          const students = (prev.students ?? []).map((student) => {
-            const payload = studentPayloads.find(
-              (item) => item.studentId === student.studentId
-            );
-            if (!payload) {
-              return student;
-            }
-            const normalizedGrades = payload.criteriaGrades.map((item) => {
-              const criterion = criteriaMap[item.criteriaId];
-              const weight = criterion?.weight ?? 0;
-              const score = Number(item.score ?? 0);
-              return {
-                ...item,
-                score,
-                criteriaName: criterion?.criteriaName ?? "",
-                weight,
-                weightedScore: Number((score * (weight / 100)).toFixed(2)),
-              };
-            });
-            const finalScore = calculateFinalScore(
-              normalizedGrades,
-              payload.contributionPercentage
-            );
-            return {
-              ...student,
-              finalScore,
-              isGraded: true,
-              gradedDate: nowIso,
-            };
-          });
-          const gradedStudents = students.filter(
-            (student) => student.isGraded
-          ).length;
-          const isCompleted =
-            students.length > 0 && gradedStudents === students.length;
-          return {
-            ...prev,
-            students,
-            gradedStudents,
-            isCompleted,
-            status: isCompleted ? "Completed" : prev.status,
-          };
-        });
-
-        setSuccessMessage("Đã lưu điểm cho toàn bộ nhóm (demo).");
-        return;
-      }
-
       // Get current logged-in lecturer's ID and role
       const currentLecturerId = await fetchCurrentLecturerId();
       if (!currentLecturerId) {
@@ -1683,11 +1633,64 @@ export default function GradingDetailPage({
         );
       }
 
-      // Get committee members from session detail
-      const committeeMembers =
-        sessionDetail?.committeeMembers ||
-        sessionDetail?.CommitteeMembers ||
-        [];
+      // Get committee members - fetch from Committee API because sessionDetail lacks members
+      const committeeId = sessionDetail?.committeeId || sessionDetail?.CommitteeId;
+      let committeeMembers = [];
+
+      if (committeeId) {
+        try {
+          const committeeResponse = await getCommitteeByIdAPI(committeeId);
+          const committeeData = committeeResponse?.data || committeeResponse || {};
+          console.log("[GradingDetailPage] Committee data fetched:", committeeData);
+
+          // Normalize members to ensure we always work with lecturerId (not committeeMemberId)
+          const rawMembers =
+            committeeData?.committeeMembers ||
+            committeeData?.CommitteeMembers ||
+            committeeData?.members ||
+            committeeData?.Members ||
+            [];
+
+          committeeMembers = rawMembers
+            .map((m) => {
+              const lecturerId =
+                m?.lecturerId ||
+                m?.LecturerId ||
+                m?.lecturer?.lecturerId ||
+                m?.Lecturer?.LecturerId ||
+                null;
+              const role = m?.role || m?.Role || "";
+              return { lecturerId, role };
+            })
+            .filter((m) => m.lecturerId);
+
+          // Also include chairman if not present in members
+          const chairmanId =
+            committeeData?.chairmanId ||
+            committeeData?.ChairmanId ||
+            committeeData?.chairman?.lecturerId ||
+            committeeData?.Chairman?.LecturerId;
+
+          if (
+            chairmanId &&
+            !committeeMembers.some((m) => Number(m.lecturerId) === Number(chairmanId))
+          ) {
+            committeeMembers = [
+              { lecturerId: Number(chairmanId), role: "Chủ tịch" },
+              ...committeeMembers,
+            ];
+          }
+        } catch (err) {
+          console.error("[GradingDetailPage] Error fetching committee:", err);
+        }
+      }
+
+      // DEBUG: Log full sessionDetail to see structure
+      console.log("[GradingDetailPage] DEBUG:", {
+        committeeId,
+        committeeMembers,
+        memberCount: committeeMembers.length,
+      });
 
       // Find the role of current lecturer in the committee
       const currentLecturerRole = findLecturerRoleInCommittee(
@@ -1699,6 +1702,7 @@ export default function GradingDetailPage({
         currentLecturerId,
         currentLecturerRole,
         committeeMembersCount: committeeMembers.length,
+        committeeMembersData: committeeMembers,
       });
 
       for (const payload of studentPayloads) {
