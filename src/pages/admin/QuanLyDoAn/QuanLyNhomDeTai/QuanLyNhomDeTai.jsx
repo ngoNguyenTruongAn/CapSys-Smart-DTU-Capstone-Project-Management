@@ -10,7 +10,6 @@ import {
 } from "../../../../store/teamSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft, faUser, faUserGroup, faUserTie } from "@fortawesome/free-solid-svg-icons";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import Toasts from "../../../../components/ui/Toasts";
 
 const QuanLyNhomDeTai = () => {

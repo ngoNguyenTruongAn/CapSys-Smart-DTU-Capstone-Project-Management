@@ -321,6 +321,36 @@ const GradingPage = () => {
     return Number.isNaN(numeric) ? null : numeric;
   };
 
+  const getSessionDateValue = (session) =>
+    pickFirstValue(
+      session?.sessionDate,
+      session?.SessionDate,
+      session?.session_datetime,
+      session?.SessionDateTime,
+      session?.date
+    );
+
+  const isValidGradingSession = (session) => {
+    const dateValue = getSessionDateValue(session);
+    if (!dateValue) return false;
+    const parsed = new Date(dateValue);
+    return !Number.isNaN(parsed.getTime());
+  };
+
+  const getCommitteeIdFromSessions = (sessionsArr = []) => {
+    for (const item of sessionsArr) {
+      const candidate = pickFirstValue(
+        item?.committeeId,
+        item?.CommitteeId,
+        item?.committee?.committeeId
+      );
+      if (candidate !== undefined && candidate !== null && candidate !== "") {
+        return candidate;
+      }
+    }
+    return null;
+  };
+
   /**
    * Transform API data to group format
    * @param {Object} session - Grading session from API
@@ -618,8 +648,9 @@ const GradingPage = () => {
             return null;
           }
 
-          const teamSessions = sessionsIndex[teamId] || [];
-          const hasGradingSession = teamSessions.length > 0;
+          const teamSessionsRaw = sessionsIndex[teamId] || [];
+          const validTeamSessions = teamSessionsRaw.filter(isValidGradingSession);
+          const hasGradingSession = validTeamSessions.length > 0;
 
           // Chỉ check proposal status nếu team CHƯA có grading session
           // Nếu đã có session (đã/đang chấm) thì vẫn hiển thị bất kể proposal status
@@ -653,7 +684,7 @@ const GradingPage = () => {
             const isInTeamCommittee = teamCommitteeId && lecturerCommitteeIds.has(teamCommitteeId);
             
             // Check if any session has a committee that the lecturer is part of
-            const isInSessionCommittee = teamSessions.some((session) => {
+            const isInSessionCommittee = validTeamSessions.some((session) => {
               const sessionCommitteeId = pickFirstValue(
                 session?.committeeId,
                 session?.CommitteeId,
@@ -670,7 +701,7 @@ const GradingPage = () => {
               isMentor,
               teamCommitteeId,
               isInTeamCommittee,
-              sessionCount: teamSessions.length,
+              sessionCount: validTeamSessions.length,
               isInSessionCommittee,
               lecturerCommitteeIds: [...lecturerCommitteeIds],
             });
@@ -682,12 +713,30 @@ const GradingPage = () => {
             }
           }
 
-          if (teamSessions.length === 0) {
-            return transformToGroup(null, proposal, teamData, null, currentLecturerId);
+          const fallbackCommitteeId = pickFirstValue(
+            teamData?.committeeId,
+            teamData?.CommitteeId,
+            getCommitteeIdFromSessions(teamSessionsRaw)
+          );
+
+          const teamDataWithCommittee = {
+            ...teamData,
+            committeeId: fallbackCommitteeId ?? teamData?.committeeId,
+            CommitteeId: fallbackCommitteeId ?? teamData?.CommitteeId,
+          };
+
+          if (validTeamSessions.length === 0) {
+            return transformToGroup(
+              null,
+              proposal,
+              teamDataWithCommittee,
+              null,
+              currentLecturerId
+            );
           }
 
           // Fetch grading status for each session using new backend API
-          const sessionGroupsPromises = teamSessions.map(async (session) => {
+          const sessionGroupsPromises = validTeamSessions.map(async (session) => {
             const sessionIdentifier = pickFirstValue(
               session?.sessionId,
               session?.SessionId,
