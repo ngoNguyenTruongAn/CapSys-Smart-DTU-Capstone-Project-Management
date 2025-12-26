@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import "./QuanLyNhomDeTai.scss";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import {
   fetchAllTeams,
   fetchTeamsWithoutMentor,
@@ -16,14 +16,9 @@ const QuanLyNhomDeTai = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Redux state
-  const { studentsNotInTeam } = useSelector((state) => state.teams);
-
-  // Local state
   const [capstoneType, setCapstoneType] = useState(1);
 
   // State để lưu tổng số nhóm
-  const [totalTeamsCount, setTotalTeamsCount] = useState(0);
 
   // Toast state
   const [toastSuccess, setToastSuccess] = useState("");
@@ -60,16 +55,12 @@ const QuanLyNhomDeTai = () => {
     if (!localStorage.getItem("token")) return;
 
     try {
-      const [res1, res2] = await Promise.all([
-        dispatch(fetchAllTeams(1)).unwrap(),
-        dispatch(fetchAllTeams(2)).unwrap(),
+      await Promise.all([
         dispatch(fetchStudentsNotInTeam(capstoneType)),
+        dispatch(fetchAllTeams(capstoneType)),
         dispatch(fetchTeamsWithoutMentor(capstoneType)),
         dispatch(fetchMentorWorkload()),
       ]);
-
-      const total = (res1?.length || 0) + (res2?.length || 0);
-      setTotalTeamsCount(total);
     } catch (error) {
       console.error("Error fetching data:", error);
       pushError("Không thể tải dữ liệu: " + (error?.message || error));
@@ -110,19 +101,19 @@ const QuanLyNhomDeTai = () => {
           end
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          👥 Sinh viên ({studentsNotInTeam?.length || 0})
+          Sinh viên
         </NavLink>
         <NavLink
           to="nhom"
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          🏢 Nhóm ({totalTeamsCount})
+          Nhóm
         </NavLink>
         <NavLink
           to="mentor"
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          👨‍🏫 Giảng viên
+          Giảng viên
         </NavLink>
       </div>
 

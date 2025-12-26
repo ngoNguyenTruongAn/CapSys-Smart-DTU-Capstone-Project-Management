@@ -172,10 +172,8 @@ const StudentsContent = () => {
     }
 
     try {
-      const result = await autoArrangeTeamAPI(capstoneType);
-      setToastSuccess(
-        `Tự động xếp nhóm thành công! Đã tạo ${result.teamsCreated || 0} nhóm.`
-      );
+      await autoArrangeTeamAPI(capstoneType);
+      setToastSuccess(`Tự động xếp nhóm thành công!`);
       // Refresh data
       await Promise.all([
         dispatch(fetchAllTeams(capstoneType)),
