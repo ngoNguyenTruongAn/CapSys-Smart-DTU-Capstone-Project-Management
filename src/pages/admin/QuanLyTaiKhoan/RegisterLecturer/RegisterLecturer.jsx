@@ -16,9 +16,9 @@ const RegisterLecturer = ({ show, setShow }) => {
     email: "",
     password: "",
     fullName: "",
-    department: "",
+    department: "Khoa Đào tạo quốc tế", // mặc định là khoa đào tạo quốc tế
     phone: "",
-    specialization: "",
+    specialization: "", // gồm 3 chuyên môn: Software Engineering, Information Security, Management Information System
     maxStudentsSupervised: "",
     academicTitle: "",
   };
@@ -41,7 +41,6 @@ const RegisterLecturer = ({ show, setShow }) => {
       email,
       password,
       fullName,
-      department,
       phone,
       specialization,
       maxStudentsSupervised,
@@ -53,7 +52,6 @@ const RegisterLecturer = ({ show, setShow }) => {
       !email ||
       !password ||
       !fullName ||
-      !department ||
       !phone ||
       !specialization ||
       maxStudentsSupervised === "" ||
@@ -159,7 +157,6 @@ const RegisterLecturer = ({ show, setShow }) => {
                   required
                 />
               </Form.Group>
-
               <Form.Group className="mb-3">
                 <Form.Label>Mật khẩu</Form.Label>
                 <Form.Control
@@ -174,6 +171,17 @@ const RegisterLecturer = ({ show, setShow }) => {
               </Form.Group>
 
               <Form.Group className="mb-3">
+                <Form.Label>Số điện thoại</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
                 <Form.Label>Họ tên</Form.Label>
                 <Form.Control
                   type="text"
@@ -183,41 +191,26 @@ const RegisterLecturer = ({ show, setShow }) => {
                   required
                 />
               </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Khoa</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  required
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Điện thoại</Form.Label>
-                <Form.Control
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  pattern="[0-9]{10,11}"
-                  required
-                />
-              </Form.Group>
-
               <Form.Group className="mb-3">
                 <Form.Label>Chuyên môn</Form.Label>
-                <Form.Control
-                  type="text"
+                <Form.Select
                   name="specialization"
                   value={formData.specialization}
                   onChange={handleChange}
                   required
-                />
+                >
+                  <option value="">Chọn chuyên môn</option>
+                  <option value="Software Engineering">
+                    Software Engineering
+                  </option>
+                  <option value="Information Security">
+                    Information Security
+                  </option>
+                  <option value="Management Information System">
+                    Management Information System
+                  </option>
+                </Form.Select>
               </Form.Group>
-
               <Form.Group className="mb-3">
                 <Form.Label>Số sinh viên tối đa được hướng dẫn</Form.Label>
                 <Form.Control
@@ -229,16 +222,18 @@ const RegisterLecturer = ({ show, setShow }) => {
                   required
                 />
               </Form.Group>
-
               <Form.Group className="mb-3">
                 <Form.Label>Học hàm / Học vị</Form.Label>
-                <Form.Control
-                  type="text"
+                <Form.Select
                   name="academicTitle"
                   value={formData.academicTitle}
                   onChange={handleChange}
                   required
-                />
+                >
+                  <option value="">Chọn học hàm / học vị</option>
+                  <option value="Thạc sĩ">Thạc sĩ</option>
+                  <option value="Tiến sĩ">Tiến sĩ</option>
+                </Form.Select>
               </Form.Group>
             </div>
           </Form>

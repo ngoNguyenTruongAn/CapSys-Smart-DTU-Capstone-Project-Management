@@ -138,9 +138,6 @@ const QuanLyHoiDong = () => {
           <button onClick={() => setShowCreateModal(true)}>
             <FontAwesomeIcon icon={faPlus} /> Tạo hội đồng mới
           </button>
-          <button onClick={() => setShowValidateModal(true)}>
-            <FontAwesomeIcon icon={faCheck} /> Kiểm tra tính hợp lệ
-          </button>
           <button onClick={() => setShowSearchByTeamModal(true)}>
             <FontAwesomeIcon icon={faMagnifyingGlass} /> Tìm hội đồng theo nhóm
           </button>

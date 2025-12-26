@@ -152,7 +152,7 @@ const StudentsContent = () => {
       };
 
       await dispatch(createTeam(teamData)).unwrap();
-  showSuccess("Tạo nhóm thành công!");
+      setToastSuccess("Tạo nhóm thành công!");
 
       // Reset form and refresh data
       setTeamForm({ teamName: "", projectTitle: "", teamLeaderId: null });
@@ -165,7 +165,7 @@ const StudentsContent = () => {
       ]);
     } catch (error) {
       console.error("Error creating team:", error.message);
-      pushError("Có lỗi khi tạo nhóm: " + (error?.message || "Không xác định"));
+      pushError("Có lỗi khi tạo nhóm: " + error.message);
     }
   };
 
@@ -179,10 +179,8 @@ const StudentsContent = () => {
     }
 
     try {
-      const result = await autoArrangeTeamAPI(capstoneType);
-      showSuccess(
-        `Tự động xếp nhóm thành công! Đã tạo ${result.teamsCreated || 0} nhóm.`
-      );
+      await autoArrangeTeamAPI(capstoneType);
+      setToastSuccess(`Tự động xếp nhóm thành công!`);
       // Refresh data
       await Promise.all([
         dispatch(fetchAllTeams(capstoneType)),
@@ -190,9 +188,7 @@ const StudentsContent = () => {
       ]);
     } catch (error) {
       console.error("Error auto arranging:", error);
-      pushError(
-        "Có lỗi khi tự động xếp nhóm: " + (error?.message || "Không xác định")
-      );
+      pushError("Có lỗi khi tự động xếp nhóm: " + error.message);
     }
   };
 
@@ -248,7 +244,7 @@ const StudentsContent = () => {
     try {
       setDeletingId(studentId);
       await dispatch(deleteStudent(studentId)).unwrap();
-      showSuccess("Xóa sinh viên thành công");
+      setToastSuccess("Xóa sinh viên thành công");
       setSelectedStudentIds((prev) => prev.filter((id) => id !== studentId));
       await dispatch(fetchStudentsNotInTeam(capstoneType));
     } catch (error) {
@@ -267,16 +263,15 @@ const StudentsContent = () => {
           <h3>Danh sách sinh viên chưa có nhóm</h3>
           <div className="filter-group">
             <label htmlFor="capstone-select">Loại Capstone:</label>
-            <FilterSelect
-              options={[
-                { value: 1, label: "Capstone Type 1" },
-                { value: 2, label: "Capstone Type 2" },
-              ]}
-              value={capstoneType}
-              onChange={(val) => setCapstoneType(val)}
-              minWidth={170}
+            <select
               id="capstone-select"
-            />
+              value={capstoneType}
+              onChange={(e) => setCapstoneType(Number(e.target.value))}
+              className="capstone-select"
+            >
+              <option value={1}>Capstone Type 1</option>
+              <option value={2}>Capstone Type 2</option>
+            </select>
           </div>
 
           <div className="search-group">
@@ -489,16 +484,18 @@ const StudentsContent = () => {
               </button>
               <div className="page-size-selector">
                 <label htmlFor="page-size">Hiển thị:</label>
-                <FilterSelect
-                  options={[5, 10, 20, 30, 50].map((size) => ({
-                    value: size,
-                    label: String(size),
-                  }))}
+                <select
+                  id="page-size"
                   value={pageSize}
-                  onChange={(val) => handlePageSizeChange(val)}
-                  minWidth={120}
-                  id="students-page-size"
-                />
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="page-size-select"
+                >
+                  {[5, 10, 20, 30, 50].map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
                 <span>mục/trang</span>
               </div>
             </div>
@@ -545,26 +542,24 @@ const StudentsContent = () => {
             </div>
             <div className="form-group">
               <label>Chọn trưởng nhóm:</label>
-              <FilterSelect
-                options={[
-                  { value: "", label: "-- Chọn trưởng nhóm --" },
-                  ...studentsData
-                    .filter((s) => selectedStudentIds.includes(s.studentId))
-                    .map((student) => ({
-                      value: student.studentId,
-                      label: `${student.fullName} (${student.studentCode})`,
-                    })),
-                ]}
-                value={teamForm.teamLeaderId ?? ""}
-                onChange={(val) =>
+              <select
+                value={teamForm.teamLeaderId || ""}
+                onChange={(e) =>
                   setTeamForm({
                     ...teamForm,
-                    teamLeaderId: val === "" ? null : val,
+                    teamLeaderId: Number(e.target.value),
                   })
                 }
-                minWidth={220}
-                id="team-leader-select"
-              />
+              >
+                <option value="">-- Chọn trưởng nhóm --</option>
+                {studentsData
+                  .filter((s) => selectedStudentIds.includes(s.studentId))
+                  .map((student) => (
+                    <option key={student.studentId} value={student.studentId}>
+                      {student.fullName} ({student.studentCode})
+                    </option>
+                  ))}
+              </select>
             </div>
             <div className="selected-students">
               <strong>Sinh viên đã chọn ({selectedStudentIds.length}):</strong>
@@ -608,12 +603,14 @@ const StudentsContent = () => {
         setShow={handleCloseUpdateModal}
         studentId={activeStudentId}
       />
+
       <Toasts
-        errors={toastErrors}
-        onClearErrorAt={clearErrorAt}
-        onClearErrors={clearErrors}
         successMessage={toastSuccess}
-        onClearSuccess={clearSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
       />
     </>
   );

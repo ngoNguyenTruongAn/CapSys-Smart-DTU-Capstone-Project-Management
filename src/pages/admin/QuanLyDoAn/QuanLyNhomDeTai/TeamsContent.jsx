@@ -61,15 +61,10 @@ const TeamsContent = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
 
-  const {
-    toastErrors,
-    toastSuccess,
-    pushError,
-    showSuccess,
-    clearErrorAt,
-    clearErrors,
-    clearSuccess,
-  } = useToast();
+  // Toast state
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
+  const pushError = (msg) => setToastErrors((prev) => [...prev, msg].slice(-3)); // giữ tối đa 3 lỗi gần nhất
 
   // ===== FILTER LOGIC =====
   const filteredTeams = useMemo(() => {
@@ -121,14 +116,14 @@ const TeamsContent = () => {
 
     try {
       await dispatch(deleteTeam(teamId)).unwrap();
-      showSuccess("Xóa nhóm thành công!");
+      setToastSuccess("Xóa nhóm thành công!");
       // Refresh data for both capstone types
       const res1 = await dispatch(fetchAllTeams(1)).unwrap();
       const res2 = await dispatch(fetchAllTeams(2)).unwrap();
       setAllTeams([...(res1 || []), ...(res2 || [])]);
     } catch (error) {
       console.error("Error deleting team:", error);
-      pushError("Có lỗi khi xóa nhóm: " + (error?.message || "Không xác định"));
+      pushError("Có lỗi khi xóa nhóm: " + error.message);
     }
   };
 
@@ -162,15 +157,19 @@ const TeamsContent = () => {
           mentorId: selectedMentorId,
         })
       ).unwrap();
-      showSuccess("Gán mentor thành công!");
-      const res1 = await dispatch(fetchAllTeams(1)).unwrap();
-      const res2 = await dispatch(fetchAllTeams(2)).unwrap();
+      setToastSuccess("Gán mentor thành công!");
+      // Refresh cả teams và mentorWorkload để cập nhật số nhóm hiện tại
+      const [res1, res2] = await Promise.all([
+        dispatch(fetchAllTeams(1)).unwrap(),
+        dispatch(fetchAllTeams(2)).unwrap(),
+        dispatch(fetchMentorWorkload()),
+      ]);
       setAllTeams([...(res1 || []), ...(res2 || [])]);
       setShowAssignModal(false);
       setAssigningTeamId(null);
       setSelectedMentorId(null);
     } catch (error) {
-      pushError("Gán mentor thất bại: " + (error?.message || error));
+      pushError("Gán mentor thất bại: " + error);
     } finally {
       setAssigning(false);
     }
@@ -215,14 +214,17 @@ const TeamsContent = () => {
 
     try {
       await dispatch(removeMentor(teamId)).unwrap();
-      showSuccess("Gỡ mentor thành công!");
-      // Refresh data for both capstone types
-      const res1 = await dispatch(fetchAllTeams(1)).unwrap();
-      const res2 = await dispatch(fetchAllTeams(2)).unwrap();
+      setToastSuccess("Gỡ mentor thành công!");
+      // Refresh cả teams và mentorWorkload để cập nhật số nhóm hiện tại
+      const [res1, res2] = await Promise.all([
+        dispatch(fetchAllTeams(1)).unwrap(),
+        dispatch(fetchAllTeams(2)).unwrap(),
+        dispatch(fetchMentorWorkload()),
+      ]);
       setAllTeams([...(res1 || []), ...(res2 || [])]);
     } catch (error) {
       console.error("Error removing mentor:", error);
-      pushError("Có lỗi khi gỡ mentor: " + (error?.message || "Không xác định"));
+      pushError("Có lỗi khi gỡ mentor: " + error.message);
     }
   };
 
@@ -261,31 +263,29 @@ const TeamsContent = () => {
 
             <div className="filter-group">
               <label htmlFor="mentor-filter">Bộ lọc:</label>
-              <FilterSelect
-                options={[
-                  { value: "all", label: "Tất cả nhóm" },
-                  { value: "with", label: "Đã có mentor" },
-                  { value: "without", label: "Chưa có mentor" },
-                ]}
-                value={mentorFilter}
-                onChange={(val) => setMentorFilter(val)}
-                minWidth={180}
+              <select
                 id="mentor-filter"
-              />
+                value={mentorFilter}
+                onChange={(e) => setMentorFilter(e.target.value)}
+                className="capstone-select"
+              >
+                <option value="all">Tất cả nhóm</option>
+                <option value="with">Đã có mentor</option>
+                <option value="without">Chưa có mentor</option>
+              </select>
             </div>
             <div className="filter-group">
               <label htmlFor="capstone-filter">Loại Capstone:</label>
-              <FilterSelect
-                options={[
-                  { value: "all", label: "Tất cả Capstone" },
-                  { value: "1", label: "Capstone 1" },
-                  { value: "2", label: "Capstone 2" },
-                ]}
-                value={capstoneFilter}
-                onChange={(val) => setCapstoneFilter(val)}
-                minWidth={180}
+              <select
                 id="capstone-filter"
-              />
+                value={capstoneFilter}
+                onChange={(e) => setCapstoneFilter(e.target.value)}
+                className="capstone-select"
+              >
+                <option value="all">Tất cả Capstone</option>
+                <option value="1">Capstone 1</option>
+                <option value="2">Capstone 2</option>
+              </select>
             </div>
           </div>
         </div>
@@ -490,16 +490,18 @@ const TeamsContent = () => {
               </button>
               <div className="page-size-selector">
                 <label htmlFor="team-page-size">Hiển thị:</label>
-                <FilterSelect
-                  options={[3, 6, 9, 12].map((size) => ({
-                    value: size,
-                    label: String(size),
-                  }))}
-                  value={pageSize}
-                  onChange={(val) => handlePageSizeChange(val)}
-                  minWidth={120}
+                <select
                   id="team-page-size"
-                />
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="page-size-select"
+                >
+                  {[3, 6, 9, 12].map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
                 <span>nhóm/trang</span>
               </div>
             </div>
@@ -534,16 +536,16 @@ const TeamsContent = () => {
                 />
                 <div className="page-size-selector">
                   <label>Hiển thị:</label>
-                  <FilterSelect
-                    options={[5, 10, 15].map((size) => ({
-                      value: size,
-                      label: String(size),
-                    }))}
+                  <select
                     value={mentorPageSize}
-                    onChange={(val) => setMentorPageSize(val)}
-                    minWidth={120}
-                    id="mentor-page-size"
-                  />
+                    onChange={(e) => setMentorPageSize(Number(e.target.value))}
+                  >
+                    {[5, 10, 15].map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
                   <span>giảng viên/trang</span>
                 </div>
               </div>
@@ -625,6 +627,15 @@ const TeamsContent = () => {
           </div>
         </div>
       )}
+
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
+      />
     </>
   );
 };
