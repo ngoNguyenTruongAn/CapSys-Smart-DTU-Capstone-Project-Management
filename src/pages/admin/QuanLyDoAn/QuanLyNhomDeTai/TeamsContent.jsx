@@ -156,8 +156,12 @@ const TeamsContent = () => {
         })
       ).unwrap();
       setToastSuccess("Gán mentor thành công!");
-      const res1 = await dispatch(fetchAllTeams(1)).unwrap();
-      const res2 = await dispatch(fetchAllTeams(2)).unwrap();
+      // Refresh cả teams và mentorWorkload để cập nhật số nhóm hiện tại
+      const [res1, res2] = await Promise.all([
+        dispatch(fetchAllTeams(1)).unwrap(),
+        dispatch(fetchAllTeams(2)).unwrap(),
+        dispatch(fetchMentorWorkload()),
+      ]);
       setAllTeams([...(res1 || []), ...(res2 || [])]);
       setShowAssignModal(false);
       setAssigningTeamId(null);
@@ -209,9 +213,12 @@ const TeamsContent = () => {
     try {
       await dispatch(removeMentor(teamId)).unwrap();
       setToastSuccess("Gỡ mentor thành công!");
-      // Refresh data for both capstone types
-      const res1 = await dispatch(fetchAllTeams(1)).unwrap();
-      const res2 = await dispatch(fetchAllTeams(2)).unwrap();
+      // Refresh cả teams và mentorWorkload để cập nhật số nhóm hiện tại
+      const [res1, res2] = await Promise.all([
+        dispatch(fetchAllTeams(1)).unwrap(),
+        dispatch(fetchAllTeams(2)).unwrap(),
+        dispatch(fetchMentorWorkload()),
+      ]);
       setAllTeams([...(res1 || []), ...(res2 || [])]);
     } catch (error) {
       console.error("Error removing mentor:", error);
