@@ -7,7 +7,7 @@ const SummaryCards = ({ stats = {} }) => {
   const summaryData = [
     {
       id: "total",
-      title: "Total groups",
+      title: "Tổng nhóm",
       count: total,
       icon: (
         <svg
@@ -31,7 +31,7 @@ const SummaryCards = ({ stats = {} }) => {
     },
     {
       id: "graded",
-      title: "Graded",
+      title: "Đã chấm điểm",
       count: graded,
       icon: (
         <svg
@@ -55,7 +55,7 @@ const SummaryCards = ({ stats = {} }) => {
     },
     {
       id: "grading",
-      title: "In grading",
+      title: "Đang chấm điểm",
       count: grading,
       icon: (
         <svg
@@ -79,7 +79,7 @@ const SummaryCards = ({ stats = {} }) => {
     },
     {
       id: "not-graded",
-      title: "Not graded",
+      title: "Chưa chấm điểm",
       count: notGraded,
       icon: (
         <svg
