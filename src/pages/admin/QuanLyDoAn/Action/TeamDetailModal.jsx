@@ -318,16 +318,15 @@ const TeamDetailModal = React.memo(({ show, setShow, teamId, onUpdated }) => {
                       Mentor hiện tại: {formData.mentorName || "Chưa có"}
                     </Form.Text>
                   </Form.Group>
-
                   <Form.Group className="mb-3">
                     <Form.Label>Trạng thái</Form.Label>
                     <Form.Select
                       name="status"
                       value={formData.status || ""}
                       onChange={handleChange}
+                      disabled={formData.status === "Active"}
                     >
                       <option value="Active">Đang thực hiện</option>
-                      <option value="Completed">Hoàn thành</option>
                     </Form.Select>
                   </Form.Group>
                 </Col>

@@ -1,14 +1,27 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchMentorWorkload } from "../../../../store/teamSlice";
+import Toasts from "../../../../components/ui/Toasts";
 
 const MentorContent = () => {
   const dispatch = useDispatch();
   const { mentorWorkload, loading } = useSelector((state) => state.teams);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Toast state
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
+  const pushError = (msg) => setToastErrors((prev) => [...prev, msg].slice(-3)); // giữ tối đa 3 lỗi gần nhất
+
   useEffect(() => {
-    dispatch(fetchMentorWorkload());
+    const loadMentorWorkload = async () => {
+      try {
+        await dispatch(fetchMentorWorkload()).unwrap();
+      } catch (error) {
+        pushError("Không thể tải danh sách giảng viên: " + (error?.message || error));
+      }
+    };
+    loadMentorWorkload();
   }, [dispatch]);
 
   const filteredMentors = useMemo(() => {
@@ -111,6 +124,15 @@ const MentorContent = () => {
           </table>
         </div>
       )}
+
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
+      />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import {
 } from "../../../../store/teamSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import Toasts from "../../../../components/ui/Toasts";
 
 const QuanLyNhomDeTai = () => {
   const navigate = useNavigate();
@@ -23,6 +24,11 @@ const QuanLyNhomDeTai = () => {
 
   // State để lưu tổng số nhóm
   const [totalTeamsCount, setTotalTeamsCount] = useState(0);
+
+  // Toast state
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
+  const pushError = (msg) => setToastErrors((prev) => [...prev, msg].slice(-3)); // giữ tối đa 3 lỗi gần nhất
 
   // Refresh data sau khi import
 
@@ -66,6 +72,7 @@ const QuanLyNhomDeTai = () => {
       setTotalTeamsCount(total);
     } catch (error) {
       console.error("Error fetching data:", error);
+      pushError("Không thể tải dữ liệu: " + (error?.message || error));
       // Lưu ý: Không cần xử lý logout ở đây vì Axios Interceptor đã làm rồi
     }
   }, [capstoneType, dispatch]);
@@ -129,6 +136,15 @@ const QuanLyNhomDeTai = () => {
           }}
         />
       </div>
+
+      <Toasts
+        successMessage={toastSuccess}
+        onClearSuccess={() => setToastSuccess("")}
+        errors={toastErrors}
+        onClearErrors={() => setToastErrors([])}
+        autoHideSuccessMs={3500}
+        autoHideErrorMs={4000}
+      />
     </div>
   );
 };
