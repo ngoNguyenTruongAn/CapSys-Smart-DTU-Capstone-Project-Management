@@ -9,7 +9,6 @@ import {
   fetchStudentsNotInTeam,
 } from "../../../../store/teamSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft, faUser, faUserGroup, faUserTie } from "@fortawesome/free-solid-svg-icons";
 import Toasts from "../../../../components/ui/Toasts";
 
 const QuanLyNhomDeTai = () => {
@@ -101,19 +100,16 @@ const QuanLyNhomDeTai = () => {
           end
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          <FontAwesomeIcon icon={faUser} /> Sinh viên ({fetchStudentsNotInTeam?.length || 0})
         </NavLink>
         <NavLink
           to="nhom"
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          <FontAwesomeIcon icon={faUserGroup} /> Nhóm ({fetchAllTeams?.length || 0})
         </NavLink>
         <NavLink
           to="mentor"
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          <FontAwesomeIcon icon={faUserTie} /> Giảng viên
         </NavLink>
       </div>
 
