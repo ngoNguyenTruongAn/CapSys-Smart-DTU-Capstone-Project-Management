@@ -120,9 +120,7 @@ const QuanLyHoiDong = () => {
           <button onClick={() => setShowCreateModal(true)}>
             ➕ Tạo hội đồng mới
           </button>
-          <button onClick={() => setShowValidateModal(true)}>
-            ✓ Kiểm tra tính hợp lệ
-          </button>
+
           <button onClick={() => setShowSearchByTeamModal(true)}>
             🔍 Tìm hội đồng theo nhóm
           </button>

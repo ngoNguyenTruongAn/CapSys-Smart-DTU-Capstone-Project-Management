@@ -98,14 +98,39 @@ const getStatusClass = (status = "") => {
   if (
     normalized.includes("duyệt") ||
     normalized.includes("approve") ||
+    normalized.includes("approved") ||
     normalized.includes("hoàn thành")
   ) {
     return "approved";
   }
-  if (normalized.includes("từ chối") || normalized.includes("reject")) {
+  if (
+    normalized.includes("từ chối") ||
+    normalized.includes("reject") ||
+    normalized.includes("rejected")
+  ) {
     return "rejected";
   }
   return "pending";
+};
+
+const getStatusLabel = (status = "") => {
+  const normalized = status.toLowerCase();
+  if (
+    normalized.includes("duyệt") ||
+    normalized.includes("approve") ||
+    normalized.includes("approved") ||
+    normalized.includes("hoàn thành")
+  ) {
+    return "Đã duyệt";
+  }
+  if (
+    normalized.includes("từ chối") ||
+    normalized.includes("reject") ||
+    normalized.includes("rejected")
+  ) {
+    return "Từ chối";
+  }
+  return "Chờ duyệt";
 };
 
 const formatDateLabel = (date) => {
@@ -346,7 +371,11 @@ const TongQuan = ({
           return acc;
         }, {});
         const proposalsData = Object.entries(proposalsGrouped).map(
-          ([name, value]) => ({ name, value })
+          ([name, value]) => ({
+            name: getStatusLabel(name),
+            value,
+            originalStatus: name, // Giữ lại status gốc để filter/search
+          })
         );
 
         const proposalList = proposals.map((item) =>
@@ -370,6 +399,7 @@ const TongQuan = ({
           latestProposalList.map((item) => ({
             ...item,
             statusClass: getStatusClass(item.status),
+            statusLabel: getStatusLabel(item.status),
             dateLabel: formatDateLabel(item.createdAt),
             capstoneLabel: item.capstone ? `Capstone ${item.capstone}` : "—",
           }))
@@ -445,8 +475,8 @@ const TongQuan = ({
             <div className="tq-stat-title">Tổng nhóm (Cap1)</div>
             <div className="tq-stat-value">{stats.teamsCap1}</div>
             <div className="tq-stat-sub">
-              {stats.teamsCap1WithMentor} có mentor ·{" "}
-              {stats.teamsCap1 - stats.teamsCap1WithMentor} chưa
+              {stats.teamsCap1 - stats.teamsCap1WithMentor} nhóm chưa có giảng
+              viên
             </div>
           </div>
         </div>
@@ -458,8 +488,8 @@ const TongQuan = ({
             <div className="tq-stat-title">Tổng nhóm (Cap2)</div>
             <div className="tq-stat-value">{stats.teamsCap2}</div>
             <div className="tq-stat-sub">
-              {stats.teamsCap2WithMentor} có mentor ·{" "}
-              {stats.teamsCap2 - stats.teamsCap2WithMentor} chưa
+              {stats.teamsCap2 - stats.teamsCap2WithMentor} nhóm chưa có giảng
+              viên
             </div>
           </div>
         </div>
@@ -505,7 +535,7 @@ const TongQuan = ({
                 </div>
                 <div className="tq-list-extra">
                   <span className={`tq-status-badge ${proposal.statusClass}`}>
-                    {proposal.status}
+                    {proposal.statusLabel || proposal.status}
                   </span>
                   <span className="tq-date">{proposal.dateLabel}</span>
                 </div>
@@ -543,7 +573,9 @@ const TongQuan = ({
                   </p>
                 </div>
                 <div className="tq-list-extra">
-                  <span className="tq-status-badge warning">Thiếu mentor</span>
+                  <span className="tq-status-badge warning">
+                    Chưa có giảng viên
+                  </span>
                   <span className="tq-date">{team.dateLabel}</span>
                 </div>
               </li>
@@ -594,9 +626,9 @@ const TongQuan = ({
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="tq-pie-text-col">
-                <div className="tq-text-panel">
-                  {activeStates.student?.selected ? (
+              {activeStates.student?.selected && (
+                <div className="tq-pie-text-col">
+                  <div className="tq-text-panel">
                     <div className="tq-content-wrapper">
                       <div className="tq-segment-title">
                         {activeStates.student.selected.name}
@@ -617,21 +649,9 @@ const TongQuan = ({
                         </p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="tq-content-wrapper">
-                      <div className="tq-segment-title">
-                        Chọn một ngành để xem chi tiết
-                      </div>
-                      <div className="tq-segment-text">
-                        <p>
-                          Nhấp vào slice hoặc legend để xem thông tin chi tiết
-                          về ngành học.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             <div className="tq-custom-legend">
               <div className="tq-legend-controls">
@@ -734,9 +754,9 @@ const TongQuan = ({
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="tq-pie-text-col">
-                <div className="tq-text-panel">
-                  {activeStates.proposal?.selected ? (
+              {activeStates.proposal?.selected && (
+                <div className="tq-pie-text-col">
+                  <div className="tq-text-panel">
                     <div className="tq-content-wrapper">
                       <div className="tq-segment-title">
                         {activeStates.proposal.selected.name}
@@ -757,21 +777,9 @@ const TongQuan = ({
                         </p>
                       </div>
                     </div>
-                  ) : (
-                    <div className="tq-content-wrapper">
-                      <div className="tq-segment-title">
-                        Chọn một trạng thái để xem chi tiết
-                      </div>
-                      <div className="tq-segment-text">
-                        <p>
-                          Nhấp vào slice hoặc legend để xem thông tin chi tiết
-                          về trạng thái đề tài.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             <div className="tq-custom-legend">
               <div className="tq-legend-controls"></div>
@@ -779,7 +787,11 @@ const TongQuan = ({
                 ? filteredProposalLegend
                 : filteredProposalLegend.slice(0, 8)
               ).map((entry, index) => {
-                const originalIndex = proposalsByStatus.indexOf(entry);
+                const originalIndex = entry.originalStatus
+                  ? proposalsByStatus.findIndex(
+                      (e) => e.originalStatus === entry.originalStatus
+                    )
+                  : proposalsByStatus.indexOf(entry);
                 return (
                   <div
                     key={`legend-proposal-${entry.name}-${index}`}
