@@ -1,0 +1,124 @@
+/* --- Custom Select Component (Unified UI/UX) --- */
+.filterSelect {
+  position: relative;
+  min-width: 180px;
+}
+
+.filterSelect__button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-white, #fff);
+  color: var(--text-primary, #0f172a);
+  font-size: 1.3rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.filterSelect__button:hover {
+  border-color: var(--border-medium, #cbd5e1);
+}
+
+.filterSelect__button:focus {
+  outline: none;
+  border-color: #94070d;
+  box-shadow: 0 0 0 3px rgba(148, 7, 13, 0.1);
+}
+
+.filterSelect__button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--bg-disabled, #f1f5f9);
+}
+
+.filterSelect__chevron {
+  flex: 0 0 auto;
+  color: var(--text-secondary, #64748b);
+  transition: transform 0.2s ease;
+}
+
+.filterSelect__button[aria-expanded="true"] .filterSelect__chevron {
+  transform: rotate(180deg);
+}
+
+.filterSelect__menu {
+  position: fixed; /* rendered in portal to body, so it floats above layout */
+  background: var(--bg-white, #fff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 6px;
+  z-index: 1200;
+  min-width: max-content;
+  max-width: min(280px, 90vw);
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filterSelect__menu::-webkit-scrollbar { display: none; }
+
+.filterSelect__option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 1.3rem;
+  color: var(--text-primary, #0f172a);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  box-sizing: border-box;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.filterSelect__option:hover,
+.filterSelect__option:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* .filterSelect__option.is-selected {
+  background: rgba(148, 7, 13, 0.08);
+} */
+
+.filterSelect__option.is-selected:hover,
+.filterSelect__option.is-selected:focus {
+  background: rgba(148, 7, 13, 0.12);
+}
+
+.filterSelect__check {
+  opacity: 0;
+  margin-left: var(--spacing-md, 12px);
+  color: #94070d;
+  display: flex;
+  align-items: center;
+}
+
+.is-selected .filterSelect__check {
+  opacity: 1;
+}
+
+.filterSelect__optionLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .filterSelect {
+    min-width: auto;
+    width: 100%;
+  }
+}

@@ -24,6 +24,7 @@ import {
   flexRender,
 } from "@tanstack/react-table";
 import Toasts from "../../../components/ui/Toasts";
+import FilterSelect from "../../../components/ui/FilterSelect";
 
 const QuanLyTaiKhoan = () => {
   const [activeTab, setActiveTab] = useState("students");
@@ -397,22 +398,28 @@ const QuanLyTaiKhoan = () => {
     <div className="quanlytaikhoan-page">
       <header className="qltk-toolbar">
         <div className="toolbar-controls">
-          <select
+          <FilterSelect
+            options={[
+              { value: "students", label: "Danh sách sinh viên" },
+              { value: "lecturers", label: "Danh sách giảng viên" },
+            ]}
             value={activeTab}
-            onChange={(e) => setActiveTab(e.target.value)}
-          >
-            <option value="students">Danh sách sinh viên</option>
-            <option value="lecturers">Danh sách giảng viên</option>
-          </select>
+            onChange={(val) => setActiveTab(val)}
+            minWidth={220}
+            id="qltk-tab-select"
+          />
           {activeTab === "students" && (
-            <select
+            <FilterSelect
+              options={[
+                { value: "", label: "Tất cả Capstone" },
+                { value: "1", label: "Capstone 1" },
+                { value: "2", label: "Capstone 2" },
+              ]}
               value={capstoneFilter}
-              onChange={(e) => setCapstoneFilter(e.target.value)}
-            >
-              <option value="">Tất cả Capstone</option>
-              <option value="1">Capstone 1</option>
-              <option value="2">Capstone 2</option>
-            </select>
+              onChange={(val) => setCapstoneFilter(val)}
+              minWidth={170}
+              id="qltk-capstone-filter"
+            />
           )}
           <input
             type="text"
@@ -457,14 +464,16 @@ const QuanLyTaiKhoan = () => {
                 onChange={handleStudentFileChange}
               />
             </label>
-            <select
-              className="capstone-select"
+            <FilterSelect
+              options={[
+                { value: 1, label: "Capstone 1" },
+                { value: 2, label: "Capstone 2" },
+              ]}
               value={importCapstoneType}
-              onChange={(e) => setImportCapstoneType(Number(e.target.value))}
-            >
-              <option value={1}>Capstone 1</option>
-              <option value={2}>Capstone 2</option>
-            </select>
+              onChange={(val) => setImportCapstoneType(val)}
+              minWidth={140}
+              id="qltk-import-capstone"
+            />
             <span className="selected-file">
               {studentImportFile ? studentImportFile.name : "Chưa chọn file"}
             </span>
@@ -612,16 +621,16 @@ const QuanLyTaiKhoan = () => {
             >
               {">>"}
             </button>
-            <select
+            <FilterSelect
+              options={[5, 10, 20, 30, 50].map((size) => ({
+                value: size,
+                label: `Hiển thị ${size}`,
+              }))}
               value={pageSize}
-              onChange={(e) => table.setPageSize(Number(e.target.value))}
-            >
-              {[5, 10, 20, 30, 50].map((size) => (
-                <option key={size} value={size}>
-                  Hiển thị {size}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => table.setPageSize(val)}
+              minWidth={140}
+              id="qltk-page-size"
+            />
           </div>
         )}
       </div>

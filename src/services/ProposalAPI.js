@@ -218,7 +218,8 @@ const toCardShape = (p) => {
 
   const raw = String(p.status ?? p.Status ?? "").toLowerCase();
   let status = "Chờ duyệt";
-  if (["approved", "đã duyệt", "approve"].some((s) => raw.includes(s)))
+  // "completed" = team đã chấm điểm xong, cũng coi như approved
+  if (["approved", "đã duyệt", "approve", "completed", "hoàn thành"].some((s) => raw.includes(s)))
     status = "Đã duyệt";
   else if (["rejected", "từ chối", "reject"].some((s) => raw.includes(s)))
     status = "Bị từ chối";

@@ -1,6 +1,7 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { saveAs } from "file-saver";
 import { selectAccountType } from "../../store/authSlice";
 import GradingDetailPage from "./GradingDetailPage";
 import SummaryCards from "../../components/grading/SummaryCards";
@@ -10,7 +11,9 @@ import GradingAPI from "../../services/GradingAPI";
 import styles from "./GradingPage.module.css";
 import CreateSessionModal from "../../components/grading/CreateSessionModal.jsx";
 import LoadingFullScreen from "../../components/ui/LoadingFullScreen";
+import Toasts from "../../components/ui/Toasts.jsx";
 import { getLecturerProfileAPI } from "../../services/ProfileAPI";
+import { getAllCommitteesAPI } from "../../services/CommitteeAPI";
 
 /**
  * Decode JWT payload from token string
@@ -86,6 +89,13 @@ const fetchCurrentLecturerId = async () => {
     const lecturerInfo = responseData?.lecturerInfo || {};
     const lecturerId = lecturerInfo?.lecturerId || responseData?.lecturerId || null;
     
+    // Debug: Compare Account ID vs Lecturer ID
+    console.log("[GradingPage] ID Comparison:", {
+      accountId,
+      lecturerId,
+      profileResponse: responseData,
+    });
+    
     return lecturerId;
   } catch (error) {
     console.error("[GradingPage] Error fetching lecturer profile:", error);
@@ -93,11 +103,171 @@ const fetchCurrentLecturerId = async () => {
   }
 };
 
+/**
+ * Get all committee IDs that a lecturer is a member of
+ * @param {number} lecturerId - The lecturer ID
+ * @returns {Promise<Set<number>>} Set of committee IDs
+ */
+const fetchLecturerCommitteeIds = async (lecturerId) => {
+  try {
+    if (!lecturerId) return new Set();
+    
+    const response = await getAllCommitteesAPI(true);
+    const committees = response?.data || response || [];
+    
+    if (!Array.isArray(committees)) return new Set();
+    
+    const committeeIds = new Set();
+    
+    for (const committee of committees) {
+      const members = committee.members || committee.Members || [];
+      const chairmanId = committee.chairmanId || committee.ChairmanId || null;
+      
+      // Check if lecturer is chairman
+      if (chairmanId === lecturerId) {
+        const commId = committee.committeeId || committee.CommitteeId || committee.id;
+        if (commId) committeeIds.add(commId);
+        continue;
+      }
+      
+      // Check if lecturer is a member
+      const isMember = members.some((member) => {
+        const memberLecturerId = member.lecturerId || member.LecturerId || null;
+        return memberLecturerId === lecturerId;
+      });
+      
+      if (isMember) {
+        const commId = committee.committeeId || committee.CommitteeId || committee.id;
+        if (commId) committeeIds.add(commId);
+      }
+    }
+    
+    return committeeIds;
+  } catch (error) {
+    console.error("[GradingPage] Error fetching committees:", error);
+    return new Set();
+  }
+};
+
+/**
+ * Get lecturer's role in a specific committee
+ * @param {number} lecturerId - The lecturer ID
+ * @param {number} committeeId - The committee ID
+ * @returns {Promise<string|null>} Role name or null
+ */
+const fetchLecturerRoleInCommittee = async (lecturerId, committeeId) => {
+  try {
+    if (!lecturerId || !committeeId) return null;
+    
+    const response = await getAllCommitteesAPI(true);
+    const committees = response?.data || response || [];
+    
+    if (!Array.isArray(committees)) return null;
+    
+    const committee = committees.find(c => {
+      const commId = c.committeeId || c.CommitteeId || c.id;
+      return commId === committeeId;
+    });
+    
+    if (!committee) return null;
+    
+    const chairmanId = committee.chairmanId || committee.ChairmanId || null;
+    if (chairmanId === lecturerId) {
+      return "Chairman";
+    }
+    
+    const members = committee.members || committee.Members || [];
+    const member = members.find(m => {
+      const memberLecturerId = m.lecturerId || m.LecturerId || null;
+      return memberLecturerId === lecturerId;
+    });
+    
+    if (member) {
+      return "Member";
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("[GradingPage] Error fetching lecturer role:", error);
+    return null;
+  }
+};
+
+/**
+ * Get all lecturer IDs in a committee (chairman + members)
+ * @param {number} committeeId - The committee ID
+ * @returns {Promise<number[]>} Array of lecturer IDs in the committee
+ */
+const fetchCommitteeLecturerIds = async (committeeId) => {
+  try {
+    if (!committeeId) return [];
+    
+    const response = await getAllCommitteesAPI(true);
+    const committees = response?.data || response || [];
+    
+    if (!Array.isArray(committees)) return [];
+    
+    const committee = committees.find(c => {
+      const commId = c.committeeId || c.CommitteeId || c.id;
+      return commId === committeeId;
+    });
+    
+    if (!committee) return [];
+    
+    const lecturerIds = [];
+    
+    // Add chairman
+    const chairmanId = committee.chairmanId || committee.ChairmanId || null;
+    if (chairmanId) {
+      lecturerIds.push(Number(chairmanId));
+    }
+    
+    // Add members
+    const members = committee.members || committee.Members || [];
+    members.forEach(m => {
+      const memberLecturerId = m.lecturerId || m.LecturerId || null;
+      if (memberLecturerId) {
+        lecturerIds.push(Number(memberLecturerId));
+      }
+    });
+    
+    return lecturerIds;
+  } catch (error) {
+    console.error("[GradingPage] Error fetching committee lecturer IDs:", error);
+    return [];
+  }
+};
+
+/**
+ * Get account type from localStorage directly (more reliable on page reload)
+ * @returns {string|null} Account type or null
+ */
+const getAccountTypeFromStorage = () => {
+  if (typeof window === "undefined") return null;
+  return (
+    window.localStorage?.getItem("accountType") ||
+    window.sessionStorage?.getItem("accountType") ||
+    null
+  );
+};
+
 const GradingPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const accountType = useSelector(selectAccountType);
+  const reduxAccountType = useSelector(selectAccountType);
+  
+  // Use localStorage value as fallback when Redux state is not yet restored
+  const accountType = reduxAccountType || getAccountTypeFromStorage();
   const isAdmin = accountType?.toLowerCase() === "admin";
   const isLecturer = accountType?.toLowerCase() === "lecturer";
+  
+  // Debug: Log account type to ensure correct role detection
+  console.log("[GradingPage] Account type detection:", {
+    reduxAccountType,
+    storageAccountType: getAccountTypeFromStorage(),
+    finalAccountType: accountType,
+    isAdmin,
+    isLecturer
+  });
   
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -109,21 +279,32 @@ const GradingPage = () => {
   const [prefillTeamId, setPrefillTeamId] = useState(null);
   const [prefillProjectId, setPrefillProjectId] = useState(null);
   const [prefillCommitteeId, setPrefillCommitteeId] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [toastErrors, setToastErrors] = useState([]);
+  const [toastSuccess, setToastSuccess] = useState("");
   const teamCacheRef = useRef({});
 
   /**
    * Map grading session status to UI status
-   * @param {string} sessionStatus - Session status from API
-   * @param {boolean} isCompleted - Whether session is completed
+   * IMPORTANT: This function now IGNORES backend session.status and session.isCompleted
+   * because backend incorrectly sets "Completed" after just 1 lecturer grades.
+   * We only use gradingStatus calculated from gradedLecturerIds.
+   * @param {Object} gradingStatus - Grading status with gradedLecturerIds and isFullyGraded
    * @returns {string} UI status
    */
-  const mapSessionStatus = (sessionStatus, isCompleted) => {
-    if (isCompleted || sessionStatus === "Completed") {
-      return "graded";
+  const mapSessionStatus = (gradingStatus = null) => {
+    // Only use frontend-calculated grading status
+    if (gradingStatus) {
+      if (gradingStatus.isFullyGraded) {
+        return "graded";  // All 3 committee members have graded
+      }
+      const gradedCount = gradingStatus.gradedLecturerIds?.length || 0;
+      if (gradedCount > 0) {
+        return "grading";  // At least 1 but not all have graded
+      }
     }
-    if (sessionStatus === "Active" || sessionStatus === "InProgress") {
-      return "grading";
-    }
+    
+    // No grades yet
     return "not-graded";
   };
 
@@ -145,10 +326,13 @@ const GradingPage = () => {
    * @param {Object} session - Grading session from API
    * @param {Object} proposal - Proposal data
    * @param {Object} team - Team data
+   * @param {Object} gradingStatusByRole - Role-based grading status
+   * @param {number} currentLecturerId - Current lecturer's ID
    * @returns {Object} Group object
    */
-  const transformToGroup = (session, proposal, team) => {
-    const status = mapSessionStatus(session?.status, session?.isCompleted);
+  const transformToGroup = (session, proposal, team, gradingStatus = null, currentLecturerId = null) => {
+    // Use only frontend-calculated grading status, ignore backend session.status
+    const status = mapSessionStatus(gradingStatus);
 
     const sessionIdentifier = pickFirstValue(
       session?.sessionId,
@@ -246,6 +430,8 @@ const GradingPage = () => {
       proposalId: proposal?.id || proposal?.proposalId,
       projectId: toNumberOrNull(derivedProjectId),
       committeeId: toNumberOrNull(derivedCommitteeId),
+      gradingStatusByRole: gradingStatus,
+      currentLecturerId: currentLecturerId,
     };
   };
 
@@ -382,6 +568,9 @@ const GradingPage = () => {
     setLoading(true);
     setError("");
     try {
+      // Debug: Log current account type to ensure filtering is applied correctly
+      console.log("[GradingPage] loadGroups - accountType:", accountType, "isLecturer:", isLecturer, "isAdmin:", isAdmin);
+      
       const [proposalsResponse, sessionsResponse] = await Promise.all([
         GradingAPI.getProposals(),
         GradingAPI.getSessions(),
@@ -391,15 +580,34 @@ const GradingPage = () => {
       const sessions = unwrapResponseArray(sessionsResponse, ["sessions"]);
       const sessionsIndex = sessionsByTeamId(sessions);
 
+      // Debug: Log all proposals and sessions
+      console.log("[GradingPage] All proposals:", proposals.map(p => ({
+        teamId: p?.teamId || p?.TeamId,
+        status: p?.status || p?.Status,
+        title: p?.title || p?.proposalTitle
+      })));
+      console.log("[GradingPage] All sessions:", sessions.map(s => ({
+        sessionId: s?.sessionId || s?.SessionId,
+        teamId: s?.teamId || s?.TeamId,
+        committeeId: s?.committeeId || s?.CommitteeId,
+        status: s?.status || s?.Status
+      })));
+
       if (proposals.length === 0 && sessions.length === 0) {
         setGroups([]);
         return;
       }
 
-      // Get current lecturer ID if user is a lecturer (fetch from profile API)
+      // Get current lecturer ID and their committee memberships if user is a lecturer
       let currentLecturerId = null;
+      let lecturerCommitteeIds = new Set();
       if (isLecturer) {
         currentLecturerId = await fetchCurrentLecturerId();
+        console.log("[GradingPage] Current Lecturer ID:", currentLecturerId);
+        if (currentLecturerId) {
+          lecturerCommitteeIds = await fetchLecturerCommitteeIds(currentLecturerId);
+          console.log("[GradingPage] Lecturer Committee IDs:", [...lecturerCommitteeIds]);
+        }
       }
 
       const groupPromises = proposals
@@ -410,40 +618,136 @@ const GradingPage = () => {
             return null;
           }
 
-          // Chỉ cho phép chấm điểm khi proposal đã được duyệt
-          const rawStatus = String(
-            proposal.status ?? proposal.Status ?? ""
-          ).toLowerCase();
-          const isApproved = ["approved", "đã duyệt", "approve"].some((s) =>
-            rawStatus.includes(s)
-          );
+          const teamSessions = sessionsIndex[teamId] || [];
+          const hasGradingSession = teamSessions.length > 0;
 
-          if (!isApproved) {
-            return null;
+          // Chỉ check proposal status nếu team CHƯA có grading session
+          // Nếu đã có session (đã/đang chấm) thì vẫn hiển thị bất kể proposal status
+          if (!hasGradingSession) {
+            const rawStatus = String(
+              proposal.status ?? proposal.Status ?? ""
+            ).toLowerCase();
+            // "completed" = team đã chấm điểm xong, cũng coi như approved
+            const isApproved = ["approved", "đã duyệt", "approve", "completed", "hoàn thành"].some((s) =>
+              rawStatus.includes(s)
+            );
+
+            if (!isApproved) {
+              console.log(`[GradingPage] Team ${teamId} SKIPPED - proposal not approved (status: "${rawStatus}")`);
+              return null;
+            }
           }
 
-          const teamSessions = sessionsIndex[teamId] || [];
           const teamData = await fetchTeamData(teamId);
 
-          // For lecturer accounts: only show groups where they are the mentor
+          // For lecturer accounts: check if they are mentor OR in committee
           if (isLecturer && currentLecturerId) {
             const teamMentorId = teamData?.mentorId || teamData?.MentorId || null;
-            if (!teamMentorId || teamMentorId !== currentLecturerId) {
+            const isMentor = teamMentorId === currentLecturerId;
+            
+            // Check if team's committee (from teamData) includes the lecturer
+            const teamCommitteeId = pickFirstValue(
+              teamData?.committeeId,
+              teamData?.CommitteeId
+            );
+            const isInTeamCommittee = teamCommitteeId && lecturerCommitteeIds.has(teamCommitteeId);
+            
+            // Check if any session has a committee that the lecturer is part of
+            const isInSessionCommittee = teamSessions.some((session) => {
+              const sessionCommitteeId = pickFirstValue(
+                session?.committeeId,
+                session?.CommitteeId,
+                session?.committee?.committeeId
+              );
+              return sessionCommitteeId && lecturerCommitteeIds.has(sessionCommitteeId);
+            });
+
+            // Debug log for team 006 or any team
+            console.log(`[GradingPage] Team ${teamId} check:`, {
+              teamCode: teamData?.teamCode || teamData?.teamName,
+              teamMentorId,
+              currentLecturerId,
+              isMentor,
+              teamCommitteeId,
+              isInTeamCommittee,
+              sessionCount: teamSessions.length,
+              isInSessionCommittee,
+              lecturerCommitteeIds: [...lecturerCommitteeIds],
+            });
+            
+            // Show if lecturer is mentor OR in team's committee OR in any session's committee
+            if (!isMentor && !isInTeamCommittee && !isInSessionCommittee) {
+              console.log(`[GradingPage] Team ${teamId} FILTERED OUT - not mentor and not in committee`);
               return null;
             }
           }
 
           if (teamSessions.length === 0) {
-            return transformToGroup(null, proposal, teamData);
+            return transformToGroup(null, proposal, teamData, null, currentLecturerId);
           }
 
-          return teamSessions.map((session) =>
-            transformToGroup(
+          // Fetch grading status for each session using new backend API
+          const sessionGroupsPromises = teamSessions.map(async (session) => {
+            const sessionIdentifier = pickFirstValue(
+              session?.sessionId,
+              session?.SessionId,
+              session?.gradingSessionId,
+              session?.GradingSessionId
+            );
+            
+            let gradingStatus = null;
+            let hasCurrentLecturerGraded = false;
+            let isFullyGraded = false;
+            
+            if (sessionIdentifier) {
+              try {
+                // Use new backend API that returns complete grading progress
+                gradingStatus = await GradingAPI.getSessionGradingStatus(sessionIdentifier);
+                
+                // Backend now returns: gradedLecturerIds, completedEvaluators, requiredEvaluators, isFullyGraded
+                const gradedLecturerIds = gradingStatus?.gradedLecturerIds || [];
+                isFullyGraded = gradingStatus?.isFullyGraded || false;
+                
+                // Check if current lecturer has already graded (completed all criteria)
+                if (currentLecturerId) {
+                  hasCurrentLecturerGraded = gradedLecturerIds.includes(Number(currentLecturerId));
+                }
+                
+                console.log(`[GradingPage] Session ${sessionIdentifier} grading status from backend:`, {
+                  currentLecturerId,
+                  gradedLecturerIds,
+                  completedEvaluators: gradingStatus?.completedEvaluators,
+                  requiredEvaluators: gradingStatus?.requiredEvaluators,
+                  hasCurrentLecturerGraded,
+                  isFullyGraded,
+                  sessionStatus: gradingStatus?.sessionStatus
+                });
+              } catch (err) {
+                console.warn(`Could not fetch grading status for session ${sessionIdentifier}:`, err);
+              }
+            }
+            
+            // Build gradingStatus object for GroupCard with data from backend
+            const gradingStatusForCard = {
+              gradedLecturerIds: gradingStatus?.gradedLecturerIds || [],
+              completedEvaluators: gradingStatus?.completedEvaluators || 0,
+              requiredEvaluators: gradingStatus?.requiredEvaluators || 3,
+              hasCurrentLecturerGraded,
+              isFullyGraded,
+              sessionStatus: gradingStatus?.sessionStatus || "Active",
+              evaluatorProgress: gradingStatus?.evaluatorProgress || [],
+            };
+            
+            return transformToGroup(
               session,
               proposal,
-              resolveTeamContext(session, teamData)
-            )
-          );
+              resolveTeamContext(session, teamData),
+              gradingStatusForCard,
+              currentLecturerId
+            );
+          });
+          
+          return Promise.all(sessionGroupsPromises);
         });
 
       const groupResults = await Promise.all(groupPromises);
@@ -458,19 +762,29 @@ const GradingPage = () => {
     }
   };
 
+  // Reload groups when accountType is available or changes
   useEffect(() => {
-    loadGroups();
-  }, []);
+    // Only load when we have a valid accountType (from Redux or localStorage)
+    if (accountType) {
+      loadGroups();
+    }
+  }, [accountType]);
 
   useEffect(() => {
     const sessionId = searchParams.get("sessionId");
     if (sessionId && groups.length > 0) {
       const group = groups.find((g) => String(g.sessionId) === sessionId);
       if (group) {
-        setSelectedGroup({ ...group, sessionId });
+        // Only update if sessionId changed to prevent infinite loop
+        setSelectedGroup((prev) => {
+          if (prev?.sessionId === sessionId) {
+            return prev; // Return same reference if sessionId unchanged
+          }
+          return { ...group, sessionId };
+        });
       }
     } else if (!sessionId) {
-      setSelectedGroup(null);
+      setSelectedGroup((prev) => prev === null ? prev : null);
     }
   }, [searchParams, groups]);
 
@@ -554,6 +868,72 @@ const GradingPage = () => {
     setError("");
   };
 
+  /**
+   * Handle view score - navigate to grading detail page in view mode
+   * @param {Object} group - Group data
+   */
+  const handleViewScore = (group) => {
+    if (group.sessionId) {
+      setSearchParams({ sessionId: group.sessionId });
+    } else {
+      setSelectedGroup(group);
+    }
+  };
+
+  /**
+   * Format date for file naming
+   * @param {Date} date - Date object
+   * @returns {string} Formatted date string
+   */
+  const formatDate = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  /**
+   * Handle export Excel for a completed grading session
+   * Only allowed when all 3 committee roles have graded
+   * @param {Object} group - Group data with sessionId
+   */
+  const handleExportExcel = useCallback(async (group) => {
+    if (!group.sessionId) {
+      setToastErrors(["Không tìm thấy phiên chấm điểm."]);
+      return;
+    }
+
+    // Check if all 3 roles have graded
+    const gradingStatus = group.gradingStatusByRole;
+    if (!gradingStatus?.isFullyGraded) {
+      const ungradedRoles = gradingStatus?.ungradedRoles || ["Chủ tịch", "Thư ký", "Phản biện"];
+      setToastErrors([`Chưa đủ điểm từ hội đồng. Còn thiếu: ${ungradedRoles.join(", ")}`]);
+      return;
+    }
+
+    try {
+      setExporting(true);
+
+      // Call backend API to get Excel file
+      const blob = await GradingAPI.exportSessionExcel(group.sessionId);
+
+      // Generate filename with team name and date
+      const teamName = group?.team || "Nhom";
+      const fileName = `KetQuaCham_${teamName}_${formatDate(new Date()).replace(/\//g, "-")}.xlsx`;
+
+      // Download the file
+      saveAs(blob, fileName);
+
+      setToastSuccess("Xuất file Excel thành công!");
+    } catch (err) {
+      console.error("Export Excel error:", err);
+      setToastErrors([err.message || "Không thể xuất file Excel. Vui lòng thử lại."]);
+    } finally {
+      setExporting(false);
+    }
+  }, []);
+
   if (selectedGroup) {
     return (
       <div className={styles.gradingPage}>
@@ -619,7 +999,19 @@ const GradingPage = () => {
         <GroupGrid
           groups={filteredGroups}
           onStartGrading={handleStartGrading}
+          onViewScore={handleViewScore}
+          onExportExcel={handleExportExcel}
+          isAdmin={isAdmin}
         />
+        {exporting && <LoadingFullScreen message="Đang xuất file Excel..." />}
+        {(toastErrors.length > 0 || toastSuccess) && (
+          <Toasts
+            errors={toastErrors}
+            onClearErrors={() => setToastErrors([])}
+            successMessage={toastSuccess}
+            onClearSuccess={() => setToastSuccess("")}
+          />
+        )}
       </div>
     </div>
   );
