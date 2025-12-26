@@ -9,9 +9,7 @@ import { deleteStudent } from "../../../../store/studentSlice";
 import { autoArrangeTeamAPI } from "../../../../services/TeamsAPI";
 import ViewStudent from "../../QuanLyTaiKhoan/ViewStudent/ViewStudent";
 import UpdateStudent from "../../QuanLyTaiKhoan/UpdateStudent/UpdateStudent";
-import FilterSelect from "../../../../components/ui/FilterSelect"; // Added FilterSelect import
 import Toasts from "../../../../components/ui/Toasts";
-import useToast from "../../../../hooks/useToast";
 // import "./QuanLyNhomDeTai.scss"; // CSS đã được import ở file cha
 
 const StudentsContent = () => {
@@ -53,15 +51,10 @@ const StudentsContent = () => {
   // Trạng thái xóa
   const [deletingId, setDeletingId] = useState(null);
 
-  const {
-    toastErrors,
-    toastSuccess,
-    pushError,
-    showSuccess,
-    clearErrorAt,
-    clearErrors,
-    clearSuccess,
-  } = useToast();
+  // Toast state
+  const [toastSuccess, setToastSuccess] = useState("");
+  const [toastErrors, setToastErrors] = useState([]);
+  const pushError = (msg) => setToastErrors((prev) => [...prev, msg].slice(-3)); // giữ tối đa 3 lỗi gần nhất
 
   // ===== FILTERS & PAGINATION (LOGIC TÁCH RA TỪ CHA) =====
   const filteredStudents = useMemo(() => {

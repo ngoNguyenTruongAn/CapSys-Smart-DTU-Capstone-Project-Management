@@ -250,7 +250,8 @@ export default function CreateSessionModal({
   );
   const [sessionDate, setSessionDate] = useState("");
   const [selectedDay, setSelectedDay] = useState(null);
-  const [selectedTime, setSelectedTime] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null); // startTime
+  const [selectedEndTime, setSelectedEndTime] = useState(null); // endTime
   const [currentMonth, setCurrentMonth] = useState(() =>
     getMonthStart(new Date())
   );
@@ -272,10 +273,15 @@ export default function CreateSessionModal({
     [currentMonth]
   );
   const selectionSummary = useMemo(() => {
+    if (selectedDay && selectedTime && selectedEndTime) {
+      return `${formatLongDate(selectedDay)} · ${formatTimeLabel(
+        selectedTime
+      )} - ${formatTimeLabel(selectedEndTime)}`;
+    }
     if (selectedDay && selectedTime) {
       return `${formatLongDate(selectedDay)} · ${formatTimeLabel(
         selectedTime
-      )}`;
+      )} - Chọn giờ kết thúc`;
     }
     if (sessionDate) {
       const parsed = parseInputValue(sessionDate);
@@ -286,7 +292,7 @@ export default function CreateSessionModal({
       }
     }
     return "Pick a date and time";
-  }, [selectedDay, selectedTime, sessionDate]);
+  }, [selectedDay, selectedTime, selectedEndTime, sessionDate]);
 
   React.useEffect(() => {
     setTeamId(defaultTeamId ? String(defaultTeamId) : "");
@@ -335,8 +341,8 @@ export default function CreateSessionModal({
   }, [isPickerOpen]);
 
   const disabled = useMemo(() => {
-    return !teamId || !sessionType || !sessionDate;
-  }, [teamId, sessionType, sessionDate]);
+    return !teamId || !sessionType || !sessionDate || !selectedTime || !selectedEndTime;
+  }, [teamId, sessionType, sessionDate, selectedTime, selectedEndTime]);
 
   const setSessionDateFromPicker = (day, time) => {
     if (!day || !time) return;
@@ -409,22 +415,49 @@ export default function CreateSessionModal({
     );
   };
 
+  // Helper function to convert time string "HH:mm" to TimeSpan format "HH:mm:ss"
+  const toTimeSpan = (timeStr) => {
+    if (!timeStr) return null;
+    // Ensure format is HH:mm:ss
+    if (timeStr.length === 5) {
+      return `${timeStr}:00`;
+    }
+    return timeStr;
+  };
+
   const handleSubmit = async () => {
     if (disabled || saving) return;
+    
+    // Validate endTime > startTime
+    if (selectedTime && selectedEndTime) {
+      if (toMinutes(selectedEndTime) <= toMinutes(selectedTime)) {
+        setError("Giờ kết thúc phải sau giờ bắt đầu!");
+        return;
+      }
+    }
+
     setSaving(true);
     setError("");
     try {
       const resolvedCommitteeId = committeeId
         ? Number(committeeId)
         : DEFAULT_COMMITTEE_ID;
+      
+      // Extract just the date part from sessionDate for SessionDate field
+      const dateOnly = sessionDate ? sessionDate.split('T')[0] : null;
+      
       const payload = {
         committeeId: resolvedCommitteeId,
         teamId: Number(teamId),
         createdBy: createdBy || 0,
-        sessionDate: toIsoOrNull(sessionDate),
+        sessionDate: dateOnly ? `${dateOnly}T00:00:00` : null, // Send as midnight, time is in separate fields
+        startTime: toTimeSpan(selectedTime),
+        endTime: toTimeSpan(selectedEndTime),
         sessionType: sessionType?.trim(),
         notes: notes?.trim() || null,
       };
+      
+      console.log("Creating session with payload:", payload);
       await GradingAPI.createSession(payload);
       if (typeof onCreated === "function") onCreated();
       handleClose();
@@ -589,7 +622,7 @@ export default function CreateSessionModal({
                       </div>
                     </div>
                     <div className={styles.timeColumn}>
-                      <div className={styles.timeColumnTitle}>Time</div>
+                      <div className={styles.timeColumnTitle}>Giờ bắt đầu</div>
                       <div className={styles.timeList}>
                         {TIME_SLOTS.map((slot) => {
                           const isSelected = slot === selectedTime;
@@ -605,6 +638,34 @@ export default function CreateSessionModal({
                               key={slot}
                               className={slotClassNames}
                               onClick={() => handleTimeSelect(slot)}
+                              aria-pressed={isSelected}
+                            >
+                              {formatTimeLabel(slot)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <div className={styles.timeColumn}>
+                      <div className={styles.timeColumnTitle}>Giờ kết thúc</div>
+                      <div className={styles.timeList}>
+                        {TIME_SLOTS.filter(slot => !selectedTime || toMinutes(slot) > toMinutes(selectedTime)).map((slot) => {
+                          const isSelected = slot === selectedEndTime;
+                          const slotClassNames = [
+                            styles.timeSlot,
+                            isSelected ? styles.timeSlotSelected : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ");
+                          return (
+                            <button
+                              type="button"
+                              key={`end-${slot}`}
+                              className={slotClassNames}
+                              onClick={() => {
+                                setSelectedEndTime(slot);
+                                setIsPickerOpen(false);
+                              }}
                               aria-pressed={isSelected}
                             >
                               {formatTimeLabel(slot)}

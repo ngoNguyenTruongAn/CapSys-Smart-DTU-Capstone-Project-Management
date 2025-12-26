@@ -118,8 +118,8 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   display: flex;
   gap: 14px;
   padding: 14px;
-  width: 360px;
-  max-width: 80vw;
+  width: 500px;
+  max-width: 90vw;
   border: 1px solid #eef2ff;
   border-radius: 18px;
   background: #fff;

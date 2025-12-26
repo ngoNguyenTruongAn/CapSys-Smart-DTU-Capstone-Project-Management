@@ -8,9 +8,7 @@ import {
   fetchMentorWorkload,
 } from "../../../../store/teamSlice";
 import TeamDetailModal from "../Action/TeamDetailModal"; // Import modal chi tiết nhóm
-import FilterSelect from "../../../../components/ui/FilterSelect";
 import Toasts from "../../../../components/ui/Toasts";
-import useToast from "../../../../hooks/useToast";
 // import "./QuanLyNhomDeTai.scss"; // CSS đã được import ở file cha
 
 const TeamsContent = () => {
@@ -306,14 +304,6 @@ const TeamsContent = () => {
               {paginatedTeams.map((team) => (
                 <div key={team.teamId} className="team-card">
                   <div className="team-header">
-
-            <Toasts
-              errors={toastErrors}
-              onClearErrorAt={clearErrorAt}
-              onClearErrors={clearErrors}
-              successMessage={toastSuccess}
-              onClearSuccess={clearSuccess}
-            />
                     <h4>{team.teamName}</h4>
                     <button
                       onClick={() => handleUpdateTeam(team.teamId)}
