@@ -50,7 +50,11 @@ export default function StudentDashboard() {
       const status = team.proposalStatus?.toLowerCase();
       if (status === "approved" || status === "đã duyệt") {
         currentPhase = 4; // Đã duyệt (Triển khai)
-      } else {
+      }
+      if(status === "completed" || status === "hoàn thành"){
+        currentPhase = 5; // Đã hoàn thành bảo vệ
+      }
+       else {
         currentPhase = 3; // Chờ duyệt
       }
     }
