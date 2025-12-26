@@ -9,6 +9,8 @@ import {
 } from "../../../../store/teamSlice";
 import TeamDetailModal from "../Action/TeamDetailModal"; // Import modal chi tiết nhóm
 import FilterSelect from "../../../../components/ui/FilterSelect";
+import Toasts from "../../../../components/ui/Toasts";
+import useToast from "../../../../hooks/useToast";
 // import "./QuanLyNhomDeTai.scss"; // CSS đã được import ở file cha
 
 const TeamsContent = () => {
@@ -58,6 +60,16 @@ const TeamsContent = () => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
+
+  const {
+    toastErrors,
+    toastSuccess,
+    pushError,
+    showSuccess,
+    clearErrorAt,
+    clearErrors,
+    clearSuccess,
+  } = useToast();
 
   // ===== FILTER LOGIC =====
   const filteredTeams = useMemo(() => {
@@ -109,14 +121,14 @@ const TeamsContent = () => {
 
     try {
       await dispatch(deleteTeam(teamId)).unwrap();
-      alert("Xóa nhóm thành công!");
+      showSuccess("Xóa nhóm thành công!");
       // Refresh data for both capstone types
       const res1 = await dispatch(fetchAllTeams(1)).unwrap();
       const res2 = await dispatch(fetchAllTeams(2)).unwrap();
       setAllTeams([...(res1 || []), ...(res2 || [])]);
     } catch (error) {
       console.error("Error deleting team:", error);
-      alert("Có lỗi khi xóa nhóm: " + error.message);
+      pushError("Có lỗi khi xóa nhóm: " + (error?.message || "Không xác định"));
     }
   };
 
@@ -139,7 +151,7 @@ const TeamsContent = () => {
 
   const confirmAssignMentor = async () => {
     if (!selectedMentorId || !assigningTeamId) {
-      alert("Vui lòng chọn giảng viên để gán.");
+      pushError("Vui lòng chọn giảng viên để gán.");
       return;
     }
     try {
@@ -150,7 +162,7 @@ const TeamsContent = () => {
           mentorId: selectedMentorId,
         })
       ).unwrap();
-      alert("Gán mentor thành công!");
+      showSuccess("Gán mentor thành công!");
       const res1 = await dispatch(fetchAllTeams(1)).unwrap();
       const res2 = await dispatch(fetchAllTeams(2)).unwrap();
       setAllTeams([...(res1 || []), ...(res2 || [])]);
@@ -158,7 +170,7 @@ const TeamsContent = () => {
       setAssigningTeamId(null);
       setSelectedMentorId(null);
     } catch (error) {
-      alert("Gán mentor thất bại: " + error);
+      pushError("Gán mentor thất bại: " + (error?.message || error));
     } finally {
       setAssigning(false);
     }
@@ -203,14 +215,14 @@ const TeamsContent = () => {
 
     try {
       await dispatch(removeMentor(teamId)).unwrap();
-      alert("Gỡ mentor thành công!");
+      showSuccess("Gỡ mentor thành công!");
       // Refresh data for both capstone types
       const res1 = await dispatch(fetchAllTeams(1)).unwrap();
       const res2 = await dispatch(fetchAllTeams(2)).unwrap();
       setAllTeams([...(res1 || []), ...(res2 || [])]);
     } catch (error) {
       console.error("Error removing mentor:", error);
-      alert("Có lỗi khi gỡ mentor: " + error.message);
+      pushError("Có lỗi khi gỡ mentor: " + (error?.message || "Không xác định"));
     }
   };
 
@@ -294,6 +306,14 @@ const TeamsContent = () => {
               {paginatedTeams.map((team) => (
                 <div key={team.teamId} className="team-card">
                   <div className="team-header">
+
+            <Toasts
+              errors={toastErrors}
+              onClearErrorAt={clearErrorAt}
+              onClearErrors={clearErrors}
+              successMessage={toastSuccess}
+              onClearSuccess={clearSuccess}
+            />
                     <h4>{team.teamName}</h4>
                     <button
                       onClick={() => handleUpdateTeam(team.teamId)}

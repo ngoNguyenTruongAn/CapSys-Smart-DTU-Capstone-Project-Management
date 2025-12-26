@@ -8,6 +8,8 @@ import React, {
 import { useDispatch, useSelector } from "react-redux";
 import { deleteStudent, fetchStudents } from "../../../store/studentSlice";
 import { deleteLecturer, fetchLecturers } from "../../../store/lecturerSlice";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus, faFolder, faHourglass } from "@fortawesome/free-solid-svg-icons";
 import "./QuanLyTaiKhoan.scss";
 import RegisterStudent from "./RegisterStudent/RegisterStudent";
 import RegisterLecturer from "./RegisterLecturer/RegisterLecturer";
@@ -441,7 +443,7 @@ const QuanLyTaiKhoan = () => {
             }
           }}
         >
-          ➕ Thêm tài khoản
+          <FontAwesomeIcon icon={faPlus} /> Thêm tài khoản
         </button>
       </header>
 
@@ -456,7 +458,7 @@ const QuanLyTaiKhoan = () => {
         {activeTab === "students" ? (
           <>
             <label className="btn-secondary file-picker">
-              📁 Chọn file sinh viên
+              <FontAwesomeIcon icon={faFolder} /> Chọn file sinh viên
               <input
                 type="file"
                 accept=".xlsx,.xls"
@@ -481,7 +483,7 @@ const QuanLyTaiKhoan = () => {
         ) : (
           <>
             <label className="btn-secondary file-picker">
-              📁 Chọn file giảng viên
+              <FontAwesomeIcon icon={faFolder} /> Chọn file giảng viên
               <input
                 type="file"
                 accept=".xlsx,.xls"
@@ -508,11 +510,11 @@ const QuanLyTaiKhoan = () => {
         >
           {activeTab === "students"
             ? isStudentImporting
-              ? "⏳ Đang import..."
-              : "📂 Import sinh viên"
+              ? <><FontAwesomeIcon icon={faHourglass} /> Đang import...</>
+              : <><FontAwesomeIcon icon={faFolder} /> Import sinh viên</>
             : isLecturerImporting
-            ? "⏳ Đang import..."
-            : "📂 Import giảng viên"}
+            ? <><FontAwesomeIcon icon={faHourglass} /> Đang import...</>
+            : <><FontAwesomeIcon icon={faFolder} /> Import giảng viên</>}
         </button>
 
         {(activeTab === "students" && isStudentImporting) ||

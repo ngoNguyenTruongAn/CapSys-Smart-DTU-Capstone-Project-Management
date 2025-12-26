@@ -8,7 +8,14 @@ import { getAllLecturersAPI } from "../../../../services/LecturersAPI";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../QuanLyHoiDong.scss";
 
-const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
+const UpdateCommitteeModal = ({
+  show,
+  setShow,
+  committeeId,
+  onSuccess,
+  onToastSuccess,
+  onToastError,
+}) => {
   const [formData, setFormData] = useState({
     committeeName: "",
     chairmanId: "",
@@ -137,11 +144,12 @@ const UpdateCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
         parseInt(formData.chairmanId),
         members
       );
-      alert("Cập nhật hội đồng thành công");
+      if (onToastSuccess) onToastSuccess("Cập nhật hội đồng thành công");
       handleClose();
       if (onSuccess) onSuccess();
     } catch (err) {
       setError(err.message || "Lỗi khi cập nhật hội đồng");
+      if (onToastError) onToastError(err?.message || "Lỗi khi cập nhật hội đồng");
     } finally {
       setLoading(false);
     }

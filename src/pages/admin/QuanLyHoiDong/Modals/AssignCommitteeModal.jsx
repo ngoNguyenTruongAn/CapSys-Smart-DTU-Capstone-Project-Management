@@ -8,7 +8,14 @@ import { getAllTeamsAPI } from "../../../../services/TeamsAPI";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../QuanLyHoiDong.scss";
 
-const AssignCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
+const AssignCommitteeModal = ({
+  show,
+  setShow,
+  committeeId,
+  onSuccess,
+  onToastSuccess,
+  onToastError,
+}) => {
   const [formData, setFormData] = useState({
     committeeId: "",
     teamId: "",
@@ -98,11 +105,12 @@ const AssignCommitteeModal = ({ show, setShow, committeeId, onSuccess }) => {
         parseInt(formData.committeeId),
         parseInt(formData.teamId)
       );
-      alert("Phân công hội đồng thành công");
+      if (onToastSuccess) onToastSuccess("Phân công hội đồng thành công");
       handleClose();
       if (onSuccess) onSuccess();
     } catch (err) {
       setError(err.message || "Lỗi khi phân công hội đồng");
+      if (onToastError) onToastError(err?.message || "Lỗi khi phân công hội đồng");
     } finally {
       setLoading(false);
     }

@@ -24,6 +24,8 @@ import RejectButton from "../layout-proposal-common/Button/RejectButton";
 import AddProposalModal from "../layout-proposal-common/Modal/AddProposalModal";
 // 1. IMPORT LOGIC TÌM KIẾM
 import { searchProposals } from "../proposals-logic/ProposalSearch-logic"; 
+import Toasts from "../../../components/ui/Toasts";
+import useToast from "../../../hooks/useToast";
 
 // ==========================================
 // CÁC HÀM HELPER
@@ -77,6 +79,15 @@ const formatDate = (value) => {
 function Proposaldetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const {
+    toastErrors,
+    toastSuccess,
+    pushError,
+    showSuccess,
+    clearErrorAt,
+    clearErrors,
+    clearSuccess,
+  } = useToast();
   
   const {
     proposals,
@@ -327,9 +338,10 @@ function Proposaldetail() {
     if (typeof deleteProposal === "function") {
       deleteProposal(pid).then((result) => {
         if (result.success) {
+          showSuccess("Đã xóa đề tài thành công");
           navigate("/proposals", { replace: true });
         } else {
-          alert(result.message || "Xóa thất bại!");
+          pushError(result.message || "Xóa thất bại!");
         }
       });
     }
@@ -666,6 +678,14 @@ function Proposaldetail() {
         onConfirm={handleConfirmDelete}
         title="Xóa Đề Tài?"
         message="Bạn có chắc chắn muốn xóa đề tài này không? Dữ liệu sẽ bị mất vĩnh viễn."
+      />
+
+      <Toasts
+        errors={toastErrors}
+        onClearErrorAt={clearErrorAt}
+        onClearErrors={clearErrors}
+        successMessage={toastSuccess}
+        onClearSuccess={clearSuccess}
       />
     </>
   );

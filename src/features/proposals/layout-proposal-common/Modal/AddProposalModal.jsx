@@ -10,6 +10,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useProposalsStore } from "../../../../services/ProposalAPI";
 import { getAllTeamCodesAPI } from "../../../../services/TeamsAPI";
+import Toasts from "../../../../components/ui/Toasts";
+import useToast from "../../../../hooks/useToast";
 
 export default function AddProposalModal() {
   const {
@@ -34,6 +36,16 @@ export default function AddProposalModal() {
   const [filteredTeamCodes, setFilteredTeamCodes] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoadingTeamCodes, setIsLoadingTeamCodes] = useState(false);
+
+  const {
+    toastErrors,
+    toastSuccess,
+    pushError,
+    showSuccess,
+    clearErrorAt,
+    clearErrors,
+    clearSuccess,
+  } = useToast();
 
   // Map teamContext -> members & proposalTitle
   useEffect(() => {
@@ -85,7 +97,8 @@ export default function AddProposalModal() {
     };
   }, [isModalOpen]);
 
-  if (!isModalOpen) return null;
+  const shouldRenderShell = isModalOpen || toastErrors.length > 0 || !!toastSuccess;
+  if (!shouldRenderShell) return null;
 
   const reset = () => {
     setTeamId("");
@@ -99,7 +112,7 @@ export default function AddProposalModal() {
   const onLookupTeam = async () => {
     const id = teamId.trim();
     if (!id) {
-      alert("Vui lòng nhập Tên Nhóm!");
+      pushError("Vui lòng nhập Tên Nhóm!");
       return;
     }
     setShowSuggestions(false);
@@ -138,31 +151,36 @@ export default function AddProposalModal() {
 
     // Check logic cũ: nếu đã có proposal thì chặn (tùy nhu cầu của bạn có thể bỏ check này nếu muốn cho phép update)
     if (teamContext?.existingProposal?.title) {
-      alert("Team này đã có proposal rồi.");
+      pushError("Team này đã có proposal rồi.");
+      return;
+    }
+
+    if (!teamContext?.mentorName || teamContext.mentorName.trim() === "") {
+      pushError("Nhóm này chưa có Mentor (GVHD). Vui lòng có Mentor trước khi tạo đề tài.");
       return;
     }
 
     // 4. Validate Tên Đề Tài
     const titleToSend = proposalTitle.trim();
     if (!titleToSend) {
-      alert("Vui lòng nhập Tên Đề Tài.");
+      pushError("Vui lòng nhập Tên Đề Tài.");
       return;
     }
 
     if (!String(teamId).trim()) {
-      alert("Vui lòng nhập/tra cứu Tên Nhóm.");
+      pushError("Vui lòng nhập/tra cứu Tên Nhóm.");
       return;
     }
     if (!file) {
-      alert("Vui lòng chọn file PDF.");
+      pushError("Vui lòng chọn file PDF.");
       return;
     }
     if (file.type !== "application/pdf") {
-      alert("Chỉ chấp nhận file PDF.");
+      pushError("Chỉ chấp nhận file PDF.");
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      alert("File không được vượt quá 10MB.");
+      pushError("File không được vượt quá 10MB.");
       return;
     }
 
@@ -210,10 +228,11 @@ export default function AddProposalModal() {
 
     const ok = await addProposal(fd);
     if (ok?.success) {
+      showSuccess("Thêm đề tài thành công");
       reset();
       closeModal();
     } else {
-      alert(`Lỗi khi thêm đề tài: ${ok?.message || "Không thể thêm đề tài"}`);
+      pushError(`Lỗi khi thêm đề tài: ${ok?.message || "Không thể thêm đề tài"}`);
     }
   };
 
@@ -222,15 +241,17 @@ export default function AddProposalModal() {
 
   return (
     <>
-      {isLoading && (
-        <div className={styles.loadingFullScreen} style={{ color: "white" }}>
-          <FontAwesomeIcon icon={faSpinner} spin size="3x" />
-          <span>Đang lưu...</span>
-        </div>
-      )}
+      {isModalOpen && (
+        <>
+          {isLoading && (
+            <div className={styles.loadingFullScreen} style={{ color: "white" }}>
+              <FontAwesomeIcon icon={faSpinner} spin size="3x" />
+              <span>Đang lưu...</span>
+            </div>
+          )}
 
-      <div className={styles.overlay} onClick={closeModal}>
-        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.overlay} onClick={closeModal}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
           <div className={styles.header}>
             <h3>Tạo đồ án mới</h3>
             <p className={styles.subtitle}>
@@ -427,7 +448,7 @@ export default function AddProposalModal() {
                     if (droppedFile && droppedFile.type === "application/pdf") {
                       setFile(droppedFile);
                     } else {
-                      alert("Chỉ chấp nhận file PDF.");
+                      pushError("Chỉ chấp nhận file PDF.");
                     }
                   }}
                 >
@@ -479,8 +500,18 @@ export default function AddProposalModal() {
               </button>
             </div>
           </form>
-        </div>
-      </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      <Toasts
+        errors={toastErrors}
+        onClearErrorAt={clearErrorAt}
+        onClearErrors={clearErrors}
+        successMessage={toastSuccess}
+        onClearSuccess={clearSuccess}
+      />
     </>
   );
 }

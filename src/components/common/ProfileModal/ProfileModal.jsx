@@ -7,6 +7,8 @@ import {
   updateAdminProfileAPI,
 } from "../../../services/ProfileAPI";
 import { getUserIdFromToken } from "./utils";
+import Toasts from "../../ui/Toasts";
+import useToast from "../../../hooks/useToast";
 
 const ProfileModal = ({ show, setShow, onProfileUpdate }) => {
   const [profile, setProfile] = useState({
@@ -38,6 +40,15 @@ const ProfileModal = ({ show, setShow, onProfileUpdate }) => {
     new: false,
     confirm: false,
   });
+  const {
+    toastErrors,
+    toastSuccess,
+    pushError,
+    showSuccess,
+    clearErrorAt,
+    clearErrors,
+    clearSuccess,
+  } = useToast();
 
   // Cleanup khi modal đóng - chỉ cleanup state
   useEffect(() => {
@@ -179,17 +190,17 @@ const ProfileModal = ({ show, setShow, onProfileUpdate }) => {
     }
 
     // API call đã được loại bỏ
-    alert("Chức năng đổi mật khẩu đã được vô hiệu hóa.");
+    pushError("Chức năng đổi mật khẩu đã được vô hiệu hóa.");
   };
 
   const handleUpdateFullName = async (fullName) => {
     if (!fullName) {
-      alert("Vui lòng nhập họ và tên!");
+      pushError("Vui lòng nhập họ và tên!");
       return;
     }
 
     if (!profile.accountId) {
-      alert("Không thể xác định tài khoản. Vui lòng thử lại.");
+      pushError("Không thể xác định tài khoản. Vui lòng thử lại.");
       return;
     }
 
@@ -206,7 +217,7 @@ const ProfileModal = ({ show, setShow, onProfileUpdate }) => {
         onProfileUpdate(fullName);
       }
 
-      alert("Cập nhật họ và tên thành công!");
+      showSuccess("Cập nhật họ và tên thành công!");
     } catch (error) {
       console.error("Lỗi khi cập nhật họ và tên:", error);
       setSubmitError(
@@ -337,6 +348,14 @@ const ProfileModal = ({ show, setShow, onProfileUpdate }) => {
               </div>
             </div>
           </Tab>
+
+          <Toasts
+            errors={toastErrors}
+            onClearErrorAt={clearErrorAt}
+            onClearErrors={clearErrors}
+            successMessage={toastSuccess}
+            onClearSuccess={clearSuccess}
+          />
 
           <Tab eventKey="password" title="Đổi mật khẩu">
             <Form onSubmit={handlePasswordSubmit} className="password-form">

@@ -18,6 +18,8 @@ import {
 } from "../../../services/ProfileAPI";
 import { changePasswordAPI } from "../../../services/AuthAPI"; // Giả định AuthAPI có changePasswordAPI
 import { getUserIdFromToken } from "../ProfileModal/utils";
+import Toasts from "../../ui/Toasts";
+import useToast from "../../../hooks/useToast";
 
 const StudentProfileModal = ({ show, setShow, onProfileUpdate }) => {
   // State Profile gốc (Chứa tất cả 8 trường, 4 trường tĩnh)
@@ -58,6 +60,15 @@ const StudentProfileModal = ({ show, setShow, onProfileUpdate }) => {
     new: false,
     confirm: false,
   });
+  const {
+    toastErrors,
+    toastSuccess,
+    pushError,
+    showSuccess,
+    clearErrorAt,
+    clearErrors,
+    clearSuccess,
+  } = useToast();
 
   // Cleanup khi modal đóng
   useEffect(() => {
@@ -212,7 +223,7 @@ const StudentProfileModal = ({ show, setShow, onProfileUpdate }) => {
         onProfileUpdate(updatedFullName);
       }
 
-      alert("Cập nhật thông tin thành công!");
+      showSuccess("Cập nhật thông tin thành công!");
     } catch (error) {
       console.error("Lỗi khi cập nhật hồ sơ Sinh viên:", error);
       setSubmitError(
@@ -272,7 +283,7 @@ const StudentProfileModal = ({ show, setShow, onProfileUpdate }) => {
         confirmPassword: "",
       });
       setErrors({});
-      alert("Đổi mật khẩu thành công!");
+      showSuccess("Đổi mật khẩu thành công!");
     } catch (error) {
       console.error("Lỗi khi đổi mật khẩu:", error);
       setSubmitError(
@@ -325,6 +336,14 @@ const StudentProfileModal = ({ show, setShow, onProfileUpdate }) => {
         <Modal.Title>Thông tin tài khoản Sinh viên</Modal.Title>
       </Modal.Header>
       <Modal.Body>
+
+      <Toasts
+        errors={toastErrors}
+        onClearErrorAt={clearErrorAt}
+        onClearErrors={clearErrors}
+        successMessage={toastSuccess}
+        onClearSuccess={clearSuccess}
+      />
         {loadingProfile ? (
           <div className="text-center p-5">
             <Spinner animation="border" role="status" className="me-2" />

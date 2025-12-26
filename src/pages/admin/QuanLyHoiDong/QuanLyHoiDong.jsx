@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Spinner } from "react-bootstrap";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { getAllCommitteesAPI } from "../../../services/CommitteeAPI";
 import "./QuanLyHoiDong.scss";
 import CreateCommitteeModal from "./Modals/CreateCommitteeModal";
@@ -8,6 +12,8 @@ import ViewCommitteeModal from "./Modals/ViewCommitteeModal";
 import ValidateCommitteeModal from "./Modals/ValidateCommitteeModal";
 import SearchByTeamModal from "./Modals/SearchByTeamModal";
 import AssignCommitteeModal from "./Modals/AssignCommitteeModal";
+import Toasts from "../../../components/ui/Toasts";
+import useToast from "../../../hooks/useToast";
 
 const QuanLyHoiDong = () => {
   const [committees, setCommittees] = useState([]);
@@ -24,6 +30,15 @@ const QuanLyHoiDong = () => {
   const [showSearchByTeamModal, setShowSearchByTeamModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedCommitteeId, setSelectedCommitteeId] = useState(null);
+  const {
+    toastErrors,
+    toastSuccess,
+    pushError,
+    showSuccess,
+    clearErrorAt,
+    clearErrors,
+    clearSuccess,
+  } = useToast();
 
   // Fetch committees
   const fetchCommittees = useCallback(async () => {
@@ -33,14 +48,14 @@ const QuanLyHoiDong = () => {
       setCommittees(response.data || []);
     } catch (err) {
       console.error("Lỗi khi tải hội đồng:", err);
-      alert(
+      pushError(
         "Lỗi khi tải danh sách hội đồng: " +
           (err.message || "Lỗi không xác định")
       );
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pushError]);
 
   useEffect(() => {
     fetchCommittees();
@@ -94,12 +109,14 @@ const QuanLyHoiDong = () => {
   const handleCreateSuccess = () => {
     fetchCommittees();
     setShowCreateModal(false);
+    showSuccess("Tạo hội đồng thành công");
   };
 
   const handleUpdateSuccess = () => {
     fetchCommittees();
     setShowUpdateModal(false);
     setSelectedCommitteeId(null);
+    showSuccess("Cập nhật hội đồng thành công");
   };
 
   const handleAssign = (committeeId) => {
@@ -111,6 +128,7 @@ const QuanLyHoiDong = () => {
     fetchCommittees();
     setShowAssignModal(false);
     setSelectedCommitteeId(null);
+    showSuccess("Phân công hội đồng thành công");
   };
 
   return (
@@ -118,13 +136,13 @@ const QuanLyHoiDong = () => {
       <header className="qlda-toolbar">
         <div className="toolbar-controls">
           <button onClick={() => setShowCreateModal(true)}>
-            ➕ Tạo hội đồng mới
+            <FontAwesomeIcon icon={faPlus} /> Tạo hội đồng mới
           </button>
           <button onClick={() => setShowValidateModal(true)}>
-            ✓ Kiểm tra tính hợp lệ
+            <FontAwesomeIcon icon={faCheck} /> Kiểm tra tính hợp lệ
           </button>
           <button onClick={() => setShowSearchByTeamModal(true)}>
-            🔍 Tìm hội đồng theo nhóm
+            <FontAwesomeIcon icon={faMagnifyingGlass} /> Tìm hội đồng theo nhóm
           </button>
           <input
             type="text"
@@ -288,12 +306,16 @@ const QuanLyHoiDong = () => {
         show={showCreateModal}
         setShow={setShowCreateModal}
         onSuccess={handleCreateSuccess}
+        onToastSuccess={showSuccess}
+        onToastError={pushError}
       />
       <UpdateCommitteeModal
         show={showUpdateModal}
         setShow={setShowUpdateModal}
         committeeId={selectedCommitteeId}
         onSuccess={handleUpdateSuccess}
+        onToastSuccess={showSuccess}
+        onToastError={pushError}
       />
       <ViewCommitteeModal
         show={showViewModal}
@@ -313,6 +335,16 @@ const QuanLyHoiDong = () => {
         setShow={setShowAssignModal}
         committeeId={selectedCommitteeId}
         onSuccess={handleAssignSuccess}
+        onToastSuccess={showSuccess}
+        onToastError={pushError}
+      />
+
+      <Toasts
+        errors={toastErrors}
+        onClearErrorAt={clearErrorAt}
+        onClearErrors={clearErrors}
+        successMessage={toastSuccess}
+        onClearSuccess={clearSuccess}
       />
     </div>
   );

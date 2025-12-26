@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 // Tận dụng lại file CSS của Modal cũ để giao diện giống hệt
-import styles from "./AddProposalModal.module.scss"; 
+import styles from "./AddProposalModal.module.scss";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilePdf, faSpinner, faUpload, faTimes } from "@fortawesome/free-solid-svg-icons";
 import { uploadStudentProposalAPI } from "../../../../services/ProposalAPI"; // Import hàm vừa tạo ở Bước 1
+import Toasts from "../../../../components/ui/Toasts";
+import useToast from "../../../../hooks/useToast";
 
 export default function StudentAddProposalModal({ isOpen, onClose, teamInfo, onSuccess }) {
   const [title, setTitle] = useState("");
@@ -12,20 +14,34 @@ export default function StudentAddProposalModal({ isOpen, onClose, teamInfo, onS
   const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  if (!isOpen) return null;
+  const {
+    toastErrors,
+    toastSuccess,
+    pushError,
+    showSuccess,
+    clearErrorAt,
+    clearErrors,
+    clearSuccess,
+  } = useToast();
+
+  const shouldRenderShell = isOpen || toastErrors.length > 0 || !!toastSuccess;
+  if (!shouldRenderShell) return null;
 
   // Xử lý submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim()) {
-      alert("Vui lòng nhập tên đề tài");
+      pushError("Vui lòng nhập tên đề tài");
       return;
     }
     if (!file) {
-      alert("Vui lòng chọn file PDF");
+      pushError("Vui lòng chọn file PDF");
       return;
     }
-
+    if (!teamContext?.mentorName || teamContext.mentorName.trim() === "") {
+      pushError("Nhóm này chưa có Mentor (GVHD). Vui lòng có Mentor trước khi tạo đề tài.");
+      return;
+    }
     try {
       setLoading(true);
       const fd = new FormData();
@@ -34,12 +50,12 @@ export default function StudentAddProposalModal({ isOpen, onClose, teamInfo, onS
       fd.append("PdfFile", file);
 
       await uploadStudentProposalAPI(fd);
-      
-      alert("Đăng ký đề tài thành công!");
-      onSuccess(); 
-      onClose();   
+
+      showSuccess("Đăng ký đề tài thành công!");
+      if (onSuccess) onSuccess();
+      onClose();
     } catch (err) {
-      alert("Lỗi: " + err.message);
+      pushError("Lỗi: " + (err?.message || "Không xác định"));
     } finally {
       setLoading(false);
     }
@@ -51,15 +67,17 @@ export default function StudentAddProposalModal({ isOpen, onClose, teamInfo, onS
 
   return (
     <>
-      {loading && (
-        <div className={styles.loadingFullScreen} style={{ color: "white" }}>
-          <FontAwesomeIcon icon={faSpinner} spin size="3x" />
-          <span>Đang tải lên...</span>
-        </div>
-      )}
+      {isOpen && (
+        <>
+          {loading && (
+            <div className={styles.loadingFullScreen} style={{ color: "white" }}>
+              <FontAwesomeIcon icon={faSpinner} spin size="3x" />
+              <span>Đang tải lên...</span>
+            </div>
+          )}
 
-      <div className={styles.overlay} onClick={onClose}>
-        <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.overlay} onClick={onClose}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
           <div className={styles.header}>
             <h3>Đăng ký đồ án mới</h3>
             <p className={styles.subtitle}>Thông tin nhóm của bạn đã được xác định</p>
@@ -154,7 +172,7 @@ export default function StudentAddProposalModal({ isOpen, onClose, teamInfo, onS
                     setIsDragging(false);
                     const f = e.dataTransfer.files?.[0];
                     if (f && f.type === "application/pdf") setFile(f);
-                    else alert("Chỉ chấp nhận file PDF");
+                    else pushError("Chỉ chấp nhận file PDF");
                   }}
                 >
                   <input
@@ -183,7 +201,17 @@ export default function StudentAddProposalModal({ isOpen, onClose, teamInfo, onS
             </div>
           </form>
         </div>
-      </div>
+          </div>
+        </>
+      )}
+
+      <Toasts
+        errors={toastErrors}
+        onClearErrorAt={clearErrorAt}
+        onClearErrors={clearErrors}
+        successMessage={toastSuccess}
+        onClearSuccess={clearSuccess}
+      />
     </>
   );
 }

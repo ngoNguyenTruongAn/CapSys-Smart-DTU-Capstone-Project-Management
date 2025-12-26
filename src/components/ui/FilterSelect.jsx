@@ -173,7 +173,7 @@ export default function FilterSelect({
         >
           <path
             d="M7 10l5 5 5-5"
-            stroke="currentColor"
+            stroke="var(--text-white)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"

@@ -5,7 +5,7 @@ const LecturerDashboard = () => {
   return (
     <TongQuan
       mentorManagePath="/lecturer/cham-diem"
-      mentorButtonLabel="Di toi cham diem"
+      mentorButtonLabel="Xem tất cả"
       showMentorAction
     />
   );

@@ -10,6 +10,8 @@ import { autoArrangeTeamAPI } from "../../../../services/TeamsAPI";
 import ViewStudent from "../../QuanLyTaiKhoan/ViewStudent/ViewStudent";
 import UpdateStudent from "../../QuanLyTaiKhoan/UpdateStudent/UpdateStudent";
 import FilterSelect from "../../../../components/ui/FilterSelect"; // Added FilterSelect import
+import Toasts from "../../../../components/ui/Toasts";
+import useToast from "../../../../hooks/useToast";
 // import "./QuanLyNhomDeTai.scss"; // CSS đã được import ở file cha
 
 const StudentsContent = () => {
@@ -50,6 +52,16 @@ const StudentsContent = () => {
 
   // Trạng thái xóa
   const [deletingId, setDeletingId] = useState(null);
+
+  const {
+    toastErrors,
+    toastSuccess,
+    pushError,
+    showSuccess,
+    clearErrorAt,
+    clearErrors,
+    clearSuccess,
+  } = useToast();
 
   // ===== FILTERS & PAGINATION (LOGIC TÁCH RA TỪ CHA) =====
   const filteredStudents = useMemo(() => {
@@ -109,7 +121,7 @@ const StudentsContent = () => {
   // ===== TEAM MANAGEMENT (LOGIC TÁCH RA TỪ CHA) =====
   const handleCreateTeam = () => {
     if (selectedStudentIds.length === 0) {
-      alert("Chọn ít nhất 1 sinh viên để tạo nhóm!");
+      pushError("Chọn ít nhất 1 sinh viên để tạo nhóm!");
       return;
     }
     setTeamForm({ teamName: "", projectTitle: "", teamLeaderId: null }); // Reset form
@@ -118,15 +130,15 @@ const StudentsContent = () => {
 
   const confirmCreateTeam = async () => {
     if (!teamForm.teamName.trim()) {
-      alert("Vui lòng nhập tên nhóm!");
+      pushError("Vui lòng nhập tên nhóm!");
       return;
     }
     if (!teamForm.projectTitle.trim()) {
-      alert("Vui lòng nhập tên đề tài!");
+      pushError("Vui lòng nhập tên đề tài!");
       return;
     }
     if (!teamForm.teamLeaderId) {
-      alert("Vui lòng chọn trưởng nhóm!");
+      pushError("Vui lòng chọn trưởng nhóm!");
       return;
     }
 
@@ -140,7 +152,7 @@ const StudentsContent = () => {
       };
 
       await dispatch(createTeam(teamData)).unwrap();
-      alert("Tạo nhóm thành công!");
+  showSuccess("Tạo nhóm thành công!");
 
       // Reset form and refresh data
       setTeamForm({ teamName: "", projectTitle: "", teamLeaderId: null });
@@ -153,7 +165,7 @@ const StudentsContent = () => {
       ]);
     } catch (error) {
       console.error("Error creating team:", error.message);
-      alert("Có lỗi khi tạo nhóm: " + error.message);
+      pushError("Có lỗi khi tạo nhóm: " + (error?.message || "Không xác định"));
     }
   };
 
@@ -168,7 +180,7 @@ const StudentsContent = () => {
 
     try {
       const result = await autoArrangeTeamAPI(capstoneType);
-      alert(
+      showSuccess(
         `Tự động xếp nhóm thành công! Đã tạo ${result.teamsCreated || 0} nhóm.`
       );
       // Refresh data
@@ -178,7 +190,9 @@ const StudentsContent = () => {
       ]);
     } catch (error) {
       console.error("Error auto arranging:", error);
-      alert("Có lỗi khi tự động xếp nhóm: " + error.message);
+      pushError(
+        "Có lỗi khi tự động xếp nhóm: " + (error?.message || "Không xác định")
+      );
     }
   };
 
@@ -234,11 +248,11 @@ const StudentsContent = () => {
     try {
       setDeletingId(studentId);
       await dispatch(deleteStudent(studentId)).unwrap();
-      alert("Xóa sinh viên thành công");
+      showSuccess("Xóa sinh viên thành công");
       setSelectedStudentIds((prev) => prev.filter((id) => id !== studentId));
       await dispatch(fetchStudentsNotInTeam(capstoneType));
     } catch (error) {
-      alert(`Xóa sinh viên thất bại: ${error}`);
+      pushError(`Xóa sinh viên thất bại: ${error}`);
     } finally {
       setDeletingId(null);
     }
@@ -593,6 +607,13 @@ const StudentsContent = () => {
         show={showUpdateModal}
         setShow={handleCloseUpdateModal}
         studentId={activeStudentId}
+      />
+      <Toasts
+        errors={toastErrors}
+        onClearErrorAt={clearErrorAt}
+        onClearErrors={clearErrors}
+        successMessage={toastSuccess}
+        onClearSuccess={clearSuccess}
       />
     </>
   );

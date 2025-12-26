@@ -39,7 +39,7 @@ const RegisterStudent = ({ show, setShow }) => {
 
     // Kiểm tra điền đủ dữ liệu bắt buộc
     if (!email || !password || !fullName || !studentCode || !capstoneType) {
-      alert("Vui lòng điền đầy đủ thông tin bắt buộc!");
+      pushError("Vui lòng điền đầy đủ thông tin bắt buộc!");
       return false;
     }
 

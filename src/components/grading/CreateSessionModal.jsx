@@ -442,7 +442,7 @@ export default function CreateSessionModal({
       {saving && <LoadingFullScreen message="Đang tạo phiên chấm điểm..." />}
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <div className={styles.title}>Create Grading Session</div>
+          <div className={styles.title}>Tạo Phiên Chấm Điểm</div>
           <button
             className={styles.closeBtn}
             onClick={handleClose}
@@ -452,14 +452,14 @@ export default function CreateSessionModal({
           </button>
         </div>
         <div className={styles.subtitle}>
-          Set up a new grading session for a project team
+          Thiết lập phiên chấm điểm mới cho nhóm dự án
         </div>
 
         {error ? <div className={styles.error}>{error}</div> : null}
 
         <div className={styles.grid}>
           <div className={styles.field}>
-            <label>Committee ID</label>
+            <label>ID Hội Đồng</label>
             <input
               type="number"
               placeholder="e.g. 1"
@@ -468,7 +468,7 @@ export default function CreateSessionModal({
             />
           </div>
           <div className={styles.field}>
-            <label>Team ID</label>
+            <label>ID Nhóm</label>
             <input
               type="number"
               placeholder="e.g. 403"
@@ -477,11 +477,11 @@ export default function CreateSessionModal({
             />
           </div>
           <div className={styles.field}>
-            <label>Session Date</label>
+            <label>Phiên ngày</label>
             <div className={styles.dateFieldWrapper} ref={pickerWrapperRef}>
               <input
                 type="datetime-local"
-                placeholder="Select date & time"
+                placeholder="Chọn ngày & giờ"
                 value={sessionDate}
                 onChange={handleInputChange}
                 onFocus={handleInputFocus}
@@ -620,18 +620,18 @@ export default function CreateSessionModal({
             </div>
           </div>
           <div className={styles.fieldFull}>
-            <label>Session Type</label>
+            <label>Loại Phiên</label>
             <input
               type="text"
-              placeholder="Mid-term Evaluation"
+              placeholder="Defend"
               value={sessionType}
               onChange={(e) => setSessionType(e.target.value)}
             />
           </div>
           <div className={styles.fieldFull}>
-            <label>Notes</label>
+            <label>Ghi chú</label>
             <textarea
-              placeholder="Additional notes about this session..."
+              placeholder="Ghi chú thêm về phiên này..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -651,7 +651,7 @@ export default function CreateSessionModal({
             onClick={handleSubmit}
             disabled={saving || disabled}
           >
-            {saving ? "Creating..." : "Create Session"}
+            {saving ? "Đang tạo..." : "Tạo Phiên"}
           </button>
         </div>
       </div>

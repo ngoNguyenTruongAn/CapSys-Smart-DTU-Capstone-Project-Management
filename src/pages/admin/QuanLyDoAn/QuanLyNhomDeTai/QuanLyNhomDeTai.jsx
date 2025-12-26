@@ -9,7 +9,7 @@ import {
   fetchStudentsNotInTeam,
 } from "../../../../store/teamSlice";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { faArrowLeft, faUser, faUserGroup, faUserTie } from "@fortawesome/free-solid-svg-icons";
 
 const QuanLyNhomDeTai = () => {
   const navigate = useNavigate();
@@ -103,19 +103,19 @@ const QuanLyNhomDeTai = () => {
           end
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          👥 Sinh viên ({studentsNotInTeam?.length || 0})
+          <FontAwesomeIcon icon={faUser} /> Sinh viên ({studentsNotInTeam?.length || 0})
         </NavLink>
         <NavLink
           to="nhom"
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          🏢 Nhóm ({totalTeamsCount})
+          <FontAwesomeIcon icon={faUserGroup} /> Nhóm ({totalTeamsCount})
         </NavLink>
         <NavLink
           to="mentor"
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          👨‍🏫 Giảng viên
+          <FontAwesomeIcon icon={faUserTie} /> Giảng viên
         </NavLink>
       </div>
 

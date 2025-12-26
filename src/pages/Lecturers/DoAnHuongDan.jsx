@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import "../admin/QuanLyDoAn/QuanLyDoAn.scss";
 import FilterSelect from "../../components/ui/FilterSelect";
+import Toasts from "../../components/ui/Toasts";
 import {
   deleteTeam as deleteTeamAction,
   fetchAllTeams,
@@ -17,6 +18,7 @@ import MoveStudentModal from "../admin/QuanLyDoAn/Action/MoveStudentModal";
 import SwapStudentModal from "../admin/QuanLyDoAn/Action/SwapStudentModal";
 import { getLecturerProfileAPI } from "../../services/ProfileAPI";
 import { jwtDecode } from "jwt-decode";
+import useToast from "../../hooks/useToast";
 
 /**
  * Get accountId from JWT token
@@ -94,6 +96,15 @@ const DoAnHuongDan = () => {
   const [swapModal, setSwapModal] = useState(false);
   const [selectedTeamLeaderId, setSelectedTeamLeaderId] = useState(null);
   const [currentLecturerId, setCurrentLecturerId] = useState(null);
+  const {
+    toastErrors,
+    toastSuccess,
+    pushError,
+    showSuccess,
+    clearErrorAt,
+    clearErrors,
+    clearSuccess,
+  } = useToast();
 
   // Fetch current lecturer ID on mount
   useEffect(() => {
@@ -185,13 +196,13 @@ const DoAnHuongDan = () => {
       try {
         await dispatch(deleteTeamAction(teamId)).unwrap();
         await fetchProjects();
-        alert("Xóa nhóm thành công!");
+        showSuccess("Xóa nhóm thành công!");
       } catch (error) {
         console.error("Delete team error:", error);
-        alert("Xóa nhóm thất bại: " + error.message);
+        pushError("Xóa nhóm thất bại: " + (error?.message || "Không xác định"));
       }
     },
-    [dispatch, fetchProjects]
+    [dispatch, fetchProjects, pushError, showSuccess]
   );
 
   // ---- react-table config ----
@@ -457,6 +468,13 @@ const DoAnHuongDan = () => {
         students={selectedTeamStudents}
         teams={projects}
         teamLeaderId={selectedTeamLeaderId}
+      />
+      <Toasts
+        errors={toastErrors}
+        onClearErrorAt={clearErrorAt}
+        onClearErrors={clearErrors}
+        successMessage={toastSuccess}
+        onClearSuccess={clearSuccess}
       />
     </div>
   );

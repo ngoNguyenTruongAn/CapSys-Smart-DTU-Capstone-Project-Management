@@ -7,7 +7,7 @@ const LoadingFullScreen = ({ message = "Đang tải..." }) => {
   return (
     <div className={styles.loadingFullScreen} style={{ color: "white" }}>
       <FontAwesomeIcon icon={faSpinner} spin size="3x" />
-      <span>{message}</span>
+      <span style={{color: "#A91B20"}}>{message}</span>
     </div>
   );
 };

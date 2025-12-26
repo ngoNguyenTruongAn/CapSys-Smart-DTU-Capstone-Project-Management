@@ -5,7 +5,7 @@ import { getAllLecturersAPI } from "../../../../services/LecturersAPI";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "../QuanLyHoiDong.scss";
 
-const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
+const CreateCommitteeModal = ({ show, setShow, onSuccess, onToastSuccess, onToastError }) => {
   const [formData, setFormData] = useState({
     committeeName: "",
     Chairman: "",
@@ -95,11 +95,12 @@ const CreateCommitteeModal = ({ show, setShow, onSuccess }) => {
         parseInt(formData.Chairman),
         members
       );
-      alert("Tạo hội đồng thành công");
+      if (onToastSuccess) onToastSuccess("Tạo hội đồng thành công");
       handleClose();
       if (onSuccess) onSuccess();
     } catch (err) {
       setError(err.message || "Lỗi khi tạo hội đồng");
+      if (onToastError) onToastError(err?.message || "Lỗi khi tạo hội đồng");
     } finally {
       setLoading(false);
     }
