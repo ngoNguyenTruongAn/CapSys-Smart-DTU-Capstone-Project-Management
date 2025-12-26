@@ -334,7 +334,19 @@ const GradingPage = () => {
     const dateValue = getSessionDateValue(session);
     if (!dateValue) return false;
     const parsed = new Date(dateValue);
-    return !Number.isNaN(parsed.getTime());
+    if (Number.isNaN(parsed.getTime())) return false;
+
+    // Ignore placeholder dates from backend defaults (e.g., 0001-01-01)
+    if (parsed.getFullYear() < 2000) return false;
+
+    const sessionType = pickFirstValue(session?.sessionType, session?.SessionType);
+    const hasSessionType =
+      typeof sessionType === "string" && sessionType.trim().length > 0;
+
+    const createdBy = pickFirstValue(session?.createdBy, session?.CreatedBy);
+    const hasCreator = Number.isFinite(Number(createdBy)) && Number(createdBy) > 0;
+
+    return hasSessionType && hasCreator;
   };
 
   const getCommitteeIdFromSessions = (sessionsArr = []) => {

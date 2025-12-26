@@ -101,13 +101,13 @@ const QuanLyNhomDeTai = () => {
           end
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          <FontAwesomeIcon icon={faUser} /> Sinh viên ({studentsNotInTeam?.length || 0})
+          <FontAwesomeIcon icon={faUser} /> Sinh viên ({fetchStudentsNotInTeam?.length || 0})
         </NavLink>
         <NavLink
           to="nhom"
           className={({ isActive }) => `tab-btn ${isActive ? "active" : ""}`}
         >
-          <FontAwesomeIcon icon={faUserGroup} /> Nhóm ({totalTeamsCount})
+          <FontAwesomeIcon icon={faUserGroup} /> Nhóm ({fetchAllTeams?.length || 0})
         </NavLink>
         <NavLink
           to="mentor"
