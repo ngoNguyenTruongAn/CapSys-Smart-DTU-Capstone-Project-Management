@@ -4,26 +4,20 @@ import GradingAPI from "../../services/GradingAPI";
 import LoadingFullScreen from "../ui/LoadingFullScreen";
 
 const TIME_SLOTS = [
-  "08:00",
-  "08:30",
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "13:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
+  "08:00", "08:30",
+  "09:00", "09:30",
+  "10:00", "10:30",
+  "11:00", "11:30",
+  "12:00", "12:30",
+  "13:00", "13:30",
+  "14:00", "14:30",
+  "15:00", "15:30",
+  "16:00", "16:30",
+  "17:00", "17:30", 
+  "18:00", "18:30",
+  "19:00", "19:30",
+  "20:00", "20:30",
+  "21:00", "21:30",
 ];
 
 const WEEK_DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -68,11 +62,11 @@ const getClosestTimeSlot = () => {
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   for (const slot of TIME_SLOTS) {
-    if (toMinutes(slot) >= nowMinutes) {
+    if (toMinutes(slot) > nowMinutes) {
       return slot;
     }
   }
-  return TIME_SLOTS[TIME_SLOTS.length - 1];
+  return null; // Return null if no valid time slot is available
 };
 
 const getMonthStart = (date) =>
@@ -83,17 +77,27 @@ const buildCalendarDays = (monthDate) => {
   const offset = (monthStart.getDay() + 6) % 7;
   const totalCells = 42;
   const today = new Date();
+  const nowMinutes = today.getHours() * 60 + today.getMinutes();
+
   return Array.from({ length: totalCells }, (_, index) => {
     const date = new Date(
       monthStart.getFullYear(),
       monthStart.getMonth(),
       index - offset + 1
     );
+
+    const isCurrentMonth = date.getMonth() === monthStart.getMonth();
+    const isToday = isSameDay(date, today);
+    const isPastDay = date < today && !isToday;
+    const isUnavailableDay = isToday && !TIME_SLOTS.some((slot) => toMinutes(slot) > nowMinutes);
+
     return {
       date,
       label: date.getDate(),
-      isCurrentMonth: date.getMonth() === monthStart.getMonth(),
-      isToday: isSameDay(date, today),
+      isCurrentMonth,
+      isToday,
+      isPastDay,
+      isUnavailableDay,
       key: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
     };
   });
@@ -273,26 +277,14 @@ export default function CreateSessionModal({
     [currentMonth]
   );
   const selectionSummary = useMemo(() => {
-    if (selectedDay && selectedTime && selectedEndTime) {
-      return `${formatLongDate(selectedDay)} · ${formatTimeLabel(
-        selectedTime
-      )} - ${formatTimeLabel(selectedEndTime)}`;
-    }
-    if (selectedDay && selectedTime) {
-      return `${formatLongDate(selectedDay)} · ${formatTimeLabel(
-        selectedTime
-      )} - Chọn giờ kết thúc`;
-    }
-    if (sessionDate) {
-      const parsed = parseInputValue(sessionDate);
-      if (parsed) {
-        return `${formatLongDate(parsed.date)} · ${formatTimeLabel(
-          parsed.time
-        )}`;
-      }
-    }
-    return "Pick a date and time";
-  }, [selectedDay, selectedTime, selectedEndTime, sessionDate]);
+    if (!selectedDay || !selectedTime || !selectedEndTime) return "";
+
+    const formattedDay = formatLongDate(selectedDay);
+    const formattedStartTime = formatTimeLabel(selectedTime);
+    const formattedEndTime = formatTimeLabel(selectedEndTime);
+
+    return `${formattedDay} ${formattedStartTime} - ${formattedEndTime}`;
+  }, [selectedDay, selectedTime, selectedEndTime]);
 
   React.useEffect(() => {
     setTeamId(defaultTeamId ? String(defaultTeamId) : "");
@@ -344,21 +336,22 @@ export default function CreateSessionModal({
     return !teamId || !sessionType || !sessionDate || !selectedTime || !selectedEndTime;
   }, [teamId, sessionType, sessionDate, selectedTime, selectedEndTime]);
 
-  const setSessionDateFromPicker = (day, time) => {
-    if (!day || !time) return;
-    const normalizedDay = new Date(
-      day.getFullYear(),
-      day.getMonth(),
-      day.getDate()
-    );
-    const value = formatInputValue(normalizedDay, time);
-    skipSessionSyncRef.current = true;
-    setSessionDate(value);
-    setCurrentMonth(getMonthStart(normalizedDay));
+  const setSessionDateFromPicker = (day, time, endTime) => {
+    setSelectedDay(day);
+    setSelectedTime(time);
+    setSelectedEndTime(endTime);
+
+    const formattedValue = `${formatInputValue(day, time)}`;
+    setSessionDate(formattedValue);
   };
 
   const handleInputChange = (event) => {
-    setSessionDate(event.target.value);
+    const value = event.target.value;
+    const parsed = parseInputValue(value);
+    if (!parsed || !parsed.date || !parsed.time) return;
+
+    setSelectedDay(parsed.date);
+    setSelectedTime(parsed.time);
   };
 
   const handleInputFocus = () => {
@@ -377,17 +370,27 @@ export default function CreateSessionModal({
   };
 
   const handleDaySelect = (day) => {
+    const today = new Date();
     const normalizedDay = new Date(
       day.getFullYear(),
       day.getMonth(),
       day.getDate()
     );
-    const nextTime = selectedTime || getClosestTimeSlot();
-    setSelectedDay(normalizedDay);
-    if (!selectedTime) {
+
+    const nextTime = getClosestTimeSlot();
+
+    if (!nextTime) {
+      // If no valid time slot is available, move to the next day
+      const nextDay = new Date(today);
+      nextDay.setDate(today.getDate() + 1);
+      setSelectedDay(nextDay);
+      setSelectedTime(TIME_SLOTS[0]); // Start from the first slot of the next day
+      setSessionDateFromPicker(nextDay, TIME_SLOTS[0]);
+    } else {
+      setSelectedDay(normalizedDay);
       setSelectedTime(nextTime);
+      setSessionDateFromPicker(normalizedDay, nextTime);
     }
-    setSessionDateFromPicker(normalizedDay, nextTime);
   };
 
   const handleTimeSelect = (slot) => {
@@ -397,10 +400,16 @@ export default function CreateSessionModal({
       baseDay.getMonth(),
       baseDay.getDate()
     );
+
     setSelectedDay(normalizedDay);
     setSelectedTime(slot);
     setSessionDateFromPicker(normalizedDay, slot);
-    setIsPickerOpen(false);
+    // Keep the picker open for selecting end time
+  };
+
+  const handleEndTimeSelect = (slot) => {
+    setSelectedEndTime(slot);
+    setIsPickerOpen(false); // Close the picker after selecting end time
   };
 
   const goToPreviousMonth = () => {
@@ -595,12 +604,12 @@ export default function CreateSessionModal({
                       </div>
                       <div className={styles.calendarGrid}>
                         {calendarDays.map((day) => {
-                          const isSelected =
-                            selectedDay && isSameDay(day.date, selectedDay);
+                          const isSelected = selectedDay && isSameDay(day.date, selectedDay);
                           const dayClassNames = [
                             styles.calendarDay,
                             !day.isCurrentMonth ? styles.calendarDayMuted : "",
                             isSelected ? styles.calendarDaySelected : "",
+                            day.isPastDay || day.isUnavailableDay ? styles.calendarDayDisabled : "", // Apply disabled style
                           ]
                             .filter(Boolean)
                             .join(" ");
@@ -611,6 +620,7 @@ export default function CreateSessionModal({
                               className={dayClassNames}
                               onClick={() => handleDaySelect(day.date)}
                               aria-label={formatLongDate(day.date)}
+                              disabled={day.isPastDay || day.isUnavailableDay} // Disable interaction
                             >
                               {day.label}
                               {day.isToday ? (
@@ -625,6 +635,11 @@ export default function CreateSessionModal({
                       <div className={styles.timeColumnTitle}>Giờ bắt đầu</div>
                       <div className={styles.timeList}>
                         {TIME_SLOTS.map((slot) => {
+                          const now = new Date();
+                          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+                          const isToday = selectedDay && isSameDay(selectedDay, now);
+                          const isPastTime = isToday && toMinutes(slot) < currentMinutes; // Check if the time slot is in the past
+
                           const isSelected = slot === selectedTime;
                           const slotClassNames = [
                             styles.timeSlot,
@@ -632,6 +647,7 @@ export default function CreateSessionModal({
                           ]
                             .filter(Boolean)
                             .join(" ");
+
                           return (
                             <button
                               type="button"
@@ -662,10 +678,7 @@ export default function CreateSessionModal({
                               type="button"
                               key={`end-${slot}`}
                               className={slotClassNames}
-                              onClick={() => {
-                                setSelectedEndTime(slot);
-                                setIsPickerOpen(false);
-                              }}
+                              onClick={() => handleEndTimeSelect(slot)}
                               aria-pressed={isSelected}
                             >
                               {formatTimeLabel(slot)}
