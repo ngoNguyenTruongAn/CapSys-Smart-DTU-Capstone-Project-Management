@@ -281,6 +281,16 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
   box-shadow: 0 8px 18px rgba(148, 7, 13, 0.4);
 }
 
+.timeSlotDisabled {
+  color: #c7c9d9;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.timeSlotDisabled:hover {
+  background: transparent;
+}
+
 .dateSummary {
   margin-top: 8px;
   font-size: 12px;
@@ -354,6 +364,12 @@ textarea {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.calendarDayDisabled {
+  color: #c7c9d9;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 
