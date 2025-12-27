@@ -972,9 +972,12 @@ const GradingPage = () => {
     setPrefillCommitteeId(null);
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
     setSearchParams({});
+    setSelectedGroup(null);
     setError("");
+    // Reload groups to get updated grading status
+    await loadGroups();
   };
 
   /**
@@ -1051,6 +1054,7 @@ const GradingPage = () => {
             group={selectedGroup}
             sessionId={selectedGroup.sessionId}
             onBack={handleBack}
+            onGradeSaved={loadGroups}
           />
         </div>
       </div>

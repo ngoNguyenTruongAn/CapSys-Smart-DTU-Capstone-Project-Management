@@ -803,6 +803,7 @@ export default function GradingDetailPage({
   teamId,
   sessionId: propSessionId,
   onBack,
+  onGradeSaved,
 }) {
   const resolvedSessionId =
     propSessionId ??
@@ -962,16 +963,55 @@ export default function GradingDetailPage({
       const form = forms[student.studentId];
       const formContribution = form?.contributionPercentage ?? "";
 
-      // Get contribution from grade or form
-      const contribution = grade?.contributionPercentage ?? formContribution;
+      // Get contribution from form (prioritize current input) or grade
+      const contribution = formContribution || grade?.contributionPercentage;
 
-      // Calculate finalScore from current grades
+      // Calculate finalScore from CURRENT form inputs (real-time calculation)
       let finalScore = null;
-      if (
+      
+      // Build criteriaGrades array from current form state
+      const currentCriteriaGrades = [];
+      
+      criteriaForScoring.forEach((criterion) => {
+        const criteriaId = criterion.criteriaId;
+        let score = null;
+        
+        // Check if this is a team-scope criterion
+        if (criterion.scope !== CRITERION_SCOPE.PERSONAL) {
+          // Use team score
+          const teamScoreValue = teamScores[criteriaId];
+          if (hasNumericValue(teamScoreValue)) {
+            score = Number(teamScoreValue);
+          }
+        } else {
+          // Use individual score from form
+          const individualScore = form?.scores?.[criteriaId];
+          if (hasNumericValue(individualScore)) {
+            score = Number(individualScore);
+          }
+        }
+        
+        if (score !== null) {
+          currentCriteriaGrades.push({
+            criteriaId,
+            score,
+            weight: criterion.weight
+          });
+        }
+      });
+      
+      // Calculate final score if we have scores and contribution
+      if (currentCriteriaGrades.length > 0 && contribution && !isNaN(contribution)) {
+        finalScore = calculateFinalScore(
+          currentCriteriaGrades,
+          Number(contribution)
+        );
+      } else if (
         grade?.criteriaGrades?.length &&
         contribution &&
         !isNaN(contribution)
       ) {
+        // Fallback to saved grades if no current input
         finalScore = calculateFinalScore(
           grade.criteriaGrades,
           Number(contribution)
@@ -988,7 +1028,7 @@ export default function GradingDetailPage({
         contributionPercentage: contribution,
       };
     });
-  }, [students, gradeLookup, forms, calculateFinalScore]);
+  }, [students, gradeLookup, forms, teamScores, criteriaForScoring, calculateFinalScore]);
 
   const prepareSessionDetail = useCallback(
     async (rawSession) => {
@@ -1775,6 +1815,11 @@ export default function GradingDetailPage({
       }
       await refreshData();
       setSuccessMessage("Đã lưu điểm cho toàn bộ nhóm thành công.");
+      
+      // Notify parent component that grades have been saved
+      if (typeof onGradeSaved === "function") {
+        onGradeSaved();
+      }
     } catch (err) {
       const message =
         err?.message || "Không thể lưu điểm. Vui lòng thử lại sau.";
