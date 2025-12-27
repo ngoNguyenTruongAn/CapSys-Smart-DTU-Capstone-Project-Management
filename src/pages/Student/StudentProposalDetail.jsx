@@ -140,8 +140,15 @@ function StudentProposalDetail() {
   }, [proposal?.id, proposal?.aiAbstract, proposal?.AiAbstract, summarizeProposal]);
 
   const handleOpenModal = () => setShowModal(true);
-  const handleCloseModal = () => setShowModal(false);
-  const handleSuccess = () => loadData();
+  const handleCloseModal = () => {
+    setShowModal(false);
+    // Reload dữ liệu khi modal đóng
+    loadData();
+  };
+  const handleSuccess = () => {
+    // onSuccess từ modal cũng gọi loadData
+    loadData();
+  };
 
   if (loading) return (
     <div className={styles.loadingFullScreen} style={{ color: "#333" }}>

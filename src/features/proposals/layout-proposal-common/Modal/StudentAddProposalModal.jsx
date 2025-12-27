@@ -38,7 +38,7 @@ export default function StudentAddProposalModal({ isOpen, onClose, teamInfo, onS
       pushError("Vui lòng chọn file PDF");
       return;
     }
-    if (!teamContext?.mentorName || teamContext.mentorName.trim() === "") {
+    if (!teamInfo?.mentorName || teamInfo.mentorName.trim() === "") {
       pushError("Nhóm này chưa có Mentor (GVHD). Vui lòng có Mentor trước khi tạo đề tài.");
       return;
     }
@@ -52,8 +52,15 @@ export default function StudentAddProposalModal({ isOpen, onClose, teamInfo, onS
       await uploadStudentProposalAPI(fd);
 
       showSuccess("Đăng ký đề tài thành công!");
-      if (onSuccess) onSuccess();
-      onClose();
+      
+      // Delay closing modal để user có thể thấy success message
+      setTimeout(() => {
+        if (onSuccess) onSuccess();
+        onClose();
+        // Clear form
+        setTitle("");
+        setFile(null);
+      }, 800);
     } catch (err) {
       pushError("Lỗi: " + (err?.message || "Không xác định"));
     } finally {
