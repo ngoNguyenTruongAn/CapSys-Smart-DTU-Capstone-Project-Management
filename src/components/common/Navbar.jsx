@@ -47,7 +47,7 @@ const Navbar = () => {
       {
         root: null, // viewport
         threshold: 0, // Kích hoạt ngay khi bắt đầu rời viewport
-        rootMargin: '0px'
+        rootMargin: "0px",
       }
     );
 
@@ -153,15 +153,6 @@ const Navbar = () => {
       </li>
       <li>
         <NavLink
-          to="quan-ly-do-an"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
-          <NotebookIcon className="menu-icon" />
-          Quản lý đồ án
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
           to="quan-ly-tai-khoan"
           className={({ isActive }) => (isActive ? "active" : "")}
         >
@@ -171,11 +162,31 @@ const Navbar = () => {
       </li>
       <li>
         <NavLink
+          to="quan-ly-do-an"
+          className={({ isActive }) => (isActive ? "active" : "")}
+        >
+          <NotebookIcon className="menu-icon" />
+          Quản lý đồ án
+        </NavLink>
+      </li>
+
+      <li>
+        <NavLink
           to="/proposals"
           className={({ isActive }) => (isActive ? "active" : "")}
         >
           <Proposal className="menu-icon" />
           Quản lý Proposals
+        </NavLink>
+      </li>
+
+      <li>
+        <NavLink
+          to="quan-ly-hoi-dong"
+          className={({ isActive }) => (isActive ? "active" : "")}
+        >
+          <CalendarIcon className="menu-icon" />
+          Quản lý hội đồng
         </NavLink>
       </li>
       <li>
@@ -185,15 +196,6 @@ const Navbar = () => {
         >
           <StarIcon className="menu-icon" />
           Chấm điểm
-        </NavLink>
-      </li>
-      <li>
-        <NavLink
-          to="quan-ly-hoi-dong"
-          className={({ isActive }) => (isActive ? "active" : "")}
-        >
-          <CalendarIcon className="menu-icon" />
-          Quản lý hội đồng
         </NavLink>
       </li>
     </>
@@ -325,7 +327,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      <div className={`nav-bottom ${isScrolled ? 'nav-bottom--sticky' : ''}`}>
+      <div className={`nav-bottom ${isScrolled ? "nav-bottom--sticky" : ""}`}>
         <ul className="navbar__menu">
           {renderMenuItems()}
           <li onClick={handleLogout}>
@@ -334,7 +336,7 @@ const Navbar = () => {
           </li>
         </ul>
       </div>
-      
+
       {/* Spacer để tránh content nhảy khi nav-bottom trở thành fixed */}
       {isScrolled && <div className="nav-bottom-spacer" />}
 

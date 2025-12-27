@@ -16,7 +16,7 @@ const RegisterStudent = ({ show, setShow }) => {
     password: "",
     fullName: "",
     studentCode: "",
-    faculty: "",
+    faculty: "Khoa Đào Tạo Quốc Tế",
     major: "",
     phone: "",
     capstoneType: "",
@@ -34,11 +34,26 @@ const RegisterStudent = ({ show, setShow }) => {
   };
 
   const validateForm = () => {
-    const { email, password, fullName, studentCode, phone, capstoneType, gpa } =
-      formData;
+    const {
+      email,
+      password,
+      fullName,
+      studentCode,
+      phone,
+      capstoneType,
+      gpa,
+      major,
+    } = formData;
 
     // Kiểm tra điền đủ dữ liệu bắt buộc
-    if (!email || !password || !fullName || !studentCode || !capstoneType) {
+    if (
+      !email ||
+      !password ||
+      !fullName ||
+      !studentCode ||
+      !capstoneType ||
+      !major
+    ) {
       pushError("Vui lòng điền đầy đủ thông tin bắt buộc!");
       return false;
     }
@@ -65,11 +80,9 @@ const RegisterStudent = ({ show, setShow }) => {
 
     // Validate số điện thoại nếu có nhập
     if (phone) {
-      const phoneRegex = /^0\d{9,10}$/;
+      const phoneRegex = /^0\d{9}$/;
       if (!phoneRegex.test(phone)) {
-        pushError(
-          "Số điện thoại không hợp lệ! Phải 10-11 số và bắt đầu bằng 0 (VD: 0912345678)"
-        );
+        pushError("Số điện thoại không hợp lệ! Phải 10 số và bắt đầu bằng 0 ");
         return false;
       }
     }
@@ -188,23 +201,24 @@ const RegisterStudent = ({ show, setShow }) => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Khoa</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="faculty"
-                  value={formData.faculty}
-                  onChange={handleChange}
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
                 <Form.Label>Chuyên ngành</Form.Label>
-                <Form.Control
+                <Form.Select
                   type="text"
                   name="major"
                   value={formData.major}
                   onChange={handleChange}
-                />
+                >
+                  <option value="">-- Chọn chuyên ngành --</option>
+                  <option value="Software Engineering">
+                    Software Engineering
+                  </option>
+                  <option value="Information Security">
+                    Information Security
+                  </option>
+                  <option value="Management Information System">
+                    Management Information System
+                  </option>
+                </Form.Select>
               </Form.Group>
 
               <Form.Group className="mb-3">
