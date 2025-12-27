@@ -370,9 +370,10 @@ const GradingPage = () => {
    * @param {Object} team - Team data
    * @param {Object} gradingStatusByRole - Role-based grading status
    * @param {number} currentLecturerId - Current lecturer's ID
+   * @param {boolean} isInCommittee - Whether current lecturer is in the committee
    * @returns {Object} Group object
    */
-  const transformToGroup = (session, proposal, team, gradingStatus = null, currentLecturerId = null) => {
+  const transformToGroup = (session, proposal, team, gradingStatus = null, currentLecturerId = null, isInCommittee = false) => {
     // Use only frontend-calculated grading status, ignore backend session.status
     const status = mapSessionStatus(gradingStatus);
 
@@ -457,6 +458,22 @@ const GradingPage = () => {
       team?.CommitteeId
     );
 
+    // Lấy sessionDate, startTime, endTime để check xem đã set lịch chưa
+    const sessionDate = pickFirstValue(
+      session?.sessionDate,
+      session?.SessionDate
+    );
+
+    const startTime = pickFirstValue(
+      session?.startTime,
+      session?.StartTime
+    );
+
+    const endTime = pickFirstValue(
+      session?.endTime,
+      session?.EndTime
+    );
+
     return {
       id: sessionIdentifier
         ? `session-${sessionIdentifier}`
@@ -472,8 +489,12 @@ const GradingPage = () => {
       proposalId: proposal?.id || proposal?.proposalId,
       projectId: toNumberOrNull(derivedProjectId),
       committeeId: toNumberOrNull(derivedCommitteeId),
+      sessionDate: sessionDate,
+      startTime: startTime,
+      endTime: endTime,
       gradingStatusByRole: gradingStatus,
       currentLecturerId: currentLecturerId,
+      isInCommittee: isInCommittee,
     };
   };
 
@@ -737,13 +758,22 @@ const GradingPage = () => {
             CommitteeId: fallbackCommitteeId ?? teamData?.CommitteeId,
           };
 
+          // Check if current lecturer is in this team's committee
+          const teamCommitteeId = pickFirstValue(
+            fallbackCommitteeId,
+            teamData?.committeeId,
+            teamData?.CommitteeId
+          );
+          const isInThisTeamCommittee = teamCommitteeId && lecturerCommitteeIds.has(teamCommitteeId);
+
           if (validTeamSessions.length === 0) {
             return transformToGroup(
               null,
               proposal,
               teamDataWithCommittee,
               null,
-              currentLecturerId
+              currentLecturerId,
+              isInThisTeamCommittee
             );
           }
 
@@ -799,12 +829,21 @@ const GradingPage = () => {
               evaluatorProgress: gradingStatus?.evaluatorProgress || [],
             };
             
+            // Check if current lecturer is in this session's committee
+            const sessionCommitteeId = pickFirstValue(
+              session?.committeeId,
+              session?.CommitteeId,
+              session?.committee?.committeeId
+            );
+            const isInSessionCommittee = sessionCommitteeId && lecturerCommitteeIds.has(sessionCommitteeId);
+            
             return transformToGroup(
               session,
               proposal,
               resolveTeamContext(session, teamData),
               gradingStatusForCard,
-              currentLecturerId
+              currentLecturerId,
+              isInSessionCommittee
             );
           });
           
@@ -896,25 +935,34 @@ const GradingPage = () => {
   };
 
   const handleStartGrading = (group) => {
-    // Only allow grading if there's a sessionId
-    if (!group.sessionId) {
-      // Lecturer: Cho phép chấm điểm mà không cần Session (điểm Mentor)
+    // Kiểm tra xem đã có đầy đủ SessionDate, StartTime, EndTime chưa
+    const hasSessionSchedule = group?.sessionDate && 
+                                group?.startTime && 
+                                group?.endTime &&
+                                new Date(group.sessionDate).getFullYear() >= 2000; // Bỏ qua DateTime.MinValue
+
+    // Nếu chưa có lịch chấm điểm (chưa set SessionDate/StartTime/EndTime)
+    if (!hasSessionSchedule) {
+      // Lecturer: Không cho phép chấm nếu chưa có lịch
       if (!isAdmin) {
-        // Vào trang chấm điểm với teamId thay vì sessionId
-        setSelectedGroup({
-          ...group,
-          sessionId: null, // Không có session - Lecturer chấm điểm Mentor
-        });
+        // Trường hợp này đã được xử lý ở GroupCard - hiển thị message
         return;
       }
-      // Admin: Mở popup tạo phiên chấm với team id được điền sẵn
+      // Admin: Mở popup để set lịch chấm điểm
       setPrefillTeamId(group.teamId || null);
       setPrefillProjectId(group.projectId || group.proposalId || null);
       setPrefillCommitteeId(group.committeeId || null);
       setShowCreateModal(true);
       return;
     }
-    setSearchParams({ sessionId: group.sessionId });
+
+    // Đã có đầy đủ lịch chấm điểm → vào trang chấm điểm
+    if (group.sessionId) {
+      setSearchParams({ sessionId: group.sessionId });
+    } else {
+      // Trường hợp không có sessionId nhưng có đủ thông tin (edge case)
+      setSelectedGroup(group);
+    }
   };
 
   const resetPrefillsAndCloseModal = () => {
@@ -1035,6 +1083,7 @@ const GradingPage = () => {
             defaultTeamId={prefillTeamId}
             defaultProjectId={prefillProjectId}
             defaultCommitteeId={prefillCommitteeId}
+            isCommitteeAssigned={!!prefillCommitteeId} // Nếu có committeeId, nghĩa là đã được assign
             onClose={resetPrefillsAndCloseModal}
             onCreated={async () => {
               resetPrefillsAndCloseModal();

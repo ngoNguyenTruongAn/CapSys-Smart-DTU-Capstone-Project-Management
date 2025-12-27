@@ -243,6 +243,7 @@ export default function CreateSessionModal({
   defaultTeamId,
   defaultCommitteeId,
   onCreated,
+  isCommitteeAssigned = false, // Nếu true, committeeId đã được assign từ trang quản lý hội đồng
 }) {
   const [committeeId, setCommitteeId] = useState("");
   const [teamId, setTeamId] = useState(
@@ -492,12 +493,21 @@ export default function CreateSessionModal({
 
         <div className={styles.grid}>
           <div className={styles.field}>
-            <label>ID Hội Đồng</label>
+            <label>
+              ID Hội Đồng
+              {isCommitteeAssigned && (
+                <span style={{ color: "#10b981", marginLeft: "8px", fontSize: "12px" }}>
+                  ✓ Đã phân công
+                </span>
+              )}
+            </label>
             <input
               type="number"
               placeholder="e.g. 1"
               value={committeeId}
               onChange={(e) => setCommitteeId(e.target.value)}
+              disabled={isCommitteeAssigned}
+              style={isCommitteeAssigned ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" } : {}}
             />
           </div>
           <div className={styles.field}>

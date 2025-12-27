@@ -87,11 +87,21 @@ const GroupCard = ({ group, team, project, members, score, mentor, status, onSta
   const isFullyGraded = gradingStatus?.isFullyGraded || false;
   const hasCurrentLecturerGraded = gradingStatus?.hasCurrentLecturerGraded || false;
   
+  // Kiểm tra xem session đã có đầy đủ thông tin SessionDate, StartTime, EndTime chưa
+  const hasSessionSchedule = group?.sessionDate && 
+                              group?.startTime && 
+                              group?.endTime &&
+                              new Date(group.sessionDate).getFullYear() >= 2000; // Bỏ qua DateTime.MinValue
+  
   // Debug logging to check button rendering logic
   console.log(`[GroupCard] Team: ${team}`, {
     isAdmin,
     isFullyGraded,
     hasCurrentLecturerGraded,
+    hasSessionSchedule,
+    sessionDate: group?.sessionDate,
+    startTime: group?.startTime,
+    endTime: group?.endTime,
     gradedLecturerIds: gradingStatus?.gradedLecturerIds,
     status,
     willShowStartGrading: !isFullyGraded && !isAdmin && !hasCurrentLecturerGraded
@@ -174,32 +184,69 @@ const GroupCard = ({ group, team, project, members, score, mentor, status, onSta
       </div>
       
       {/* 
-        Button logic (simplified - no role checking):
-        - If fully graded (all 3 committee members): Show "Xuất Excel" button (enabled for Admin only)
-        - If no session yet: Show "Bắt đầu chấm điểm" for Admin to create session
-        - For Admin when not fully graded but has session: Show "Xuất Excel" disabled
-        - For Lecturer who hasn't graded: Show "Bắt đầu chấm điểm" button
-        - For Lecturer who already graded: Show "Đã chấm điểm" disabled
+        Button logic:
+        - Admin:
+          * Nếu chưa có committee assigned → Hiển thị message yêu cầu phân công hội đồng
+          * Nếu đã có committee nhưng chưa set lịch (SessionDate/StartTime/EndTime) → "Bắt đầu chấm điểm" để mở popup set lịch
+          * Nếu đã set lịch và fully graded → "Xuất Excel" enabled
+          * Nếu đã set lịch nhưng chưa fully graded → "Xuất Excel" disabled
+        - Lecturer:
+          * Nếu chưa có session schedule → không hiển thị gì hoặc disabled
+          * Nếu đã graded → "Đã chấm điểm" disabled
+          * Nếu chưa graded → "Bắt đầu chấm điểm"
       */}
-      {isFullyGraded ? (
+      {!group?.committeeId ? (
+        // Chưa phân công hội đồng
+        <div 
+          className={styles.groupCard__message}
+          style={{ 
+            padding: '12px', 
+            backgroundColor: '#fef3c7', 
+            color: '#92400e', 
+            borderRadius: '8px', 
+            fontSize: '13px',
+            textAlign: 'center'
+          }}
+        >
+          Chưa phân công hội đồng
+        </div>
+      ) : !hasSessionSchedule ? (
+        // Đã có committee nhưng chưa set lịch
+        isAdmin ? (
+          <button 
+            className={styles.groupCard__actionBtn}
+            onClick={() => onStartGrading(group)}
+            title="Thiết lập lịch chấm điểm cho nhóm này"
+          >
+            Bắt đầu chấm điểm
+          </button>
+        ) : (
+          <div 
+            className={styles.groupCard__message}
+            style={{ 
+              padding: '12px', 
+              backgroundColor: '#fef3c7', 
+              color: '#92400e', 
+              borderRadius: '8px', 
+              fontSize: '13px',
+              textAlign: 'center'
+            }}
+          >
+            Chưa có lịch chấm điểm
+          </div>
+        )
+      ) : isFullyGraded ? (
+        // Đã set lịch và fully graded - Admin hoặc thành viên hội đồng có thể xuất Excel
         <button 
-          className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnExcel} ${!isAdmin ? styles.groupCard__actionBtnDisabled : ''}`}
-          onClick={() => isAdmin && onExportExcel && onExportExcel(group)}
-          disabled={!isAdmin}
-          title={!isAdmin ? 'Chỉ Admin mới có quyền xuất Excel' : 'Xuất file Excel - Đã đủ điểm từ hội đồng'}
+          className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnExcel} ${(!isAdmin && !group?.isInCommittee) ? styles.groupCard__actionBtnDisabled : ''}`}
+          onClick={() => (isAdmin || group?.isInCommittee) && onExportExcel && onExportExcel(group)}
+          disabled={!isAdmin && !group?.isInCommittee}
+          title={(isAdmin || group?.isInCommittee) ? 'Xuất file Excel - Đã đủ điểm từ hội đồng' : 'Bạn không phải thành viên hội đồng này'}
         >
           Xuất Excel
         </button>
-      ) : isAdmin && !group?.sessionId ? (
-        // Admin with team that has no grading session yet - show button to create session
-        <button 
-          className={styles.groupCard__actionBtn}
-          onClick={() => onStartGrading(group)}
-        >
-          Bắt đầu chấm điểm
-        </button>
       ) : isAdmin ? (
-        // Admin with team that has a session but not fully graded - show disabled Excel button
+        // Admin - Đã set lịch nhưng chưa fully graded
         <button 
           className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnExcel} ${styles.groupCard__actionBtnDisabled}`}
           disabled={true}
@@ -208,7 +255,7 @@ const GroupCard = ({ group, team, project, members, score, mentor, status, onSta
           Xuất Excel
         </button>
       ) : hasCurrentLecturerGraded ? (
-        // Lecturer who already graded - show disabled button
+        // Lecturer đã chấm
         <button 
           className={`${styles.groupCard__actionBtn} ${styles.groupCard__actionBtnDisabled}`}
           disabled={true}
@@ -217,7 +264,7 @@ const GroupCard = ({ group, team, project, members, score, mentor, status, onSta
           Đã chấm điểm
         </button>
       ) : (
-        // Lecturer who hasn't graded yet - show start grading button
+        // Lecturer chưa chấm
         <button 
           className={styles.groupCard__actionBtn}
           onClick={() => onStartGrading(group)}
